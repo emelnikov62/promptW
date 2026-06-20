@@ -582,7 +582,7 @@ async def api_get_models(request: web.Request):
 # ── Text chat via OpenRouter ──
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 CHAT_MODELS = {
-    "ChatGPT": "openai/gpt-5.5",
+    "ChatGPT": "openai/gpt-5.3",
     "Gemini": "google/gemini-3.5-flash",
     "Grok": "x-ai/grok-4.3",
 }

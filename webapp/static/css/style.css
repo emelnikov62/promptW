@@ -569,16 +569,12 @@ body.noscroll{overflow:hidden}
 .page-intro{color:var(--tx2);font-size:14px;margin:2px 0 18px}
 /* fullscreen safe-area: push header below Telegram floating controls */
 .header{padding-top:calc(12px + var(--tg-top,0px))}
-/* desktop: constrain to a phone-width centered column instead of stretching */
+/* desktop: keep full width, no narrow column */
 @media (min-width:600px){
-    body{background:#000}
-    #app{max-width:480px;margin:0 auto;min-height:100vh;background:var(--bg);border-left:1px solid var(--brd);border-right:1px solid var(--brd)}
-    .bnav{left:50%;transform:translateX(-50%);width:100%;max-width:480px}
-    .chat-input-bar{left:50%;right:auto;transform:translateX(-50%);width:100%;max-width:480px}
-    #toast-wrap{left:50%;transform:translateX(-50%)}
+    #app{min-height:100vh}
 }
 /* toasts */
-#toast-wrap{position:fixed;left:0;right:0;bottom:calc(86px + env(safe-area-inset-bottom));width:100%;max-width:480px;margin:0 auto;padding:0 16px;z-index:300;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+#toast-wrap{position:fixed;left:0;right:0;bottom:calc(86px + env(safe-area-inset-bottom));width:100%;margin:0 auto;padding:0 16px;z-index:300;display:flex;flex-direction:column;gap:8px;pointer-events:none}
 .toast{display:flex;align-items:flex-start;gap:10px;background:var(--card2);border:1px solid var(--brd);border-left:3px solid var(--violet);border-radius:12px;padding:12px 14px;color:var(--tx);font-size:14px;line-height:1.4;box-shadow:0 10px 34px rgba(0,0,0,.45);transform:translateY(14px);opacity:0;transition:transform .26s cubic-bezier(.22,1,.36,1),opacity .26s;pointer-events:auto}
 .toast.show{transform:translateY(0);opacity:1}
 .toast.success{border-left-color:var(--success)}.toast.success .toast-ico{color:var(--success)}
