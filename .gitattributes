@@ -1,0 +1,13 @@
+# Normalize line endings across OSes (Windows ⇄ macOS/Linux) to avoid noisy diffs.
+* text=auto eol=lf
+
+# Treat media/assets as binary (no EOL conversion, no diff).
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.mp4 binary
+*.mp3 binary
+*.wav binary
+*.ico binary

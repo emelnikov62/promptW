@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>PromptW</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css?v=76">
+</head>
+<body>
+<div id="app">
+
+    <header class="header" id="main-header">
+        <div class="header-left">
+            <button class="icon-btn hidden" id="back-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <div class="header-brand">Prompt<span class="grad-tx">W</span></div>
+        </div>
+        <div class="header-actions">
+            <button class="hicon" id="rewards-btn-h" data-nav="rewards" title="Награды"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg><span class="dot-badge"></span></button>
+            <div class="balance-chip"><span class="coin">W</span><span id="balance-count" class="user-balance">0</span></div>
+            <button class="topup-btn" id="topup-btn-h" data-i18n="topup">+ Пополнить</button>
+        </div>
+    </header>
+
+    <main class="content">
+
+    <!-- HOME -->
+    <section id="page-home" class="page active">
+        <div class="hero-banner">
+            <div class="hero-glow"></div>
+            <div class="hero-mark"><svg width="44" height="44" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1.5l2.4 6.1 6.6.3-5.1 4.2 1.8 6.4L12 15.9 6.3 18.5l1.8-6.4L3 7.9l6.6-.3z"/></svg></div>
+            <span class="hero-label" data-i18n="heroLabel">СОЗДАВАЙТЕ ФОТО И ВИДЕО С ПОМОЩЬЮ НЕЙРОСЕТИ</span>
+            <h2><span data-i18n="heroTitlePre">Добро пожаловать в</span> <span class="grad-tx">PromptW</span></h2>
+            <div class="hero-dots"><span class="dot on"></span><span class="dot"></span><span class="dot"></span></div>
+        </div>
+        <div class="sec">
+            <h3 class="sec-title"><i class="bar"></i><span data-i18n="getStarted">С чего начать</span></h3>
+            <div class="acard" data-nav="create">
+                <div class="acard-ico gold-bg"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0A0A12" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+                <div class="acard-body"><span class="acard-badge" data-i18n="easiest">ПРОЩЕ ВСЕГО</span><span class="acard-name" data-i18n="byTemplate">По шаблону</span><span class="acard-desc" data-i18n="byTemplateDesc">Выберите готовый и загрузите фото</span></div>
+                <svg class="acard-arr" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+            <div class="acard" data-nav="create">
+                <div class="acard-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
+                <div class="acard-body"><span class="acard-name" data-i18n="fromScratch">С нуля</span><span class="acard-desc" data-i18n="fromScratchDesc">Свой промпт и выбор нейросети</span></div>
+                <svg class="acard-arr" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+        </div>
+        <div class="sec">
+            <h3 class="sec-title"><i class="bar"></i><span data-i18n="trends">Тренды</span></h3>
+            <div class="trends-grid">
+                <div class="trend-t has-media" data-tpl="birthday-photo"><img class="trend-media" src="/static/tpl/birthday-photo.jpg" alt=""><span class="trend-badge trend-badge-ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span><span class="trend-cap" data-i18n="trendBdayPhoto">С ДНЁМ РОЖДЕНИЯ ФОТО</span></div>
+                <div class="trend-t has-media" data-tpl="birthday-video"><video class="trend-media" src="/static/tpl/birthday-video.mp4?v=2" autoplay muted loop playsinline preload="metadata"></video><span class="trend-badge trend-badge-pill"><span class="pill-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7M19 12H5"/></svg></span><span data-i18n="trendNeedPhoto">Сначала создай фото</span></span><span class="trend-cap" data-i18n="trendBdayVideo">С ДНЁМ РОЖДЕНИЯ ВИДЕО</span></div>
+                <div class="trend-t has-media" data-tpl="yacht-photo"><img class="trend-media" src="/static/tpl/yacht-photo.jpg" alt=""><span class="trend-badge trend-badge-ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span><span class="trend-cap" data-i18n="trendYachtPhoto">НА ЯХТЕ ФОТО</span></div>
+                <div class="trend-t has-media" data-tpl="yacht-video"><video class="trend-media" src="/static/tpl/yacht-video.mp4" autoplay muted loop playsinline preload="metadata"></video><span class="trend-badge trend-badge-pill"><span class="pill-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7M19 12H5"/></svg></span><span data-i18n="trendNeedPhoto">Сначала создай фото</span></span><span class="trend-cap" data-i18n="trendYachtVideo">НА ЯХТЕ ВИДЕО</span></div>
+                <div class="trend-t"><span data-i18n="trendDance">ТАНЕЦ НА МИЛЛИОН</span></div>
+                <div class="trend-t"><span data-i18n="trendMakePhoto">СНАЧАЛА СДЕЛАЙ ФОТО</span></div>
+            </div>
+            <button class="btn-outline full" data-i18n="seeAll">Посмотреть все ↓</button>
+        </div>
+        <div class="sec">
+            <h3 class="sec-title"><i class="bar"></i><span data-i18n="templates">Шаблоны</span></h3>
+            <div class="tpl-cat"><div class="tpl-hdr"><span class="tpl-hdr-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><b data-i18n="girls">Девушки</b><span class="muted" data-i18n="tplCount">· шаблоны</span><span class="gold ml-auto" data-i18n="tplAll">все →</span></div><div class="tpl-scroll"><div class="tpl-thumb"></div><div class="tpl-thumb"></div><div class="tpl-thumb"></div><div class="tpl-thumb"></div></div></div>
+            <div class="tpl-cat"><div class="tpl-hdr"><span class="tpl-hdr-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><b data-i18n="kids">Дети</b><span class="muted" data-i18n="tplCount">· шаблоны</span><span class="gold ml-auto" data-i18n="tplAll">все →</span></div><div class="tpl-scroll"><div class="tpl-thumb"></div><div class="tpl-thumb"></div><div class="tpl-thumb"></div><div class="tpl-thumb"></div></div></div>
+            <div class="tpl-cat"><div class="tpl-hdr"><span class="tpl-hdr-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><b data-i18n="men">Мужчины</b><span class="muted" data-i18n="tplCount">· шаблоны</span><span class="gold ml-auto" data-i18n="tplAll">все →</span></div><div class="tpl-scroll"><div class="tpl-thumb"></div><div class="tpl-thumb"></div><div class="tpl-thumb"></div><div class="tpl-thumb"></div></div></div>
+        </div>
+    </section>
+
+    <!-- FEED -->
+    <section id="page-text" class="page">
+        <div class="chat-bar">
+            <button class="chat-ic" id="chat-dialogs" title="Диалоги"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="14" y2="18"/></svg></button>
+            <button class="chat-model" id="chat-model"><span id="chat-model-name">ChatGPT</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+            <button class="chat-ic" id="chat-new" title="Новый диалог"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+        </div>
+        <div id="chat-scroll" class="chat-scroll">
+            <div id="chat-empty" class="chat-empty">
+                <div class="chat-empty-ico"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z"/></svg></div>
+                <p class="chat-empty-t" data-i18n="chatEmptyTitle">Спросите что угодно</p>
+                <p class="chat-empty-s" data-i18n="chatEmptySub">Текстовые нейросети: ChatGPT и Gemini</p>
+            </div>
+            <div id="chat-list"></div>
+        </div>
+        <div class="chat-input-bar">
+            <textarea id="chat-input" class="chat-input" rows="1" placeholder="Сообщение…" data-i18n-placeholder="chatPlaceholder"></textarea>
+            <button class="chat-send" id="chat-send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+        </div>
+    </section>
+
+    <!-- CREATE -->
+    <section id="page-create" class="page">
+        <h2 class="pg-center" data-i18n="create">Создать</h2>
+        <div class="type-toggle seg3">
+            <span class="seg-ind"></span>
+            <button class="tbtn active" data-type="image" data-i18n="photo">ФОТО</button>
+            <button class="tbtn" data-type="video" data-i18n="video">ВИДЕО</button>
+            <button class="tbtn" data-type="audio" data-i18n="audio">АУДИО</button>
+        </div>
+
+        <!-- PHOTO -->
+        <div id="form-image" class="create-form">
+            <div class="ccard model-card">
+                <div class="model-row"><div class="model-ico" id="photo-model-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.6-3.6a2 2 0 0 0-2.8 0L6 21"/></svg></div><div class="model-info"><span class="model-lbl" data-i18n="activeModel">АКТИВНАЯ МОДЕЛЬ</span><span class="model-name" id="photo-model-name">NanoBanana PRO</span></div><button class="model-change" id="photo-model-btn" data-i18n="changeModel">Сменить ▾</button></div>
+                <div class="model-dropdown hidden" id="photo-model-dd"><div class="dd-item active" data-model="NanoBanana PRO">✓ NanoBanana PRO</div><div class="dd-item" data-model="GPT Image 2">GPT Image 2</div><div class="dd-item" data-model="NanoBanana 2">NanoBanana 2</div><div class="dd-item" data-model="Seedream 4.5">Seedream 4.5</div></div>
+            </div>
+            <div class="ccard">
+                <span class="up-title" data-i18n="uploadPhoto">Загрузить фото</span><span class="up-hint" data-i18n="uploadHint">До 8 фото</span>
+                <button class="ref-insert" id="ref-insert-btn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span data-i18n="useMyRef">Вставить мой референс</span></button>
+                <div class="up-area"><div class="up-btn"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div></div>
+                <span class="gold small" data-i18n="refHint">Как подобрать фото-референс?</span>
+            </div>
+            <div class="ccard">
+                <div class="set-row"><button class="set-col set-pick" data-sheet="p-ratio"><span class="set-lbl" data-i18n="aspectRatio">СООТНОШЕНИЕ СТОРОН</span><div class="set-ctrl"><span class="set-val" id="p-ratio">3:4</span><svg class="set-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div></button><div class="set-div"></div><button class="set-col set-pick" data-sheet="p-qual"><span class="set-lbl" data-i18n="quality">КАЧЕСТВО</span><div class="set-ctrl"><span class="set-val" id="p-qual">2K</span><svg class="set-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div></button></div>
+                <div class="cnt-sec"><span class="cnt-lbl" data-i18n="photosPerTime">Сколько фото за раз</span><div class="cnt-btns"><button class="cnt active" data-c="1">1</button><button class="cnt" data-c="2">2</button><button class="cnt" data-c="3">3</button><button class="cnt" data-c="4">4</button></div></div>
+                <div class="field"><textarea id="prompt-photo" class="field-area" rows="4" placeholder=" "></textarea><label class="field-label" for="prompt-photo" data-i18n="prompt">Промпт</label></div>
+                <span class="field-hint" data-i18n="promptPhotoPlc">Опиши, что должно быть на изображении.</span>
+            </div>
+            <div class="gen-bar"><button class="gen-btn" id="gen-photo"><span data-i18n="generate">+ Сгенерировать</span><div class="tok"><span class="coin">W</span><span id="photo-cost">30</span></div></button></div>
+        </div>
+
+        <!-- VIDEO -->
+        <div id="form-video" class="create-form hidden">
+            <div class="ccard model-card">
+                <div class="model-row"><div class="model-ico" id="video-model-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M7 3v18M17 3v18M2 9h5M2 15h5M17 9h5M17 15h5"/></svg></div><div class="model-info"><span class="model-lbl" data-i18n="activeModel">АКТИВНАЯ МОДЕЛЬ</span><span class="model-name" id="video-model-name">Kling 3.0</span></div><button class="model-change" id="video-model-btn" data-i18n="changeModel">Сменить ▾</button></div>
+                <div class="model-dropdown hidden" id="video-model-dd"><div class="dd-item active" data-model="Kling 3.0">✓ Kling 3.0</div><div class="dd-item" data-model="Veo 3.1 Fast">Veo 3.1 Fast</div><div class="dd-item" data-model="Seedance 2.0">Seedance 2.0</div><div class="dd-item" data-model="Kling Motion 3.0">Kling Motion 3.0</div><div class="dd-item" data-model="Grok Imagine 1.5">Grok Imagine 1.5</div></div>
+            </div>
+            <div id="video-settings"></div>
+            <div class="gen-bar"><button class="gen-btn" id="gen-video"><span data-i18n="generate">+ Сгенерировать</span><div class="tok"><span class="coin">W</span><span id="video-cost">120</span></div></button></div>
+        </div>
+
+        <!-- AUDIO -->
+        <div id="form-audio" class="create-form hidden">
+            <div class="ccard model-card">
+                <div class="model-row"><div class="model-ico" id="audio-model-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div><div class="model-info"><span class="model-lbl" data-i18n="activeModel">АКТИВНАЯ МОДЕЛЬ</span><span class="model-name" id="audio-model-name">Suno V5</span></div><button class="model-change" id="audio-model-btn" data-i18n="changeModel">Сменить ▾</button></div>
+                <div class="model-dropdown hidden" id="audio-model-dd"><div class="dd-item active" data-model="Suno V5">✓ Suno V5</div><div class="dd-item" data-model="Suno V4.5">Suno V4.5</div></div>
+            </div>
+            <div class="ccard">
+                <div class="field"><textarea id="prompt-audio" class="field-area" rows="4" placeholder=" "></textarea><label class="field-label" for="prompt-audio" data-i18n="prompt">Промпт</label></div>
+                <span class="field-hint" data-i18n="promptAudioPlc">Опишите музыку — стиль, жанр, настроение</span>
+            </div>
+            <div class="ccard">
+                <span class="prm-lbl" data-i18n="mode">Режим</span>
+                <div class="pill-row" id="audio-mode"><button class="pill active" data-v="simple" data-i18n="modeSimple">Простой</button><button class="pill" data-v="custom" data-i18n="modeCustom">Свой текст</button></div>
+                <div class="hidden" id="audio-lyrics-wrap"><span class="prm-lbl mt12" data-i18n="lyricsLabel">Текст песни</span><textarea id="audio-lyrics" rows="4" placeholder=" "></textarea></div>
+                <span class="prm-lbl mt12" data-i18n="content">Содержимое</span>
+                <div class="pill-row" id="audio-content"><button class="pill active" data-v="vocal" data-i18n="withVocal">С вокалом</button><button class="pill" data-v="instrumental" data-i18n="instrumental">Инструментал</button></div>
+            </div>
+            <div class="gen-bar"><button class="gen-btn" id="gen-audio"><span data-i18n="generate">+ Сгенерировать</span><div class="tok"><span class="coin">W</span><span id="audio-cost">35</span></div></button></div>
+        </div>
+    </section>
+
+    <!-- HISTORY -->
+    <section id="page-history" class="page"><h3 class="pg-title" data-i18n="history">История</h3><div id="history-list" class="gal-grid"><div class="empty-state"><div class="empty-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><p class="empty-title" data-i18n="historyEmpty">Пока ничего не сгенерировано</p></div></div></section>
+
+    <!-- GEN DETAIL -->
+    <section id="page-gen-detail" class="page sub"><div id="gen-detail-content"></div></section>
+
+    <section id="page-tpl-detail" class="page sub"><div id="tpl-detail-content"></div></section>
+
+    <!-- PROFILE -->
+    <section id="page-profile" class="page">
+        <div class="prof-head"><span class="sec-lbl" data-i18n="account">АККАУНТ</span><h2 data-i18n="profile">Профиль</h2><div class="prof-meta"><span class="prof-flag" id="lang-btn">🇷🇺 RU</span><span class="muted">ID <span id="prof-id">—</span></span></div></div>
+        <div class="lang-dropdown hidden" id="lang-dd"><div class="lang-item active" data-lang="ru">🇷🇺 Русский</div><div class="lang-item" data-lang="en">🇬🇧 English</div><div class="lang-item" data-lang="es">🇪🇸 Español</div></div>
+
+        <div class="sec"><span class="sec-lbl" data-i18n="balance">БАЛАНС</span><div class="bal-card"><div class="bal-left"><span class="coin lg">W</span><div><span class="bal-title" data-i18n="tokens">ТОКЕНЫ</span><span class="bal-amt user-balance" id="prof-bal">0</span></div></div><button class="topup-btn" id="topup-btn-p" data-i18n="topup">+ Пополнить</button></div></div>
+
+        <div class="sec"><span class="sec-lbl" data-i18n="actions">ДЕЙСТВИЯ</span><div class="act-grid">
+            <div class="act-tile" data-nav="support"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span data-i18n="support">Поддержка</span></div>
+            <div class="act-tile" data-nav="info"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span data-i18n="info">Инфо</span></div>
+            <div class="act-tile" data-nav="stats"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span data-i18n="stats">Статистика</span></div>
+        </div></div>
+
+        <div class="sec"><span class="sec-lbl" data-i18n="myRef">МОЙ РЕФЕРЕНС</span>
+            <p class="muted small mb12" data-i18n="myRefDesc">Подставляется в модели с фото одной кнопкой</p>
+            <div class="ref-lib" id="ref-lib"></div>
+            <p class="ref-lib-hint muted small mt4"><span data-i18n="myRefGuidePre">Не знаешь, какое фото подойдёт?</span> <a class="gold" id="ref-guide-link" data-i18n="myRefGuideLink">Гайд по референсу</a></p>
+        </div>
+
+        <div class="sec"><span class="sec-lbl" data-i18n="partnership">ПАРТНЁРСТВО</span><div class="partner-card">
+            <div class="partner-hdr"><span class="partner-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span><div class="partner-hdr-tx"><b data-i18n="partnerProgram">Партнёрская программа</b><span class="muted small block" data-i18n="partnerDesc">Зарабатывай с пополнений рефералов</span></div></div>
+            <div class="partner-stats">
+                <div class="pstat"><span class="pstat-pct grad-tx">30%</span><span class="pstat-l" data-i18n="line1">1 линия</span><span class="muted small" data-i18n="direct">прямые</span></div>
+                <div class="pstat"><span class="pstat-pct grad-tx">5%</span><span class="pstat-l" data-i18n="line2">2 линия</span><span class="muted small" data-i18n="passive">пассив</span></div>
+            </div>
+            <button class="gen-btn" data-nav="partner" data-i18n="partnerCabinet">Кабинет партнёра</button>
+        </div></div>
+    </section>
+
+    <!-- STATISTICS -->
+    <section id="page-stats" class="page sub">
+        <span class="sec-lbl" data-i18n="statsLabel">СТАТИСТИКА</span><h2 data-i18n="statsTitle">Пополнения и списания</h2>
+        <div class="period-tabs" id="period-tabs">
+            <button class="period-tab" data-period="week" data-i18n="periodWeek">Неделя</button>
+            <button class="period-tab active" data-period="month" data-i18n="periodMonth">Месяц</button>
+            <button class="period-tab" data-period="all" data-i18n="periodAll">Всё время</button>
+        </div>
+        <div class="stat-sum">
+            <div class="stat-box"><div class="stat-ic plus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg></div><div><span class="stat-k" data-i18n="statIn">Зачислено</span><span class="stat-v plus"><span id="stat-in">0</span> <span class="coin sm">W</span></span></div></div>
+            <div class="stat-box"><div class="stat-ic minus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="5 12 12 19 19 12"/></svg></div><div><span class="stat-k" data-i18n="statOut">Потрачено</span><span class="stat-v minus"><span id="stat-out">0</span> <span class="coin sm">W</span></span></div></div>
+        </div>
+        <div class="tx-list" id="tx-list"></div>
+    </section>
+
+    <!-- TOPUP -->
+    <section id="page-topup" class="page sub">
+        <span class="sec-lbl" data-i18n="topupLabel">ПОПОЛНЕНИЕ</span><h2 data-i18n="tokenPackages">Пакеты токенов</h2><p class="muted mb16" data-i18n="moreIsBetter">Чем больше — тем выгоднее</p>
+        <div class="pkg-grid">
+            <div class="pkg" data-pkg="100"><div class="pkg-top"><span class="pkg-amt">100</span><span class="pkg-u" data-i18n="tokensUnit">ТОКЕНОВ</span></div><span class="pkg-price">106 ₽</span><span class="pkg-sub">≈ 3 фото</span></div>
+            <div class="pkg" data-pkg="300"><div class="pkg-top"><span class="pkg-amt">300</span><span class="pkg-u" data-i18n="tokensUnit">ТОКЕНОВ</span><span class="pkg-disc">-3%</span></div><span class="pkg-price">307 ₽</span><span class="pkg-sub">≈ 10 фото</span></div>
+            <div class="pkg" data-pkg="500"><div class="pkg-top"><span class="pkg-amt">500</span><span class="pkg-u" data-i18n="tokensUnit">ТОКЕНОВ</span><span class="pkg-disc">-6%</span></div><span class="pkg-price">498 ₽</span><span class="pkg-sub">≈ 16 фото</span></div>
+            <div class="pkg" data-pkg="1000"><div class="pkg-top"><span class="pkg-amt">1000</span><span class="pkg-u" data-i18n="tokensUnit">ТОКЕНОВ</span><span class="pkg-disc">-10%</span></div><span class="pkg-price">954 ₽</span><span class="pkg-sub">≈ 33 фото</span></div>
+            <div class="pkg" data-pkg="2000"><div class="pkg-top"><span class="pkg-amt">2000</span><span class="pkg-u" data-i18n="tokensUnit">ТОКЕНОВ</span><span class="pkg-disc">-15%</span></div><span class="pkg-price">1802 ₽</span><span class="pkg-sub">≈ 66 фото</span></div>
+            <div class="pkg best" data-pkg="5000"><div class="pkg-top"><span class="pkg-amt">5000</span><span class="pkg-u" data-i18n="tokensUnit">ТОКЕНОВ</span><span class="pkg-disc">-20%</span></div><span class="pkg-price">4240 ₽</span><span class="pkg-sub">≈ 166 фото</span><span class="pkg-best-lbl" data-i18n="bestPrice">ЛУЧШАЯ ЦЕНА</span></div>
+        </div>
+        <p class="muted small mb12" data-i18n="pickPkgHint">Выбери пакет — откроется окно оплаты</p>
+        <label class="agree"><input type="checkbox" id="agree-chk" checked><span><span data-i18n="agreePre">Я согласен с</span> <a data-i18n="privacyPolicy">политикой конфиденциальности</a> <span data-i18n="agreeAnd">и</span> <a data-i18n="publicOffer">публичной офертой</a>.</span></label>
+        <div class="ccard"><span class="prm-lbl" data-i18n="havePromo">Есть промокод?</span><div class="promo-row"><div class="field"><input type="text" id="promo-input" class="field-input" placeholder=" "><label class="field-label" for="promo-input" data-i18n="promoLabel">Промокод</label></div><button class="topup-btn" data-i18n="activate">Активировать</button></div></div>
+    </section>
+
+    <!-- PAYMENT SHEET -->
+    <div id="tu-overlay" class="wd-ov hidden">
+        <div class="wd-sheet pay-sheet">
+            <div class="wd-grip"></div>
+            <div class="pay-head"><span class="sec-lbl" data-i18n="payMethod">СПОСОБ ОПЛАТЫ</span><button class="wd-close" id="tu-close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+            <h2 class="pay-title"><span data-i18n="payGet">Получить</span> <span id="tu-pkg-amt">0</span> <span data-i18n="tokensUnitLc">токенов</span></h2>
+            <p class="pay-sub"><span data-i18n="payCreditPre">Начислим</span> <b><span id="tu-sub-amt">0</span> <span data-i18n="tokensUnitLc">токенов</span></b> <span data-i18n="payCreditPost">сразу после оплаты · комиссия включена</span></p>
+            <div class="pay-methods">
+                <button class="pay-m primary" data-pm="sbp">
+                    <span class="pay-m-t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg><span data-i18n="paySbp">СБП</span> <span class="pay-m-price" id="tu-price-sbp">0 ₽</span></span>
+                    <span class="pay-m-sub" data-i18n="paySbpSub">Через любой банк</span>
+                </button>
+                <button class="pay-m primary" data-pm="bank_card">
+                    <span class="pay-m-t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="3"/><line x1="1" y1="10" x2="23" y2="10"/></svg><span data-i18n="payCardRu">Карты РФ</span> <span class="pay-m-price" id="tu-price-card">0 ₽</span></span>
+                    <span class="pay-m-sub" data-i18n="payCardSub">Visa · Mastercard · МИР</span>
+                </button>
+                <div class="pay-m soon">
+                    <span class="pay-m-t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg><span data-i18n="payIntl">Международные</span> <span class="pay-soon" data-i18n="paySoon">Скоро</span></span>
+                    <span class="pay-m-sub" data-i18n="payIntlSub">Карты Visa/MC из-за рубежа</span>
+                </div>
+                <div class="pay-m soon">
+                    <span class="pay-m-t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.5 9.3c0-1 1-1.6 2.5-1.6s2.5.6 2.5 1.6-1 1.4-2.5 1.6-2.5.7-2.5 1.7 1 1.7 2.5 1.7 2.5-.7 2.5-1.7"/><path d="M12 6v1.7M12 15.8v1.7"/></svg><span data-i18n="payCrypto">Криптой</span> <span class="pay-soon" data-i18n="paySoon">Скоро</span></span>
+                    <span class="pay-m-sub" data-i18n="payCryptoSub">USDT TRC-20, BTC</span>
+                </div>
+            </div>
+            <p class="wd-note" id="tu-note"></p>
+            <button class="gen-btn hidden" id="tu-go" data-i18n="payGo">Перейти к оплате</button>
+            <p class="pay-foot" data-i18n="payFoot">После нажатия откроется страница оплаты. Токены зачислятся автоматически.</p>
+        </div>
+    </div>
+
+    <!-- REWARDS -->
+    <section id="page-rewards" class="page sub">
+        <span class="sec-lbl" data-i18n="rewardsLabel">БОНУСЫ</span><h2 data-i18n="rewards">Награды</h2>
+        <p class="page-intro" data-i18n="rewardsIntro">Бесплатные токены за простые действия</p>
+
+        <div class="rwd-card" data-rwd-id="share">
+            <div class="rwd-hdr"><div class="rwd-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8M16.5 8a2.5 2.5 0 0 0 0-5C13 3 12 8 12 8"/></svg></div><span class="rwd-ttl">Расскажи о нас</span><span class="rwd-badge">+100 <span class="coin">W</span></span></div>
+            <p class="rwd-desc">Выложи работу, отметь нас в Instagram или @promptW_bot в TG и отправь скриншот на проверку.</p>
+            <button class="rwd-btn" data-rwd="do">Выполнить</button>
+        </div>
+
+        <div class="rwd-card" data-rwd-id="tg">
+            <div class="rwd-hdr"><div class="rwd-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 13v-2z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></div><span class="rwd-ttl">Подпишись на наш ТГ-канал</span><span class="rwd-badge">+10 <span class="coin">W</span></span></div>
+            <p class="rwd-desc">Подпишись на наш канал и нажми «Проверить» — мы зачислим 10 токенов.</p>
+            <button class="rwd-btn ghost" data-rwd="open" data-link="https://t.me/promptW">Открыть канал</button>
+            <button class="rwd-btn" data-rwd="check">Проверить подписку</button>
+        </div>
+
+        <div class="rwd-card" data-rwd-id="prompts">
+            <div class="rwd-hdr"><div class="rwd-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 13v-2z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></div><span class="rwd-ttl">Подпишись на канал с промптами</span><span class="rwd-badge">+10 <span class="coin">W</span></span></div>
+            <p class="rwd-desc">Подпишись на канал с промптами и нажми «Проверить» — мы зачислим 10 токенов.</p>
+            <button class="rwd-btn ghost" data-rwd="open" data-link="https://t.me/promptW">Открыть канал</button>
+            <button class="rwd-btn" data-rwd="check">Проверить подписку</button>
+        </div>
+    </section>
+
+    <!-- PARTNER -->
+    <section id="page-partner" class="page sub">
+        <span class="sec-lbl" data-i18n="partnerLabel">ПАРТНЁРСКАЯ</span><h2 data-i18n="myReferrals">Мои рефералы</h2>
+
+        <!-- Withdrawable ruble balance -->
+        <div class="paff-bal">
+            <div class="paff-bal-glow"></div>
+            <span class="paff-bal-lbl" data-i18n="availBalance">Доступно к выводу</span>
+            <div class="paff-bal-amt"><span id="paff-bal">0</span> <span class="paff-cur">₽</span></div>
+            <div class="paff-bal-sub"><span data-i18n="totalEarned">Всего заработано</span><b><span id="paff-total">0</span> ₽</b></div>
+            <button class="gen-btn" id="paff-withdraw-btn" data-i18n="withdraw">Вывести средства</button>
+        </div>
+
+        <!-- Commission rates -->
+        <div class="paff-rates">
+            <div class="paff-rate"><span class="paff-rate-pct grad-tx">30%</span><div class="paff-rate-tx"><span class="paff-rate-l" data-i18n="line1">1 линия</span><span class="muted small" data-i18n="direct">прямые</span></div></div>
+            <div class="paff-rate"><span class="paff-rate-pct grad-tx">5%</span><div class="paff-rate-tx"><span class="paff-rate-l" data-i18n="line2">2 линия</span><span class="muted small" data-i18n="passive">пассив</span></div></div>
+        </div>
+
+        <!-- Earnings stat grid -->
+        <div class="ref-grid">
+            <div class="ref-stat"><span class="ref-lbl" data-i18n="perDay">ЗА ДЕНЬ</span><div class="ref-row"><span data-i18n="people">Людей</span><b id="ref-d-people">0</b></div><div class="ref-row"><span data-i18n="earned">Заработано</span><b id="ref-d-earn">0 ₽</b></div></div>
+            <div class="ref-stat"><span class="ref-lbl" data-i18n="perWeek">ЗА НЕДЕЛЮ</span><div class="ref-row"><span data-i18n="people">Людей</span><b id="ref-w-people">0</b></div><div class="ref-row"><span data-i18n="earned">Заработано</span><b id="ref-w-earn">0 ₽</b></div></div>
+            <div class="ref-stat"><span class="ref-lbl" data-i18n="perMonth">ЗА МЕСЯЦ</span><div class="ref-row"><span data-i18n="people">Людей</span><b id="ref-m-people">0</b></div><div class="ref-row"><span data-i18n="earned">Заработано</span><b id="ref-m-earn">0 ₽</b></div></div>
+            <div class="ref-stat"><span class="ref-lbl" data-i18n="allTime">ЗА ВСЁ ВРЕМЯ</span><div class="ref-row"><span data-i18n="people">Людей</span><b id="ref-a-people">0</b></div><div class="ref-row"><span data-i18n="earned">Заработано</span><b id="ref-a-earn">0 ₽</b></div></div>
+        </div>
+
+        <!-- Referral link -->
+        <span class="sec-lbl block mb8" data-i18n="yourLink">ТВОЯ ССЫЛКА</span>
+        <div class="paff-link-row"><input id="paff-link" class="paff-link" readonly value="—"><button class="paff-copy" id="paff-copy-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></div>
+        <button class="gen-btn mb16" id="paff-invite-btn" data-i18n="inviteFriend">Пригласить друга</button>
+
+        <!-- Tabs -->
+        <div class="ref-tabs"><button class="rtab active" data-rt="tx" data-i18n="transactions">Транзакции</button><button class="rtab" data-rt="l1" data-i18n="line1Tab">1 линия (0)</button><button class="rtab" data-rt="l2" data-i18n="line2Tab">2 линия (0)</button></div>
+        <div class="ref-content"><p class="muted center" data-i18n="refMsgTx">Пока нет начислений. Пригласи друзей по своей ссылке — каждое их пополнение принесёт рубли.</p></div>
+    </section>
+
+    <!-- WITHDRAW SHEET -->
+    <div id="wd-overlay" class="wd-ov hidden">
+        <div class="wd-sheet">
+            <div class="wd-grip"></div>
+            <div class="wd-head"><b data-i18n="withdrawTitle">Вывод средств</b><button class="wd-close" id="wd-close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+            <div class="wd-avail-card"><span class="muted small" data-i18n="availBalance">Доступно к выводу</span><b class="wd-avail-amt"><span id="wd-avail">0</span> ₽</b></div>
+            <span class="wd-lbl" data-i18n="withdrawMethod">Способ вывода</span>
+            <div class="wd-methods">
+                <button class="wd-method active" data-wm="card"><span class="wd-m-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="3"/><line x1="1" y1="10" x2="23" y2="10"/></svg></span><span class="wd-m-t" data-i18n="wmCard">Банковская карта</span><span class="wd-m-s" data-i18n="wmCardSub">₽ · от 1000 ₽</span></button>
+                <button class="wd-method" data-wm="crypto"><span class="wd-m-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.5 9.5c0-1 1-1.7 2.5-1.7s2.5.7 2.5 1.7-1 1.5-2.5 1.7-2.5.7-2.5 1.8 1 1.8 2.5 1.8 2.5-.8 2.5-1.8"/><line x1="12" y1="6.5" x2="12" y2="8"/><line x1="12" y1="16" x2="12" y2="17.5"/></svg></span><span class="wd-m-t" data-i18n="wmCrypto">Криптовалюта</span><span class="wd-m-s" data-i18n="wmCryptoSub">USDT TRC-20 · от 500 ₽</span></button>
+            </div>
+            <span class="wd-lbl" id="wd-details-lbl" data-i18n="wmCardField">Номер карты</span>
+            <input id="wd-details" class="wd-input" data-i18n-placeholder="wmCardPh" placeholder="0000 0000 0000 0000">
+            <span class="wd-lbl" data-i18n="wdAmount">Сумма вывода</span>
+            <div class="wd-amt-row"><input id="wd-amount" class="wd-input" type="number" inputmode="numeric" min="0" placeholder="0"><span class="wd-amt-cur">₽</span><button class="wd-max" id="wd-max" data-i18n="max">Всё</button></div>
+            <p class="wd-note" id="wd-note"></p>
+            <button class="gen-btn" id="wd-submit" data-i18n="withdrawSubmit">Оформить заявку</button>
+        </div>
+    </div>
+
+    <!-- REFERENCE PICKER SHEET -->
+    <div id="rp-overlay" class="wd-ov hidden">
+        <div class="wd-sheet">
+            <div class="wd-grip"></div>
+            <div class="wd-head"><b data-i18n="useMyRef">Вставить мой референс</b><button class="wd-close" id="rp-close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+            <p class="muted small mb12" data-i18n="rpHint">Выбери сохранённое фото — оно подставится в загрузку</p>
+            <div class="ref-lib" id="rp-lib"></div>
+            <p class="wd-note" id="rp-note"></p>
+        </div>
+    </div>
+
+    <!-- INFO -->
+    <section id="page-info" class="page sub">
+        <span class="sec-lbl" data-i18n="helpLabel">ПОМОЩЬ PROMPTW</span><h2 data-i18n="information">Информация</h2>
+        <div class="info-hero"><div class="info-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></div><div><b data-i18n="botGuide">Справочник по боту</b><span class="muted small block" data-i18n="botGuideDesc">Открой нужный блок внутри — подробные инструкции, ссылки на связанные темы и быстрый переход к моделям.</span></div></div>
+        <h3 class="sec-title mt16"><i class="bar"></i><span data-i18n="topics">Темы</span></h3>
+        <div class="info-grid">
+            <div class="info-card green"><span class="info-badge">БС</span><b data-i18n="quickStart">Быстрый старт</b><span class="muted small" data-i18n="quickStartDesc">Шаблоны, ручной режим, промпт и история результатов.</span><span class="gold small" data-i18n="openMore">Открыть подробнее</span></div>
+            <div class="info-card green"><span class="info-badge">СН</span><b data-i18n="scratchMode">Режим "С нуля"</b><span class="muted small" data-i18n="scratchModeDesc">Как выбрать модель, загрузить референс и написать задание.</span><span class="gold small" data-i18n="openMore">Открыть подробнее</span></div>
+            <div class="info-card pink"><span class="info-badge ph">ФМ</span><b data-i18n="photoModels">Фото-модели</b><span class="muted small" data-i18n="photoModelsDesc">NanoBanana, GPT Image 2 и Seedream: где какие сильнее.</span><span class="gold small" data-i18n="openMore">Открыть подробнее</span></div>
+            <div class="info-card purple"><span class="info-badge vd">ВМ</span><b data-i18n="videoModels">Видео-модели</b><span class="muted small" data-i18n="videoModelsDesc">Kling, Veo, Seedance, Grok, Motion и HeyGen Avatar.</span><span class="gold small" data-i18n="openMore">Открыть подробнее</span></div>
+            <div class="info-card gold-c"><span class="info-badge rf">ФР</span><b data-i18n="photoRef">Фото-референс</b><span class="muted small" data-i18n="photoRefDesc">Какое фото дать боту, чтобы результат был похожим.</span><span class="gold small" data-i18n="openMore">Открыть подробнее</span></div>
+            <div class="info-card pink"><span class="info-badge pr">ПП</span><b data-i18n="partnerProgramInfo">Партнёрская программа</b><span class="muted small" data-i18n="partnerProgramInfoDesc">Выдавайте ссылку, объясните бота и смотрите начисления.</span><span class="gold small" data-i18n="openMore">Открыть подробнее</span></div>
+        </div>
+    </section>
+
+    <!-- PHOTO REFERENCE GUIDE -->
+    <section id="page-refguide" class="page sub">
+        <span class="sec-lbl" data-i18n="rgLabel">РЕФЕРЕНС</span><h2 data-i18n="rgTitle">Как выбрать фото</h2>
+        <p class="page-intro" data-i18n="rgIntro">Качество результата напрямую зависит от фото. Бот не знает, как ты выглядишь — он ориентируется только на загруженный референс.</p>
+
+        <h3 class="sec-title mt16"><i class="bar"></i><span data-i18n="rgRules">Правила хорошего фото</span></h3>
+        <div class="guide-rules">
+            <div class="guide-rule"><span class="guide-num">01</span><div><b data-i18n="rgR1t">Чёткое лицо</b><p data-i18n="rgR1d">Фото должно быть в фокусе, без сильного сжатия, пикселей и размытия.</p></div></div>
+            <div class="guide-rule"><span class="guide-num">02</span><div><b data-i18n="rgR2t">Нейтральный свет</b><p data-i18n="rgR2d">Лучше дневной свет у окна или мягкое освещение без резких теней.</p></div></div>
+            <div class="guide-rule"><span class="guide-num">03</span><div><b data-i18n="rgR3t">Прямой ракурс</b><p data-i18n="rgR3d">Лицо прямо или с лёгким поворотом. Сильный вид сверху или снизу искажает черты.</p></div></div>
+            <div class="guide-rule"><span class="guide-num">04</span><div><b data-i18n="rgR4t">Минимум фильтров</b><p data-i18n="rgR4d">Ретушь, маски и фильтры меняют лицо, поэтому похожесть падает.</p></div></div>
+            <div class="guide-rule"><span class="guide-num">05</span><div><b data-i18n="rgR5t">Один человек</b><p data-i18n="rgR5d">В кадре должен быть один человек. Групповые фото и обрезанные лица лучше не использовать.</p></div></div>
+            <div class="guide-rule"><span class="guide-num">06</span><div><b data-i18n="rgR6t">Актуальность</b><p data-i18n="rgR6d">Для похожести бери фото за последние 6–12 месяцев.</p></div></div>
+        </div>
+
+        <div class="guide-note">
+            <b data-i18n="rgImportant">Важно</b>
+            <p><span data-i18n="rgNoteA">Для портретов и похожести чаще выбирай реалистичные фото-модели, особенно</span> <span class="grad-tx">NanoBanana PRO</span>. <span data-i18n="rgNoteB">Хороший референс — это большая часть успеха генерации.</span></p>
+        </div>
+
+        <h3 class="sec-title mt16"><i class="bar"></i><span data-i18n="rgGood">Хорошо отправлять</span></h3>
+        <div class="guide-list good">
+            <div class="guide-item"><span class="guide-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><div><b data-i18n="rgG1t">Чёткий портрет</b><p data-i18n="rgG1d">Лицо видно, свет ровный, ракурс спокойный.</p></div></div>
+            <div class="guide-item"><span class="guide-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><div><b data-i18n="rgG2t">Подходящий кадр</b><p data-i18n="rgG2d">Один человек, хорошее качество, без сильных фильтров.</p></div></div>
+        </div>
+
+        <h3 class="sec-title mt16"><i class="bar"></i><span data-i18n="rgBad">Что лучше не отправлять</span></h3>
+        <div class="guide-list bad">
+            <div class="guide-item"><span class="guide-ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span><div><b data-i18n="rgB1t">Лицо закрыто</b><p data-i18n="rgB1d">Волосы и фильтр мешают считать черты.</p></div></div>
+            <div class="guide-item"><span class="guide-ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span><div><b data-i18n="rgB2t">Искажённый ракурс</b><p data-i18n="rgB2d">Сильный наклон сверху или снизу меняет пропорции.</p></div></div>
+            <div class="guide-item"><span class="guide-ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span><div><b data-i18n="rgB3t">Плохое качество</b><p data-i18n="rgB3d">Размытие и сжатие снижают похожесть.</p></div></div>
+            <div class="guide-item"><span class="guide-ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span><div><b data-i18n="rgB4t">Сильные тени</b><p data-i18n="rgB4d">Лицо хуже читается из-за света.</p></div></div>
+            <div class="guide-item"><span class="guide-ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span><div><b data-i18n="rgB5t">Обрезанное лицо</b><p data-i18n="rgB5d">Не хватает данных по чертам и форме лица.</p></div></div>
+            <div class="guide-item"><span class="guide-ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span><div><b data-i18n="rgB6t">Фильтры</b><p data-i18n="rgB6d">Меняют глаза, кожу и форму лица.</p></div></div>
+            <div class="guide-item"><span class="guide-ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span><div><b data-i18n="rgB7t">Зеркало и телефон</b><p data-i18n="rgB7d">Телефон в кадре отвлекает модель от лица.</p></div></div>
+            <div class="guide-item"><span class="guide-ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span><div><b data-i18n="rgB8t">Лишние объекты и люди</b><p data-i18n="rgB8d">Могут мешать модели сфокусироваться на лице.</p></div></div>
+        </div>
+
+        <h3 class="sec-title mt16"><i class="bar"></i><span data-i18n="rgWhere">Где это особенно важно</span></h3>
+        <div class="guide-tags">
+            <span class="guide-tag" data-i18n="rgTag1">Фото-модели</span>
+            <span class="guide-tag" data-i18n="rgTag2">HeyGen и Motion</span>
+        </div>
+    </section>
+
+    </main>
+
+    <nav class="bnav" id="bnav">
+        <button class="ni active" data-page="home"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span data-i18n="navHome">Главная</span></button>
+        <button class="ni" data-page="text"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z"/></svg><span data-i18n="navText">Текст</span></button>
+        <button class="ni create-ni" data-page="create"><div class="create-orb"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0A0A12" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><span data-i18n="navCreate">Создать</span></button>
+        <button class="ni" data-page="history"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span data-i18n="navHistory">История</span></button>
+        <button class="ni" data-page="profile"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span data-i18n="navProfile">Профиль</span></button>
+    </nav>
+
+    <div id="sheet-overlay" class="sheet-overlay hidden">
+        <div id="sheet" class="sheet">
+            <div class="sheet-handle"></div>
+            <div class="sheet-title" id="sheet-title"></div>
+            <div class="sheet-list" id="sheet-list"></div>
+        </div>
+    </div>
+
+    <div id="gen-overlay" class="gen-ov hidden">
+        <div class="gen-ov-card">
+            <div class="gen-ov-head">
+                <span class="gen-ov-title" id="gen-ov-title"></span>
+                <button class="gen-ov-close" id="gen-ov-close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            </div>
+            <div class="gen-ov-body" id="gen-ov-body"></div>
+            <div class="gen-ov-actions" id="gen-ov-actions"></div>
+        </div>
+    </div>
+
+</div>
+<script src="/static/js/i18n.js?v=77"></script>
+<script src="/static/js/app.js?v=77"></script>
+</body>
+</html>
