@@ -915,7 +915,10 @@ async def api_send_media(request: web.Request):
         elif media_type == "audio":
             await bot.send_audio(tg_id, FSInputFile(filepath))
         else:
-            await bot.send_photo(tg_id, FSInputFile(filepath))
+            # Send the image as a document, NOT send_photo — Telegram re-compresses
+            # photos (JPEG, downscaled) and would degrade the generated result. A
+            # document preserves the original file (full resolution, no recompression).
+            await bot.send_document(tg_id, FSInputFile(filepath))
         return web.json_response({"ok": True})
     except Exception:
         logger.exception("Send media error")
