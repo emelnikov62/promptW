@@ -622,8 +622,8 @@ function renderRefLib(container, mode){
 }
 function renderAllRefLibs(){
     renderRefLib(document.getElementById("ref-lib"), "manage");
-    var rp = document.getElementById("rp-overlay");
-    if (rp && !rp.classList.contains("hidden")) renderRefLib(document.getElementById("rp-lib"), "pick");
+    // Refresh the chooser's "Мой референс" grid if it's the one currently open.
+    if (typeof imgSrcView !== "undefined" && imgSrcView === "ref") imgSrcGrid("ref");
 }
 async function loadReferences(force){
     var tgId = getTgId(); if (!tgId) return;
@@ -662,31 +662,6 @@ async function deleteRef(id){
         if (res.ok){ referenceList = (referenceList || []).filter(function(r){ return String(r.id) !== String(id); }); renderAllRefLibs(); }
     } catch(e){}
 }
-function rpClose(){ var ov = document.getElementById("rp-overlay"); if (ov) ov.classList.add("hidden"); }
-function openRefPicker(){
-    var ov = document.getElementById("rp-overlay"); if (!ov) return;
-    var note = document.getElementById("rp-note"); if (note){ note.className = "wd-note"; note.textContent = ""; }
-    ov.classList.remove("hidden");
-    renderRefLib(document.getElementById("rp-lib"), "pick");   // from cache, instant
-    loadReferences().then(function(){ renderRefLib(document.getElementById("rp-lib"), "pick"); });
-}
-async function insertReferenceToUpload(url){
-    var area = document.querySelector("#form-image .up-area");
-    if (!area) return;
-    var note = document.getElementById("rp-note");
-    var cur = uploadedFiles["photo-refs"] || [];
-    if (cur.length >= 8){ if (note){ note.className = "wd-note err"; note.textContent = t("refMaxPhotos"); } return; }
-    try {
-        var res = await fetch(url); var blob = await res.blob();
-        var m = url.match(/\.[a-z0-9]+$/i);
-        var file = new File([blob], "reference" + (m ? m[0] : ".jpg"), { type: blob.type || "image/jpeg" });
-        if (!uploadedFiles["photo-refs"]) uploadedFiles["photo-refs"] = [];
-        uploadedFiles["photo-refs"].push(file);
-        renderRefChips(area);
-        rpClose();
-        toast(t("refInserted"), "success");
-    } catch(e){ if (note){ note.className = "wd-note err"; note.textContent = t("refError"); } }
-}
 (function(){
     var lib = document.getElementById("ref-lib");
     if (lib) lib.addEventListener("click", function(e){
@@ -694,16 +669,6 @@ async function insertReferenceToUpload(url){
         if (x){ e.stopPropagation(); deleteRef(x.dataset.id); return; }
         if (e.target.closest("[data-ref-add]")){ refAddClick(); return; }
     });
-    var rpLib = document.getElementById("rp-lib");
-    if (rpLib) rpLib.addEventListener("click", function(e){
-        if (e.target.closest("[data-ref-add]")){ refAddClick(); return; }
-        var cell = e.target.closest(".ref-cell");
-        if (cell){ insertReferenceToUpload(cell.dataset.url); }
-    });
-    var ins = document.getElementById("ref-insert-btn");
-    if (ins) ins.addEventListener("click", openRefPicker);
-    var rpc = document.getElementById("rp-close"); if (rpc) rpc.addEventListener("click", rpClose);
-    var rpov = document.getElementById("rp-overlay"); if (rpov) rpov.addEventListener("click", function(e){ if (e.target === rpov) rpClose(); });
     var gl = document.getElementById("ref-guide-link"); if (gl) gl.addEventListener("click", function(){ openRefguide("profile"); });
 })();
 
@@ -711,7 +676,8 @@ async function insertReferenceToUpload(url){
 // One bottom sheet reused for every photo upload (Create + templates). The caller
 // passes a callback that receives a File, regardless of where the user picked it.
 var imgSrcOnFile = null;
-var IMGSRC_PHONE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3.2"/></svg>';
+var imgSrcView = "menu";   // "menu" | "history" | "ref" — which chooser screen is open
+var IMGSRC_PHONE ='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3.2"/></svg>';
 var IMGSRC_HIST = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>';
 var IMGSRC_REF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
 function imgSrcOpt(k, ic, title, sub){
@@ -719,6 +685,7 @@ function imgSrcOpt(k, ic, title, sub){
            '<span class="imgsrc-opt-tx"><span class="imgsrc-opt-title">'+title+'</span><span class="imgsrc-opt-sub">'+sub+'</span></span></button>';
 }
 function imgSrcMenu(){
+    imgSrcView = "menu";
     document.getElementById("imgsrc-back").classList.add("hidden");
     document.getElementById("imgsrc-title").textContent = t("imgSrcTitle");
     document.getElementById("imgsrc-body").innerHTML = '<div class="imgsrc-menu">'+
@@ -727,23 +694,28 @@ function imgSrcMenu(){
         imgSrcOpt("ref", IMGSRC_REF, t("imgSrcRef"), t("imgSrcRefSub"))+
     '</div>';
 }
+function imgSrcCell(u){
+    return '<div class="imgsrc-cell" data-url="'+escHtml(u)+'"><img src="'+escHtml(u)+'" loading="lazy"></div>';
+}
 function imgSrcGrid(kind){
+    imgSrcView = kind;
     document.getElementById("imgsrc-back").classList.remove("hidden");
     var title = document.getElementById("imgsrc-title"), body = document.getElementById("imgsrc-body");
-    var items, empty;
     if (kind === "history"){
         title.textContent = t("imgSrcHistory");
-        items = galleryItems.filter(function(g){ return g.type === "photo" && g.url; }).map(function(g){ return g.url; });
-        empty = t("imgSrcEmptyHist");
-    } else {
-        title.textContent = t("imgSrcRef");
-        items = (referenceList || []).map(function(r){ return r.file_url; });
-        empty = t("imgSrcEmptyRef");
+        var photos = galleryItems.filter(function(g){ return g.type === "photo" && g.url; }).map(function(g){ return g.url; });
+        body.innerHTML = photos.length
+            ? '<div class="imgsrc-grid">'+photos.map(imgSrcCell).join("")+'</div>'
+            : '<div class="imgsrc-empty">'+t("imgSrcEmptyHist")+'</div>';
+        return;
     }
-    if (!items.length){ body.innerHTML = '<div class="imgsrc-empty">'+empty+'</div>'; return; }
-    body.innerHTML = '<div class="imgsrc-grid">'+items.map(function(u){
-        return '<div class="imgsrc-cell" data-url="'+escHtml(u)+'"><img src="'+escHtml(u)+'" loading="lazy"></div>';
-    }).join("")+'</div>';
+    // "Мой референс" — always offer a "+ добавить" tile, even when empty.
+    title.textContent = t("imgSrcRef");
+    var refs = (referenceList || []).map(function(r){ return r.file_url; });
+    var addTile = '<button class="imgsrc-cell imgsrc-add" data-imgsrc-add="1"><span class="imgsrc-add-plus">+</span><span class="imgsrc-add-t">'+t("refAdd")+'</span></button>';
+    var html = '<div class="imgsrc-grid">'+refs.map(imgSrcCell).join("")+addTile+'</div>';
+    if (!refs.length) html = '<div class="imgsrc-empty">'+t("imgSrcEmptyRef")+'</div>'+html;
+    body.innerHTML = html;
 }
 function imgSrcClose(){
     var o = document.getElementById("imgsrc-overlay"); if (!o) return;
@@ -773,6 +745,11 @@ function openImageSource(onFile){
     o.addEventListener("click", function(e){ if (e.target === o) imgSrcClose(); });
     document.getElementById("imgsrc-back").addEventListener("click", imgSrcMenu);
     document.getElementById("imgsrc-body").addEventListener("click", function(e){
+        if (e.target.closest("[data-imgsrc-add]")){
+            if ((referenceList || []).length >= REF_MAX){ toast(t("refLimit"), "info"); return; }
+            pickFile("image/*", uploadReference);   // uploads, then renderAllRefLibs refreshes this grid
+            return;
+        }
         var opt = e.target.closest(".imgsrc-opt");
         if (opt){
             var k = opt.dataset.src;

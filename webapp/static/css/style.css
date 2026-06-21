@@ -700,7 +700,11 @@ body.noscroll{overflow:hidden}
 .imgsrc-cell{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;cursor:pointer;background:var(--card)}
 .imgsrc-cell img{width:100%;height:100%;object-fit:cover;display:block}
 .imgsrc-cell:active{opacity:.75}
-.imgsrc-empty{padding:34px 12px;text-align:center;color:var(--tx3);font-size:14px;line-height:1.5;white-space:pre-line}
+.imgsrc-add{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:1.5px dashed var(--brd);color:var(--tx2);font-family:var(--font);font-weight:600}
+.imgsrc-add .imgsrc-add-plus{font-size:24px;line-height:1;font-weight:400}
+.imgsrc-add .imgsrc-add-t{font-size:11px}
+.imgsrc-add:active{opacity:1;background:var(--bg)}
+.imgsrc-empty{padding:30px 12px 14px;text-align:center;color:var(--tx3);font-size:14px;line-height:1.5;white-space:pre-line}
 .sheet-item{display:flex;align-items:center;justify-content:space-between;width:100%;padding:15px 14px;background:transparent;border:1px solid transparent;border-radius:12px;color:var(--tx);font-size:15px;font-weight:500;font-family:inherit;cursor:pointer;text-align:left}
 .sheet-item:active{background:var(--card)}
 .sheet-item.active{background:var(--vdim);border-color:var(--vbrd);color:var(--violet);font-weight:600}
