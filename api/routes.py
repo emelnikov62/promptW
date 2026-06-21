@@ -323,6 +323,35 @@ def _row_to_json(row: dict) -> dict:
     return {k: _serialize(v) for k, v in row.items()}
 
 
+# KIE/NanoBanana silently ignores an oversized reference image (e.g. a 12MP/6MB
+# phone photo) and then generates from the prompt alone — a totally different
+# face. Downscale uploaded images to a safe longest side before they ever reach
+# the model. Verified: 3024x4032 ref was dropped; 960x1280 was applied 1:1.
+_IMG_SHRINK_EXT = {".jpg", ".jpeg", ".png", ".webp"}
+_IMG_MAX_SIDE = 1536
+
+
+def _shrink_image(path: str):
+    ext = os.path.splitext(path)[1].lower()
+    if ext not in _IMG_SHRINK_EXT:
+        return
+    try:
+        from PIL import Image
+        im = Image.open(path)
+        im.load()
+        if max(im.size) <= _IMG_MAX_SIDE:
+            return
+        im.thumbnail((_IMG_MAX_SIDE, _IMG_MAX_SIDE))
+        if ext in (".jpg", ".jpeg"):
+            im.convert("RGB").save(path, "JPEG", quality=88)
+        elif ext == ".webp":
+            im.save(path, "WEBP", quality=88)
+        else:
+            im.save(path, "PNG", optimize=True)
+    except Exception:
+        logger.exception("ref downscale failed (%s) — leaving original", path)
+
+
 async def _parse_request(request: web.Request):
     """Parse both JSON and multipart form requests. Returns (data_dict, files_dict)."""
     files = {}
@@ -359,6 +388,7 @@ async def _parse_request(request: web.Request):
                     try: os.remove(fpath)
                     except OSError: pass
                     continue   # silently drop the oversize file
+                _shrink_image(fpath)   # KIE/NanoBanana ignores oversized refs -> downscale
                 key = part.name
                 if key in files:
                     if not isinstance(files[key], list):
