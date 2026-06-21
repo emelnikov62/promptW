@@ -775,3 +775,13 @@ body.tg-back #back-btn{display:none}
 .empty-ico svg{width:26px;height:26px}
 .empty-title{font-size:16px;font-weight:700;color:var(--tx)}
 .empty-sub{font-size:13px;color:var(--tx2);max-width:240px;line-height:1.45}
+.terms-details{background:var(--card);border:1px solid var(--brd);border-radius:var(--r);padding:14px;margin:12px 0 18px}
+.terms-details b{display:block;font-size:13px;font-weight:700;margin-bottom:8px}
+.terms-row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--brd);font-size:12px;line-height:1.4}
+.terms-row:last-child{border-bottom:none}
+.terms-row span:first-child{flex-shrink:0;color:var(--tx3)}
+.terms-row span:last-child{text-align:right;word-break:break-all}
+.terms-section{margin-bottom:16px}
+.terms-section b{display:block;font-size:14px;font-weight:700;color:var(--violet);margin-bottom:6px}
+.terms-section p{font-size:13px;color:var(--tx2);line-height:1.55;margin-bottom:5px}
+.terms-accept{margin-top:20px;padding-top:14px;border-top:1px solid var(--brd);text-align:center;line-height:1.5}
