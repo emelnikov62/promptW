@@ -305,6 +305,7 @@ textarea::placeholder{color:var(--tx3)}
 .gen-res-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
 .gen-res-grid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:var(--rs)}
 body.noscroll{overflow:hidden}
+body.gen-open .header{background:var(--bg)}
 
 /* Gallery */
 .gal-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}

@@ -1440,14 +1440,14 @@ function genOvOpen(){
     o.style.bottom=(nav?Math.round(nav.getBoundingClientRect().height):60)+"px";
     o.classList.remove("hidden");
     requestAnimationFrame(function(){ o.classList.add("show"); });
-    document.body.classList.add("noscroll");
+    document.body.classList.add("noscroll","gen-open");
     genViewOpen=true;
 }
 function genOvClose(){
     var o=document.getElementById("gen-overlay");
     o.classList.remove("show");
     setTimeout(function(){ o.classList.add("hidden"); },200);
-    document.body.classList.remove("noscroll");
+    document.body.classList.remove("noscroll","gen-open");
     genViewOpen=false;
 }
 function genOvLoading(type, model){
