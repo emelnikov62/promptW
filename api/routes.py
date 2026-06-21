@@ -480,15 +480,37 @@ async def _publish_refs(files: dict) -> dict:
     `files` dict is rewritten to the resulting public URL so the generator hands
     KIE a fetchable link; local mode is unchanged (disk paths, /media/<name>)."""
     refs = {}
-    for key, val in files.items():
-        vals = val if isinstance(val, list) else [val]
-        if storage.is_s3():
-            urls = [await storage.aput_file(p) for p in vals]
-            files[key] = urls if isinstance(val, list) else urls[0]
-        else:
+    if not storage.is_s3():
+        for key, val in files.items():
+            vals = val if isinstance(val, list) else [val]
             urls = [_media_url(p) for p in vals]
-        refs[key] = urls if isinstance(val, list) else urls[0]
-    return refs
+            refs[key] = urls if isinstance(val, list) else urls[0]
+        return refs
+    uploaded = []
+    try:
+        for key, val in files.items():
+            vals = val if isinstance(val, list) else [val]
+            urls = []
+            for p in vals:
+                u = await storage.aput_file(p)
+                uploaded.append(u)
+                urls.append(u)
+            files[key] = urls if isinstance(val, list) else urls[0]
+            refs[key] = urls if isinstance(val, list) else urls[0]
+        return refs
+    except Exception:
+        # partial multi-file upload failed — drop already-uploaded objects and any
+        # remaining local temps so nothing is orphaned (charge happens after this).
+        for u in uploaded:
+            await storage.adelete_url(u)
+        for val in files.values():
+            for p in (val if isinstance(val, list) else [val]):
+                if not storage.is_remote(p):
+                    try:
+                        os.remove(p)
+                    except OSError:
+                        pass
+        raise
 
 
 @routes.get("/api/user/{tg_id}/references")
@@ -530,7 +552,12 @@ async def api_add_reference(request: web.Request):
         return web.json_response({"error": "bad_file"}, status=400)
     title = (data.get("title") or "").strip()[:60] or None
     # s3: upload (public-read) and store the public URL; local: keep the /media url
-    file_url = await storage.aput_file(fpath) if storage.is_s3() else _media_url(fpath)
+    try:
+        file_url = await storage.aput_file(fpath) if storage.is_s3() else _media_url(fpath)
+    except Exception:
+        try: os.remove(fpath)
+        except OSError: pass
+        raise
     row = await add_reference(tg_id, file_url, title)
     if row is None:
         if storage.is_remote(file_url):

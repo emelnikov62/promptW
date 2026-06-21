@@ -193,7 +193,14 @@ class KieGenerator(BaseGenerator):
         if storage.is_s3():
             # Push to object storage and return its permanent public URL; the
             # local temp is removed by put_file. Local mode keeps the disk path.
-            return await storage.aput_file(filepath)
+            try:
+                return await storage.aput_file(filepath)
+            except Exception:
+                try:
+                    os.remove(filepath)   # don't leave the temp behind if upload failed
+                except OSError:
+                    pass
+                raise
         return filepath
 
     def _file_to_url(self, filepath: str) -> str:
