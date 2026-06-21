@@ -54,6 +54,8 @@ function toast(msg, type) {
 }
 
 var galleryItems = [];
+var videoThumbs = {};           // url -> captured mid-frame dataURL (static history preview)
+var videoThumbPending = {};     // url -> true while a capture is in flight
 var HISTORY_PAGE = 30;          // how many more rows each "Показать ещё" reveals
 var historyLimit = HISTORY_PAGE; // current window size requested from the server
 var historyHasMore = false;     // server returned a full window → older rows may exist
@@ -1693,9 +1695,13 @@ function updateHistory(){
             ? '<img src="'+escHtml(item.url)+'" alt="g">'
             : item.type==="audio"
             ? '<div class="gal-audio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>'
-            // iOS WebView won't paint a <video>'s first frame without playsinline+muted,
-            // and needs a #t= media fragment to seek to a frame to use as the poster.
-            : '<video src="'+escHtml(item.url)+'#t=0.1" preload="metadata" muted playsinline></video><div class="gal-play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>';
+            // Static mid-frame preview captured once into an <img>. A live <video>
+            // flickered because updateHistory() rebuilds innerHTML on every poll/reconcile,
+            // reloading each element from black; a cached image re-renders instantly.
+            : (videoThumbs[item.url]
+                ? '<img class="gal-vthumb" src="'+videoThumbs[item.url]+'" alt="v">'
+                : '<img class="gal-vthumb gal-vthumb-load" data-vthumb="'+escHtml(item.url)+'" alt="v">')
+              + '<div class="gal-play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>';
         var cost = item.cost ? '<span class="gal-cost">'+item.cost+' W</span>' : '';
         var meta = '<div class="gal-meta"><span class="gal-model">'+escHtml(item.model||"")+'</span>'+cost+'</div>';
         var tagKey = item.type==="photo"?"photo":(item.type==="audio"?"audio":"video");
@@ -1706,12 +1712,50 @@ function updateHistory(){
     list.querySelectorAll(".gal-item[data-idx]").forEach(function(el){
         el.addEventListener("click",function(){ showGenDetail(galleryItems[parseInt(el.dataset.idx)]); });
     });
+    list.querySelectorAll("img[data-vthumb]").forEach(function(img){ makeVideoThumb(img.getAttribute("data-vthumb")); });
     var more=document.getElementById("hist-more");
     if(more) more.addEventListener("click",function(){
         more.disabled=true; more.textContent=t("loading");
         historyLimit+=HISTORY_PAGE;
         loadUserHistory();
     });
+}
+
+// Capture a static mid-video frame once and cache it as a dataURL. Media is same-origin
+// (/media/...), so the canvas isn't tainted and toDataURL works (incl. iOS WebView, which
+// needs muted+playsinline and a real seek before a frame can be drawn).
+function makeVideoThumb(url){
+    if(videoThumbs[url] || videoThumbPending[url]) return;
+    videoThumbPending[url]=true;
+    var v=document.createElement("video");
+    v.muted=true; v.playsInline=true; v.preload="auto"; v.src=url;
+    var done=false;
+    function finish(){ if(!done){ done=true; delete videoThumbPending[url]; } }
+    v.addEventListener("loadedmetadata",function(){
+        var d=v.duration;
+        var t=(isFinite(d)&&d>0) ? Math.min(d/2, d-0.05) : 0.1; // middle of the clip
+        try{ v.currentTime=t; }catch(e){ finish(); }
+    });
+    v.addEventListener("seeked",function(){
+        if(done) return;
+        try{
+            var c=document.createElement("canvas");
+            c.width=v.videoWidth||320; c.height=v.videoHeight||320;
+            c.getContext("2d").drawImage(v,0,0,c.width,c.height);
+            videoThumbs[url]=c.toDataURL("image/jpeg",0.72);
+            finish();
+            // Patch any currently-rendered placeholders in place (no full re-render → no flicker).
+            document.querySelectorAll('img[data-vthumb]').forEach(function(img){
+                if(img.getAttribute("data-vthumb")===url){
+                    img.src=videoThumbs[url];
+                    img.classList.remove("gal-vthumb-load");
+                    img.removeAttribute("data-vthumb");
+                }
+            });
+        }catch(e){ finish(); }
+    });
+    v.addEventListener("error",finish);
+    setTimeout(finish, 9000); // give up so a bad URL never wedges the pending flag
 }
 
 // ── Helpers ──
@@ -2109,7 +2153,7 @@ var TRENDS = {
     "yacht-video": {
         type: "video", cost: 50, model: "Grok Imagine 1.5", duration: 8, needPhoto: true,
         preview: "/static/tpl/yacht-video.mp4", full: "/static/tpl/yacht-video.mp4",
-        ratio: "9:16", quality: "480p", minPhotos: 1, maxPhotos: 7, prompt: YACHT_VIDEO_PROMPT, hidePrompt: true,
+        ratio: "9:16", quality: "720p", minPhotos: 1, maxPhotos: 7, prompt: YACHT_VIDEO_PROMPT, hidePrompt: true,
         title: { ru: "На яхте видео", en: "Yacht video", es: "Video en yate" },
         desc: { ru: "Загрузите фото, которое сгенерировали специально для этого видео (соседний шаблон).", en: "Upload the photo generated specifically for this video (the neighboring template).", es: "Sube la foto generada especialmente para este video (la plantilla vecina)." }
     }
