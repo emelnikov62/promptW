@@ -2171,7 +2171,12 @@ function renderTplParams(tpl){
                     return '<button class="pill'+(o.value===tplParamState[p.id]?' active':'')+'" data-v="'+escHtml(o.value)+'">'+escHtml(o.label[L]||o.label.ru)+'</button>';
                 }).join("")+'</div>';
         } else if(p.control==="age"){
-            html += '<h4 class="tpl-sec">'+lbl+'</h4><input type="number" inputmode="numeric" id="tplp-age" class="field-input tplp-age" min="'+(p.min||1)+'" max="'+(p.max||99)+'" value="'+escHtml(String(tplParamState.age))+'">';
+            html += '<h4 class="tpl-sec">'+lbl+'</h4>'+
+                '<div class="tplp-age-row">'+
+                    '<button type="button" class="tplp-age-btn" data-age-step="-1" aria-label="−"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>'+
+                    '<input type="number" inputmode="numeric" id="tplp-age" class="tplp-age-inp" min="'+(p.min||1)+'" max="'+(p.max||99)+'" value="'+escHtml(String(tplParamState.age))+'">'+
+                    '<button type="button" class="tplp-age-btn" data-age-step="1" aria-label="+"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>'+
+                '</div>';
         } else if(p.control==="sheet"){
             var list = tplOptionsFor(p, g), cur = tplParamState[p.id], curOpt = null;
             for(var i=0;i<list.length;i++){ if(list[i].value===cur){ curOpt=list[i]; break; } }
@@ -2207,6 +2212,14 @@ function mountTplParams(tpl){
     if(ageEl){
         ageEl.addEventListener("input", function(){ tplParamState.age = ageEl.value; updateTplPreview(tpl); });
         ageEl.addEventListener("blur", function(){ tplParamState.age = clampAge(tpl, ageEl.value); ageEl.value = tplParamState.age; updateTplPreview(tpl); });
+        host.querySelectorAll(".tplp-age-btn").forEach(function(b){
+            b.addEventListener("click", function(){
+                var step = parseInt(b.dataset.ageStep, 10) || 0;
+                tplParamState.age = clampAge(tpl, (parseInt(ageEl.value, 10) || tplParamById(tpl,"age").default) + step);
+                ageEl.value = tplParamState.age;
+                haptic.select(); updateTplPreview(tpl);
+            });
+        });
     }
     host.querySelectorAll(".tplp-sheet").forEach(function(sel){
         sel.addEventListener("click", function(){

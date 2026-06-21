@@ -573,7 +573,12 @@ body.noscroll{overflow:hidden}
 .tpl-select{display:flex;align-items:center;justify-content:space-between;padding:14px;border:1px solid var(--brd);border-radius:12px;background:var(--card2);color:var(--tx);font-size:15px;font-weight:600}
 .tpl-select svg{color:var(--tx2)}
 .tplp-sheet{cursor:pointer}.tplp-sheet:active{border-color:var(--vbrd)}
-.tplp-age{max-width:140px}
+.tplp-age-row{display:inline-flex;align-items:stretch;max-width:170px;width:100%;border:1px solid var(--brd);border-radius:12px;background:var(--card2);overflow:hidden}
+.tplp-age-btn{display:flex;align-items:center;justify-content:center;width:48px;flex-shrink:0;border:none;background:none;color:var(--tx2);cursor:pointer;transition:background .12s,color .12s}
+.tplp-age-btn svg{width:18px;height:18px}
+.tplp-age-btn:active{background:var(--card);color:var(--tx)}
+.tplp-age-inp{flex:1;min-width:0;text-align:center;background:none;border:none;color:var(--tx);font-family:inherit;font-size:15px;font-weight:600;padding:14px 0;outline:none;-moz-appearance:textfield;appearance:textfield}
+.tplp-age-inp::-webkit-outer-spin-button,.tplp-age-inp::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .tpl-prompt-toggle{margin-top:10px;background:none;border:none;color:var(--tx3);font-family:var(--font-mono);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;display:inline-flex;align-items:center;gap:5px;padding:6px 0}
 .tpl-prompt-toggle svg{width:13px;height:13px;transition:transform .2s}
 .tpl-prompt-toggle.open svg{transform:rotate(180deg)}
