@@ -2254,8 +2254,9 @@ function showTplDetail(id) {
     var afterUploads, setting;
     if (tpl.type === "photo") {
         afterUploads = '<button class="ref-pill" id="tpl-refhint">' + t("refHint") + '</button>';
-        setting = '<h4 class="tpl-sec">' + t("aspectRatio") + '</h4>' +
-                  '<div class="tpl-select">' + tpl.ratio + chevSvg + '</div>';
+        // Aspect ratio is fixed per template (sent via settings.ratio) — don't show a
+        // non-interactive selector that looks tappable but isn't.
+        setting = '';
     } else {
         afterUploads = '<p class="tpl-minmax">' + t("minPhoto") + ': ' + (tpl.minPhotos || 1) + '. ' + t("maxPhoto") + ': ' + (tpl.maxPhotos || 7) + '.</p>';
         setting = tpl.quality ? ('<h4 class="tpl-sec">' + t("quality") + '</h4>' +
