@@ -1,13 +1,27 @@
 var currentSection = "dashboard";
 var PAGE_SIZE = 50;
+var authToken = "";
 
 // ── Auth ──
+function resolveToken() {
+    var p = new URLSearchParams(location.search);
+    if (p.get("tgauth")) return p.get("tgauth");
+    var stored = localStorage.getItem("pw_admin_token");
+    if (stored) return stored;
+    return "";
+}
+
+function hasAuth() {
+    var tg = window.Telegram && Telegram.WebApp;
+    if (tg && tg.initData) return true;
+    return !!authToken;
+}
+
 function getAuthHeaders() {
     var h = {"Content-Type": "application/json"};
     var tg = window.Telegram && Telegram.WebApp;
     if (tg && tg.initData) h["X-Init-Data"] = tg.initData;
-    var p = new URLSearchParams(location.search);
-    if (p.get("tgauth")) h["X-Auth-Token"] = p.get("tgauth");
+    if (authToken) h["X-Auth-Token"] = authToken;
     return h;
 }
 
@@ -15,9 +29,64 @@ function api(path, opts) {
     opts = opts || {};
     opts.headers = Object.assign(getAuthHeaders(), opts.headers || {});
     return fetch(path, opts).then(function(r) {
-        if (r.status === 403) { document.body.innerHTML = "<h2 style='color:#FB7185;padding:40px'>Доступ запрещён</h2>"; throw new Error("forbidden"); }
+        if (r.status === 403) { logout(); throw new Error("forbidden"); }
         return r.json();
     });
+}
+
+function showLogin() {
+    document.getElementById("admin-app").style.display = "none";
+    document.getElementById("modal-overlay").classList.add("hidden");
+    var el = document.getElementById("login-screen");
+    if (!el) {
+        el = document.createElement("div");
+        el.id = "login-screen";
+        el.innerHTML = '<div class="login-box"><div class="sidebar-brand">Prompt<span class="brand-accent">W</span> <span class="brand-tag">admin</span></div>' +
+            '<div id="login-error" style="color:var(--error);font-size:13px;margin-bottom:12px;display:none"></div>' +
+            '<input class="form-input" id="login-tgid" placeholder="Telegram ID" autocomplete="username" style="margin-bottom:10px;width:100%">' +
+            '<input class="form-input" id="login-pass" type="password" placeholder="Пароль" autocomplete="current-password" style="margin-bottom:14px;width:100%">' +
+            '<button class="btn btn-primary" id="login-btn" style="width:100%">Войти</button></div>';
+        document.body.appendChild(el);
+    }
+    el.style.display = "flex";
+    document.getElementById("login-btn").onclick = doLogin;
+    document.getElementById("login-pass").onkeydown = function(e) { if (e.key === "Enter") doLogin(); };
+}
+
+function doLogin() {
+    var tgId = document.getElementById("login-tgid").value.trim();
+    var pass = document.getElementById("login-pass").value;
+    var errEl = document.getElementById("login-error");
+    if (!tgId || !pass) { errEl.textContent = "Заполните оба поля"; errEl.style.display = "block"; return; }
+    errEl.style.display = "none";
+    document.getElementById("login-btn").disabled = true;
+    fetch("/api/admin/login", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({tg_id: parseInt(tgId), password: pass})
+    }).then(function(r) { return r.json(); }).then(function(d) {
+        document.getElementById("login-btn").disabled = false;
+        if (d.ok && d.token) {
+            authToken = d.token;
+            localStorage.setItem("pw_admin_token", d.token);
+            document.getElementById("login-screen").style.display = "none";
+            document.getElementById("admin-app").style.display = "flex";
+            showSection("dashboard");
+        } else {
+            errEl.textContent = d.error || "Ошибка авторизации";
+            errEl.style.display = "block";
+        }
+    }).catch(function() {
+        document.getElementById("login-btn").disabled = false;
+        errEl.textContent = "Ошибка сети";
+        errEl.style.display = "block";
+    });
+}
+
+function logout() {
+    authToken = "";
+    localStorage.removeItem("pw_admin_token");
+    showLogin();
 }
 
 // ── Navigation ──
@@ -260,4 +329,9 @@ function loadAudit(offset) {
 }
 
 // ── Init ──
-showSection("dashboard");
+authToken = resolveToken();
+if (hasAuth()) {
+    showSection("dashboard");
+} else {
+    showLogin();
+}

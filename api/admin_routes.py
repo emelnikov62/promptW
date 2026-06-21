@@ -1,4 +1,5 @@
 import os
+import hmac
 import json
 import logging
 from datetime import datetime
@@ -8,12 +9,15 @@ import uuid
 from aiohttp import web
 
 from db.database import get_pool
+from bot.auth import make_auth_token
+from bot.config import BOT_TOKEN
 
 logger = logging.getLogger(__name__)
 
 admin_routes = web.RouteTableDef()
 
 ADMIN_IDS = {int(x) for x in os.getenv("ADMIN_IDS", "").replace(" ", "").split(",") if x}
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
 
 
 def _serialize(obj):
@@ -51,6 +55,25 @@ async def _audit(admin_tg_id, action, target_type=None, target_id=None,
         json.dumps(before) if before else None,
         json.dumps(after) if after else None,
         reason, ip)
+
+
+# ── Login (browser auth without Telegram) ──
+
+@admin_routes.post("/api/admin/login")
+async def admin_login(request):
+    if not ADMIN_PASSWORD:
+        return web.json_response({"error": "ADMIN_PASSWORD not configured"}, status=503)
+    data = await request.json()
+    tg_id = int(data.get("tg_id", 0))
+    password = (data.get("password") or "").strip()
+    if tg_id not in ADMIN_IDS or not hmac.compare_digest(password, ADMIN_PASSWORD):
+        await _audit(tg_id if tg_id in ADMIN_IDS else 0, "login_failed", "admin", tg_id,
+                     None, None, None, _client_ip(request))
+        return web.json_response({"error": "invalid credentials"}, status=403)
+    token = make_auth_token(tg_id, BOT_TOKEN, ttl_sec=12 * 3600)
+    await _audit(tg_id, "login_browser", "admin", tg_id,
+                 None, None, None, _client_ip(request))
+    return web.json_response({"ok": True, "token": token})
 
 
 # ── Dashboard ──

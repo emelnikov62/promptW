@@ -7,7 +7,7 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/admin.css?v=1">
+    <link rel="stylesheet" href="/static/css/admin.css?v=2">
 </head>
 <body>
 <div id="admin-app">
@@ -26,6 +26,7 @@
         <header class="topbar">
             <button class="menu-toggle" id="menu-toggle">&#9776;</button>
             <span class="topbar-title" id="topbar-title">Dashboard</span>
+            <button class="btn btn-outline btn-sm" style="margin-left:auto" onclick="logout()">Выход</button>
         </header>
         <div class="main-content" id="main-content"></div>
     </main>
@@ -34,6 +35,6 @@
 <div class="modal-overlay hidden" id="modal-overlay">
     <div class="modal" id="modal-content"></div>
 </div>
-<script src="/static/js/admin.js?v=1"></script>
+<script src="/static/js/admin.js?v=2"></script>
 </body>
 </html>
