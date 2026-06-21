@@ -2292,6 +2292,179 @@ var GIRL_NEON_PARAMS = [
       ]}
 ];
 
+// ── Бизнес-класс (men, NanoBanana PRO) ──
+var MAN_JET_SKELETON = `КЛЮЧЕВОЕ ТРЕБОВАНИЕ: точно перенести лицо мужчины с загруженного фото-референса, это портрет КОНКРЕТНОГО человека, а не собирательный образ. Лицо на результате должно быть таким, чтобы его мгновенно узнали родные. Скопируй лицо 1:1: сохрани без единого изменения форму и ШИРИНУ лица и полноту щёк (НЕ сужай, не утончай, не вытягивай овал — оставь лицо округлым/широким, если оно такое на референсе), форму и линию челюсти, форму и пропорции носа, форму и разрез глаз, расстояние между глазами, брови, форму губ, скулы, структуру и текстуру кожи, родинки, щетину/бороду и её форму, причёску и линию роста волос — 100% узнаваемость. ЦВЕТ ГЛАЗ — строго как на референсе (светло-голубые глаза НЕ делай тёмными). ВАЖНО: это обычный мужчина, а НЕ профессиональная фотомодель — НЕ заменяй его лицо на типовое «модельное», не делай его худее, скуластее, моложе или симметричнее; сохрани его настоящие черты, реальную ширину лица и комплекцию. БЕЗ сглаживания кожи, БЕЗ AI-эффекта, не идеализируй, не омолаживай, не меняй форму носа и пропорции лица. Если сомневаешься — копируй черты точно с референса. Фотореалистичный кадр премиум-класса: уверенный успешный мужчина в салоне частного бизнес-джета, атмосфера делового люкса и достатка. Он расслабленно сидит, корпус слегка развёрнут к камере, спокойный уверенный взгляд прямо в объектив, лёгкая собранная полуулыбка, плечи расправлены — образ статусного человека, который привык к лучшему. Одежда: {outfit}. На запястье хорошо видны часы: {watch}. В руке у него {drink}. {accessory}. Окружение: {background}. Тёплый мягкий свет из иллюминаторов и скрытой подсветки салона, дорогие фактуры — полированное дерево, тёплая кожа, матовый металл; неглубокая глубина резкости, фон мягко размыт, но лицо остаётся идеально чётким и узнаваемым. Естественные цвета, кинематографичный люксовый колорит, реалистичная кожа без ретуши и AI-сглаживания. Вертикальный кадр 9:16. Без текста, букв, логотипов и водяных знаков.`;
+
+var MAN_JET_PARAMS = [
+    { id:"outfit", control:"sheet", label:{ru:"Костюм",en:"Suit",es:"Traje"},
+      options:[
+        {value:"navy-three-piece", label:{ru:"Синий тройка",en:"Navy three-piece",es:"Azul tres piezas"}, frag:"тёмно-синий приталенный костюм-тройка идеального кроя, белая рубашка, шёлковый галстук, нагрудный платок"},
+        {value:"black-tux", label:{ru:"Чёрный смокинг",en:"Black tuxedo",es:"Esmoquin negro"}, frag:"элегантный чёрный смокинг с атласными лацканами, белая рубашка и чёрная бабочка"},
+        {value:"grey-suit", label:{ru:"Серый костюм",en:"Grey suit",es:"Traje gris"}, frag:"светло-серый приталенный двойка-костюм премиум-класса, белая рубашка без галстука, верхняя пуговица расстёгнута"},
+        {value:"smart-casual", label:{ru:"Кэжуал-люкс",en:"Smart casual",es:"Casual lujo"}, frag:"дорогой тёмный пиджак поверх чёрной водолазки тонкой вязки, образ smart-casual премиум-класса"}
+      ]},
+    { id:"watch", control:"sheet", label:{ru:"Часы",en:"Watch",es:"Reloj"},
+      options:[
+        {value:"rolex-gold", label:{ru:"Rolex золотые",en:"Gold Rolex",es:"Rolex dorado"}, frag:"массивные золотые часы Rolex Day-Date на запястье"},
+        {value:"ap-steel", label:{ru:"AP стальные",en:"AP steel",es:"AP acero"}, frag:"стальные часы Audemars Piguet Royal Oak на запястье"},
+        {value:"patek-leather", label:{ru:"Patek кожа",en:"Patek leather",es:"Patek piel"}, frag:"элегантные часы Patek Philippe на чёрном кожаном ремешке на запястье"},
+        {value:"none", label:{ru:"Без часов",en:"No watch",es:"Sin reloj"}, frag:"без наручных часов"}
+      ]},
+    { id:"drink", control:"sheet", label:{ru:"Напиток",en:"Drink",es:"Bebida"},
+      options:[
+        {value:"whisky", label:{ru:"Виски",en:"Whisky",es:"Whisky"}, frag:"хрустальный бокал-тумблер с виски и кубиками льда"},
+        {value:"champagne", label:{ru:"Шампанское",en:"Champagne",es:"Champán"}, frag:"высокий бокал-флейта с игристым шампанским"},
+        {value:"coffee", label:{ru:"Кофе",en:"Coffee",es:"Café"}, frag:"белая фарфоровая чашка эспрессо на блюдце"},
+        {value:"cognac", label:{ru:"Коньяк",en:"Cognac",es:"Coñac"}, frag:"пузатый бокал-снифтер с янтарным коньяком"}
+      ]},
+    { id:"accessory", control:"sheet", label:{ru:"Аксессуар",en:"Accessory",es:"Accesorio"},
+      options:[
+        {value:"laptop", label:{ru:"Ноутбук",en:"Laptop",es:"Portátil"}, frag:"на столике перед ним раскрытый ноутбук и стакан воды, рядом лежит дорогой кожаный портфель"},
+        {value:"sunglasses", label:{ru:"Очки",en:"Sunglasses",es:"Gafas"}, frag:"дорогие солнцезащитные очки в тонкой металлической оправе подняты на лоб, над ними хорошо видны глаза"},
+        {value:"phone", label:{ru:"Смартфон",en:"Smartphone",es:"Móvil"}, frag:"в свободной руке дорогой смартфон, рядом на столике кожаный органайзер и ручка"},
+        {value:"cigar", label:{ru:"Сигара",en:"Cigar",es:"Puro"}, frag:"в свободной руке дорогая сигара, рядом на столике хрустальная пепельница"}
+      ]},
+    { id:"background", control:"sheet", label:{ru:"Фон",en:"Background",es:"Fondo"},
+      options:[
+        {value:"jet-cabin", label:{ru:"Салон джета",en:"Jet cabin",es:"Cabina del jet"}, frag:"светлый салон частного джета, кремовые кожаные кресла, полированные деревянные панели, ряд иллюминаторов с мягким дневным светом"},
+        {value:"leather-seat", label:{ru:"Кожаное кресло",en:"Leather seat",es:"Asiento de piel"}, frag:"крупным планом глубокое кресло из тёмно-коричневой кожи капитанского типа в салоне джета, рядом иллюминатор"},
+        {value:"window-view", label:{ru:"У иллюминатора",en:"By the window",es:"Junto a la ventanilla"}, frag:"место у иллюминатора частного джета, за стеклом видны облака и солнечный свет на высоте полёта"},
+        {value:"vip-lounge", label:{ru:"VIP-зал",en:"VIP lounge",es:"Sala VIP"}, frag:"приватный VIP-зал бизнес-авиации с панорамными окнами, тёмная кожаная мебель, мрамор и тёплая дизайнерская подсветка"}
+      ]}
+];
+
+// ── Суперкар (men, NanoBanana PRO) ──
+var MAN_SUPERCAR_SKELETON = `КЛЮЧЕВОЕ ТРЕБОВАНИЕ: точно перенести лицо мужчины с загруженного фото-референса, это портрет КОНКРЕТНОГО человека, а не собирательный образ. Лицо на результате должно быть таким, чтобы его мгновенно узнали родные. Скопируй лицо 1:1: сохрани без единого изменения форму и ШИРИНУ лица и полноту щёк (НЕ сужай, не утончай, не вытягивай овал — оставь лицо округлым/широким, если оно такое на референсе), форму и линию челюсти, форму и пропорции носа, форму и разрез глаз, расстояние между глазами, брови, форму губ, скулы, структуру и текстуру кожи, родинки, щетину/бороду и её форму, причёску и линию роста волос — 100% узнаваемость. ЦВЕТ ГЛАЗ — строго как на референсе (светло-голубые глаза НЕ делай тёмными). ВАЖНО: это обычный мужчина, а НЕ профессиональная фотомодель — НЕ заменяй его лицо на типовое «модельное», не делай его худее, скуластее, моложе или симметричнее; сохрани его настоящие черты, реальную ширину лица и комплекцию. БЕЗ сглаживания кожи, БЕЗ AI-эффекта, не идеализируй, не омолаживай, не меняй форму носа и пропорции лица. Если сомневаешься — копируй черты точно с референса. Фотореалистичный кадр в стиле автомобильного люкс-журнала: уверенный мужчина славянской внешности, короткая стрижка с фейдом и короткая борода-щетина, стоит у спорткара. {odezhda} {ochki} {chasy} Он опирается одной рукой на крыло автомобиля или стоит вполоборота рядом с открытой дверью-ножницами, расслабленная статусная поза, прямой взгляд в камеру, лёгкая полуулыбка. Рядом припаркован {mashina}, лак сияет, на бортах играют блики городских огней и неоновых вывесок. {fon} Кинематографический объёмный свет, тёплые и холодные акценты, неглубокая глубина резкости с лёгким боке от фар и фонарей, эффектные отражения на капоте и асфальте, влажный после дождя асфальт с цветными рефлексами. Атмосфера статуса, скорости и ночного драйва. Естественная кожа с порами и реальной текстурой, без ретуши. Вертикальный кадр 9:16. Без текста, букв, логотипов и водяных знаков.`;
+
+var MAN_SUPERCAR_PARAMS = [
+    { id:"mashina", control:"sheet", label:{ru:"Машина",en:"Car",es:"Coche"},
+      options:[
+        {value:"matte-black-lambo", label:{ru:"Чёрный Lamborghini",en:"Black Lamborghini",es:"Lamborghini negro"}, frag:"матово-чёрный Lamborghini с агрессивными обводами и низкой посадкой"},
+        {value:"red-ferrari", label:{ru:"Красный Ferrari",en:"Red Ferrari",es:"Ferrari rojo"}, frag:"ярко-красный Ferrari с глянцевым лаком и спортивными обводами"},
+        {value:"white-mercedes-amg", label:{ru:"Белый Mercedes AMG",en:"White Mercedes AMG",es:"Mercedes AMG blanco"}, frag:"белоснежный Mercedes-AMG GT с хромированными деталями и мощным силуэтом"},
+        {value:"grey-porsche", label:{ru:"Серый Porsche",en:"Grey Porsche",es:"Porsche gris"}, frag:"графитово-серый Porsche 911 с идеальными пропорциями и сияющим лаком"}
+      ]},
+    { id:"odezhda", control:"sheet", label:{ru:"Одежда",en:"Outfit",es:"Ropa"},
+      options:[
+        {value:"leather-jacket", label:{ru:"Кожаная куртка",en:"Leather jacket",es:"Chaqueta de cuero"}, frag:"одет в чёрную кожаную куртку поверх однотонной футболки, тёмные джинсы, кожаные ботинки, дорогой повседневный лук."},
+        {value:"hoodie", label:{ru:"Худи",en:"Hoodie",es:"Sudadera"}, frag:"одет в стильное премиальное худи оверсайз тёмного цвета, джоггеры и модные кроссовки, расслабленный уличный лук."},
+        {value:"suit", label:{ru:"Костюм",en:"Suit",es:"Traje"}, frag:"одет в элегантный тёмный костюм по фигуре с белой рубашкой без галстука, верхняя пуговица расстёгнута, статусный деловой лук."},
+        {value:"turtleneck-coat", label:{ru:"Пальто и водолазка",en:"Coat & turtleneck",es:"Abrigo y cuello alto"}, frag:"одет в чёрную водолазку и длинное шерстяное пальто нараспашку, тёмные брюки, дорогой минималистичный лук."}
+      ]},
+    { id:"ochki", control:"sheet", label:{ru:"Очки",en:"Glasses",es:"Gafas"},
+      options:[
+        {value:"sunglasses", label:{ru:"Солнцезащитные очки",en:"Sunglasses",es:"Gafas de sol"}, frag:"в стильных солнцезащитных очках-вайфарерах с тёмными линзами, надетых небрежно."},
+        {value:"no-glasses", label:{ru:"Без очков",en:"No glasses",es:"Sin gafas"}, frag:"без очков, лицо полностью открыто."},
+        {value:"aviators", label:{ru:"Очки-авиаторы",en:"Aviators",es:"Gafas aviador"}, frag:"в металлических очках-авиаторах с зеркальными линзами, в которых отражаются городские огни."},
+        {value:"glasses-on-head", label:{ru:"Очки на лбу",en:"Glasses on head",es:"Gafas en la frente"}, frag:"солнцезащитные очки подняты на лоб, лицо открыто, взгляд прямой."}
+      ]},
+    { id:"chasy", control:"sheet", label:{ru:"Часы",en:"Watch",es:"Reloj"},
+      options:[
+        {value:"steel-luxury", label:{ru:"Стальные люкс-часы",en:"Steel luxury watch",es:"Reloj de acero de lujo"}, frag:"на запястье массивные премиальные часы с металлическим браслетом, ловящие блики."},
+        {value:"gold-watch", label:{ru:"Золотые часы",en:"Gold watch",es:"Reloj de oro"}, frag:"на запястье золотые часы класса люкс, заметно поблёскивающие в свете огней."},
+        {value:"diver-watch", label:{ru:"Спортивные часы",en:"Sports watch",es:"Reloj deportivo"}, frag:"на запястье крупные спортивные часы-дайверы с керамическим безелем."},
+        {value:"no-watch", label:{ru:"Без часов",en:"No watch",es:"Sin reloj"}, frag:"без часов на запястье."}
+      ]},
+    { id:"fon", control:"sheet", label:{ru:"Фон",en:"Background",es:"Fondo"},
+      options:[
+        {value:"night-city", label:{ru:"Ночной город",en:"Night city",es:"Ciudad nocturna"}, frag:"Фон — ночной мегаполис: небоскрёбы со светящимися окнами, размытые неоновые вывески, огни фар, мокрый асфальт с цветными отражениями."},
+        {value:"garage", label:{ru:"Премиум-гараж",en:"Premium garage",es:"Garaje premium"}, frag:"Фон — стильный подземный премиум-гараж: бетонные стены, направленный точечный свет, светодиодные ленты, атмосфера закрытого автоклуба."},
+        {value:"highway", label:{ru:"Ночная трасса",en:"Night highway",es:"Autopista nocturna"}, frag:"Фон — пустая ночная трасса с уходящими вдаль фонарями, лёгкая дымка, размытые следы фар на длинной выдержке."},
+        {value:"rooftop", label:{ru:"Крыша с панорамой",en:"Rooftop skyline",es:"Azotea panorámica"}, frag:"Фон — открытая крыша паркинга с панорамой ночного города, море огней внизу и сияющий горизонт небоскрёбов."}
+      ]}
+];
+
+// ── Босс (men, NanoBanana PRO) ──
+var MAN_BOSS_SKELETON = `КЛЮЧЕВОЕ ТРЕБОВАНИЕ: точно перенести лицо мужчины с загруженного фото-референса, это портрет КОНКРЕТНОГО человека, а не собирательный образ. Лицо на результате должно быть таким, чтобы его мгновенно узнали родные. Скопируй лицо 1:1: сохрани без единого изменения форму и ШИРИНУ лица и полноту щёк (НЕ сужай, не утончай, не вытягивай овал — оставь лицо округлым/широким, если оно такое на референсе), форму и линию челюсти, форму и пропорции носа, форму и разрез глаз, расстояние между глазами, брови, форму губ, скулы, структуру и текстуру кожи, родинки, щетину/бороду и её форму, причёску и линию роста волос — 100% узнаваемость. ЦВЕТ ГЛАЗ — строго как на референсе (светло-голубые глаза НЕ делай тёмными). ВАЖНО: это обычный мужчина, а НЕ профессиональная фотомодель — НЕ заменяй его лицо на типовое «модельное», не делай его худее, скуластее, моложе или симметричнее; сохрани его настоящие черты, реальную ширину лица и комплекцию. БЕЗ сглаживания кожи, БЕЗ AI-эффекта, не идеализируй, не омолаживай, не меняй форму носа и пропорции лица. Если сомневаешься — копируй черты точно с референса. Фотореалистичный студийный editorial-портрет «Босс»: уверенный мужчина славянской внешности с короткой стрижкой с фейдом снят по грудь на однотонном тёмном студийном фоне. Он одет в {clothing}. Поза статусная и собранная: корпус слегка развёрнут, плечи расправлены, взгляд прямой в камеру, спокойная уверенность сильного руководителя. Студийный свет: {light}. Борода: {beard}. {accessory} Глубокий монохром: насыщенный чёрно-белый кадр с богатой тональной градацией, контрастными тенями и мягким зерном плёнки, тёмный фон уходит в чёрный, акцент на лице и глазах. Естественная текстура кожи и реальная щетина сохранены, без сглаживания. Снято на полнокадровую камеру с портретным объективом 85 мм, малая глубина резкости, резкий фокус на глазах. Вертикальный кадр 9:16. Без текста, букв, логотипов и водяных знаков.`;
+
+var MAN_BOSS_PARAMS = [
+    { id:"clothing", control:"sheet", label:{ru:"Одежда",en:"Outfit",es:"Ropa"},
+      options:[
+        {value:"three-piece-suit", label:{ru:"Костюм-тройка",en:"Three-piece suit",es:"Traje de tres piezas"}, frag:"идеально сидящий тёмный костюм-тройка с белой рубашкой и тонким галстуком, premium-крой, ткань с лёгкой фактурой"},
+        {value:"open-shirt", label:{ru:"Рубашка",en:"Shirt",es:"Camisa"}, frag:"белая рубашка с расстёгнутой верхней пуговицей, без галстука, рукава аккуратно подвёрнуты, уверенный современный образ"},
+        {value:"turtleneck", label:{ru:"Водолазка",en:"Turtleneck",es:"Cuello alto"}, frag:"тёмная тонкая водолазка из премиального трикотажа под пиджаком, лаконичный статусный минимализм"},
+        {value:"overcoat", label:{ru:"Пальто",en:"Overcoat",es:"Abrigo"}, frag:"тёмное классическое пальто поверх костюма, поднятый ворот, фактурная шерсть, образ влиятельного человека"}
+      ]},
+    { id:"light", control:"sheet", label:{ru:"Свет",en:"Light",es:"Luz"},
+      options:[
+        {value:"hard-contrast", label:{ru:"Жёсткий контраст",en:"Hard contrast",es:"Contraste duro"}, frag:"жёсткий контрастный свет сбоку, резкая граница света и тени на лице, выразительная драматичная светотень"},
+        {value:"soft-light", label:{ru:"Мягкий свет",en:"Soft light",es:"Luz suave"}, frag:"мягкий обволакивающий свет от большого софтбокса, плавные переходы тонов, благородная деликатная светотень"},
+        {value:"rim-light", label:{ru:"Контровой",en:"Rim light",es:"Contraluz"}, frag:"контровой свет сзади, светящийся контур по плечам и краю лица, объём и глубина при тёмном фоне"}
+      ]},
+    { id:"beard", control:"sheet", label:{ru:"Борода",en:"Beard",es:"Barba"},
+      options:[
+        {value:"as-reference", label:{ru:"Как на референсе",en:"As in reference",es:"Como en la referencia"}, frag:"короткая борода-щетина точно как на референсе, форму и длину не менять"},
+        {value:"neater", label:{ru:"Аккуратнее",en:"Neater",es:"Más cuidada"}, frag:"та же короткая борода-щетина, но чуть аккуратнее подровненная по контуру, та же длина и густота, черты лица не менять"},
+        {value:"unchanged", label:{ru:"Без изменений",en:"Unchanged",es:"Sin cambios"}, frag:"борода и щетина в точности как на референсе, ничего не добавлять и не убирать"}
+      ]},
+    { id:"accessory", control:"sheet", label:{ru:"Аксессуар",en:"Accessory",es:"Accesorio"},
+      options:[
+        {value:"watch", label:{ru:"Часы",en:"Watch",es:"Reloj"}, frag:"На запястье классические механические наручные часы с металлическим браслетом, видны при естественном положении руки, лицо ничем не закрыто."},
+        {value:"pocket-square", label:{ru:"Платок",en:"Pocket square",es:"Pañuelo"}, frag:"В нагрудном кармане пиджака аккуратно сложенный нагрудный платок, сдержанная статусная деталь, лицо ничем не закрыто."},
+        {value:"no-accessory", label:{ru:"Без",en:"None",es:"Sin"}, frag:"Без аксессуаров, ничего лишнего, всё внимание на лице и взгляде."}
+      ]}
+];
+
+// ── Острые козырьки (men, NanoBanana PRO) ──
+var MAN_GANGSTER_SKELETON = `КЛЮЧЕВОЕ ТРЕБОВАНИЕ: точно перенести лицо мужчины с загруженного фото-референса, это портрет КОНКРЕТНОГО человека, а не собирательный образ. Лицо на результате должно быть таким, чтобы его мгновенно узнали родные. Скопируй лицо 1:1: сохрани без единого изменения форму и ШИРИНУ лица и полноту щёк (НЕ сужай, не утончай, не вытягивай овал — оставь лицо округлым/широким, если оно такое на референсе), форму и линию челюсти, форму и пропорции носа, форму и разрез глаз, расстояние между глазами, брови, форму губ, скулы, структуру и текстуру кожи, родинки, щетину/бороду и её форму, причёску и линию роста волос — 100% узнаваемость. ЦВЕТ ГЛАЗ — строго как на референсе (светло-голубые глаза НЕ делай тёмными). ВАЖНО: это обычный мужчина, а НЕ профессиональная фотомодель — НЕ заменяй его лицо на типовое «модельное», не делай его худее, скуластее, моложе или симметричнее; сохрани его настоящие черты, реальную ширину лица и комплекцию. БЕЗ сглаживания кожи, БЕЗ AI-эффекта, не идеализируй, не омолаживай, не меняй форму носа и пропорции лица. Если сомневаешься — копируй черты точно с референса. Фотореалистичный кинематографичный портрет в стиле «Острые козырьки», Бирмингем 1920-х годов. Мужчина с короткой стрижкой с фейдом и короткой бородой-щетиной уверенно смотрит в кадр, поза статусная и собранная, плечи развёрнуты. На нём {suit}. На голове {headwear}. {accessory}. Действие происходит в обстановке: {background}. Тёплый приглушённый кинематографический свет, мягкие тёплые блики и глубокие тени, лёгкая дымка в воздухе, атмосфера эпохи, винтажная цветокоррекция с тёплыми янтарными и серо-коричневыми тонами, неглубокая глубина резкости с мягко размытым фоном. Детализированная фактура твида и ткани, реалистичная кожа без сглаживания. Вертикальный кадр 9:16. Без текста, букв, логотипов и водяных знаков.`;
+
+var MAN_GANGSTER_PARAMS = [
+    { id:"suit", control:"sheet", label:{ru:"Костюм",en:"Suit",es:"Traje"},
+      options:[
+        {value:"grey-tweed", label:{ru:"Серый твид",en:"Grey tweed",es:"Tweed gris"}, frag:"строгий костюм-тройка из серого твида в мелкую ёлочку: пиджак, жилет и брюки, белая рубашка с воротником-стойкой и тёмный галстук"},
+        {value:"brown-tweed", label:{ru:"Коричневый твид",en:"Brown tweed",es:"Tweed marrón"}, frag:"тёплый костюм-тройка из коричневого твида с фактурным переплетением: пиджак, жилет и брюки, кремовая рубашка и галстук в тон"},
+        {value:"dark-tweed", label:{ru:"Тёмный твид",en:"Dark tweed",es:"Tweed oscuro"}, frag:"мрачный костюм-тройка из тёмно-серого, почти угольного твида: пиджак, жилет и брюки, белая рубашка и тёмный узкий галстук"}
+      ]},
+    { id:"headwear", control:"sheet", label:{ru:"Головной убор",en:"Headwear",es:"Sombrero"},
+      options:[
+        {value:"flat-cap", label:{ru:"Кепка-восьмиклинка",en:"Flat cap",es:"Gorra de ocho piezas"}, frag:"классическая твидовая кепка-восьмиклинка под цвет костюма"},
+        {value:"no-hat", label:{ru:"Без кепки",en:"No hat",es:"Sin sombrero"}, frag:"головного убора нет, волосы уложены назад в стиле эпохи, причёска полностью открывает лицо"},
+        {value:"fedora", label:{ru:"Шляпа",en:"Fedora",es:"Sombrero fedora"}, frag:"элегантная фетровая шляпа-федора в тёмном тоне, слегка надвинутая, но не закрывающая лицо"}
+      ]},
+    { id:"accessory", control:"sheet", label:{ru:"Аксессуар",en:"Accessory",es:"Accesorio"},
+      options:[
+        {value:"cigar", label:{ru:"Сигара",en:"Cigar",es:"Cigarro"}, frag:"В руке дымящаяся сигара, лёгкий завиток дыма поднимается в воздухе"},
+        {value:"pocket-watch", label:{ru:"Карманные часы",en:"Pocket watch",es:"Reloj de bolsillo"}, frag:"Из кармана жилета свисает золотая цепочка карманных часов, он придерживает её рукой"},
+        {value:"no-accessory", label:{ru:"Без аксессуара",en:"None",es:"Ninguno"}, frag:"Руки спокойно опущены или одна рука в кармане, без дополнительных аксессуаров"}
+      ]},
+    { id:"background", control:"sheet", label:{ru:"Фон",en:"Background",es:"Fondo"},
+      options:[
+        {value:"vintage-bar", label:{ru:"Винтажный бар",en:"Vintage bar",es:"Bar vintage"}, frag:"полумрак винтажного бара 1920-х, тёмное дерево и латунь, полки с бутылками и тёплый свет настенных ламп за спиной"},
+        {value:"brick-street", label:{ru:"Кирпичная улица",en:"Brick street",es:"Calle de ladrillo"}, frag:"туманная кирпичная улица старого промышленного Бирмингема, мокрая брусчатка, газовые фонари и силуэты дымовых труб в дымке"},
+        {value:"old-pub", label:{ru:"Старый паб",en:"Old pub",es:"Pub antiguo"}, frag:"интерьер старого английского паба 1920-х, деревянные панели, витражные окна и тёплый свет ламп, дымка от табака в воздухе"}
+      ]}
+];
+
+// ── Горы (men, NanoBanana PRO) ──
+var MAN_ALPINE_SKELETON = `КЛЮЧЕВОЕ ТРЕБОВАНИЕ: точно перенести лицо мужчины с загруженного фото-референса, это портрет КОНКРЕТНОГО человека, а не собирательный образ. Лицо на результате должно быть таким, чтобы его мгновенно узнали родные. Скопируй лицо 1:1: сохрани без единого изменения форму и ШИРИНУ лица и полноту щёк (НЕ сужай, не утончай, не вытягивай овал — оставь лицо округлым/широким, если оно такое на референсе), форму и линию челюсти, форму и пропорции носа, форму и разрез глаз, расстояние между глазами, брови, форму губ, скулы, структуру и текстуру кожи, родинки, щетину/бороду и её форму, причёску и линию роста волос — 100% узнаваемость. ЦВЕТ ГЛАЗ — строго как на референсе (светло-голубые глаза НЕ делай тёмными). ВАЖНО: это обычный мужчина, а НЕ профессиональная фотомодель — НЕ заменяй его лицо на типовое «модельное», не делай его худее, скуластее, моложе или симметричнее; сохрани его настоящие черты, реальную ширину лица и комплекцию. БЕЗ сглаживания кожи, БЕЗ AI-эффекта, не идеализируй, не омолаживай, не меняй форму носа и пропорции лица. Если сомневаешься — копируй черты точно с референса. Фотореалистичный портрет мужчины со славянской внешностью на премиальном горнолыжном курорте, кадр в полный рост по грудь, après-ski атмосфера. Он одет в {clothing}. На лице {eyewear}. В руке у него {drink}. Позади него {background}. Яркое горное солнце заливает сцену тёплым светом, чистое голубое небо, искрящийся на солнце снег, лёгкий морозный пар в воздухе. Premium lifestyle, дорогой и статусный вид, расслабленная уверенная поза, дружелюбное открытое выражение лица. Естественное освещение, реалистичная кожа с порами и текстурой, чёткая детализация, профессиональная репортажная съёмка, объёмный солнечный контровый свет, лёгкое боке заснеженных гор на фоне. Вертикальный кадр 9:16. Без текста, букв, логотипов и водяных знаков.`;
+
+var MAN_ALPINE_PARAMS = [
+    { id:"clothing", control:"sheet", label:{ru:"Одежда",en:"Outfit",es:"Ropa"},
+      options:[
+        {value:"down-jacket", label:{ru:"Пуховик",en:"Down jacket",es:"Plumífero"}, frag:"стильный тёплый пуховик премиум-класса с поднятым воротником"},
+        {value:"ski-jacket", label:{ru:"Лыжная куртка",en:"Ski jacket",es:"Chaqueta de esquí"}, frag:"технологичная горнолыжная куртка премиум-бренда яркого цвета"},
+        {value:"chunky-sweater", label:{ru:"Свитер крупной вязки",en:"Chunky knit",es:"Jersey grueso"}, frag:"тёплый свитер крупной вязки нейтрального оттенка"}
+      ]},
+    { id:"eyewear", control:"sheet", label:{ru:"Очки/маска",en:"Eyewear",es:"Gafas/máscara"},
+      options:[
+        {value:"goggles-up", label:{ru:"Маска на лоб",en:"Goggles up",es:"Máscara en la frente"}, frag:"горнолыжная маска, сдвинутая на лоб, с зеркальной линзой"},
+        {value:"sunglasses", label:{ru:"Солнцезащитные",en:"Sunglasses",es:"Gafas de sol"}, frag:"стильные солнцезащитные очки в тонкой оправе"},
+        {value:"none", label:{ru:"Без",en:"None",es:"Sin"}, frag:"никаких очков, открытое лицо щурится от яркого солнца"}
+      ]},
+    { id:"drink", control:"sheet", label:{ru:"Напиток",en:"Drink",es:"Bebida"},
+      options:[
+        {value:"mulled-wine", label:{ru:"Глинтвейн",en:"Mulled wine",es:"Vino caliente"}, frag:"дымящийся бокал глинтвейна с корицей и долькой апельсина"},
+        {value:"coffee", label:{ru:"Кофе",en:"Coffee",es:"Café"}, frag:"горячая чашка кофе с поднимающимся паром"},
+        {value:"none", label:{ru:"Без",en:"None",es:"Sin"}, frag:"свободные руки, расслабленно убраны в карманы"}
+      ]},
+    { id:"background", control:"sheet", label:{ru:"Фон",en:"Backdrop",es:"Fondo"},
+      options:[
+        {value:"snowy-peaks", label:{ru:"Снежные пики",en:"Snowy peaks",es:"Picos nevados"}, frag:"величественные заснеженные горные пики под ярким солнцем"},
+        {value:"chalet", label:{ru:"Шале",en:"Chalet",es:"Chalet"}, frag:"уютная деревянная терраса премиального альпийского шале с панорамой гор"},
+        {value:"ski-lift", label:{ru:"Подъёмник",en:"Ski lift",es:"Telesilla"}, frag:"горнолыжный подъёмник с кабинками на фоне снежного склона"}
+      ]}
+];
+
 var BDAY_VIDEO_PROMPT = `ИДЕНТИЧНОСТЬ (главное правило): человек в кадре — тот же самый человек, что на загруженном фото (@Image1). В КАЖДОМ кадре без изменений сохраняй его лицо и черты лица, причёску, цвет и длину волос, телосложение, оттенок и текстуру кожи и его одежду строго как на референсе — 100% сходство, это тот же человек, не подменяй, не идеализируй и не омолаживай лицо.
 Аутентичное вертикальное видео со смартфона, 9:16, 1080x1920, ручная съёмка ночью. Мобильная документалка: тряска, лёгкий смаз, низкосветовой шум и зерно. Макс. фотореализм — как видео от друга, НЕ кино, НЕ стилизация. Свет только от фонарей.
 【Длит.】10 сек
@@ -2377,6 +2550,46 @@ var TRENDS = {
         skeleton: GIRL_NEON_SKELETON, params: GIRL_NEON_PARAMS,
         title: { ru: "Неон", en: "Neon", es: "Neón" },
         desc: { ru: "Загрузите фото, где хорошо видно лицо — оно сохранится с референса (без сглаживания и AI-эффекта). Кинематографичное селфи ночью в неоновых огнях под дождём. Ниже выберите одежду, цвет неона, зонт и аксессуар.", en: "Upload a photo with a clearly visible face — it's kept from the reference (no skin smoothing, no AI look). A cinematic neon-lit selfie in the rain at night. Choose clothing, neon color, umbrella and accessory below.", es: "Sube una foto con la cara bien visible — se mantiene de la referencia (sin suavizado ni efecto AI). Un selfie cinematográfico con neón bajo la lluvia de noche. Elige ropa, color de neón, paraguas y accesorio abajo." }
+    },
+    "man-jet-photo": {
+        type: "photo", cost: 30, model: "NanoBanana PRO",
+        preview: "/static/tpl/man-jet-photo.jpg", full: "/static/tpl/man-jet-photo.jpg",
+        ratio: "9:16", ratios: ["9:16", "3:4"], minPhotos: 1, maxPhotos: 8, prompt: MAN_JET_SKELETON,
+        skeleton: MAN_JET_SKELETON, params: MAN_JET_PARAMS,
+        title: { ru: "Бизнес-класс", en: "Business Class", es: "Clase Business" },
+        desc: { ru: "Загрузите фото, где хорошо видно лицо — оно сохранится с референса (без сглаживания и AI-эффекта). Выберите костюм, часы, напиток, аксессуар и фон салона джета.", en: "Upload a photo where the face is clearly visible — it stays exactly as on the reference (no skin smoothing, no AI look). Pick the suit, watch, drink, accessory and the jet cabin background.", es: "Sube una foto donde se vea bien la cara — se conserva tal cual del referente (sin suavizado ni efecto IA). Elige el traje, el reloj, la bebida, el accesorio y el fondo de la cabina del jet." }
+    },
+    "man-supercar-photo": {
+        type: "photo", cost: 30, model: "NanoBanana PRO",
+        preview: "/static/tpl/man-supercar-photo.jpg", full: "/static/tpl/man-supercar-photo.jpg",
+        ratio: "9:16", ratios: ["9:16", "3:4"], minPhotos: 1, maxPhotos: 8, prompt: MAN_SUPERCAR_SKELETON,
+        skeleton: MAN_SUPERCAR_SKELETON, params: MAN_SUPERCAR_PARAMS,
+        title: { ru: "Суперкар", en: "Supercar", es: "Superdeportivo" },
+        desc: { ru: "Загрузите фото, где хорошо видно лицо — оно сохранится с референса (без сглаживания и AI-эффекта). Выберите машину, одежду, очки, часы и фон.", en: "Upload a photo where the face is clearly visible — it will be kept from the reference (no skin smoothing, no AI look). Choose the car, outfit, glasses, watch and background.", es: "Sube una foto donde se vea bien la cara — se conservará de la referencia (sin suavizado ni efecto de IA). Elige el coche, la ropa, las gafas, el reloj y el fondo." }
+    },
+    "man-boss-photo": {
+        type: "photo", cost: 30, model: "NanoBanana PRO",
+        preview: "/static/tpl/man-boss-photo.jpg", full: "/static/tpl/man-boss-photo.jpg",
+        ratio: "9:16", ratios: ["9:16", "3:4"], minPhotos: 1, maxPhotos: 8, prompt: MAN_BOSS_SKELETON,
+        skeleton: MAN_BOSS_SKELETON, params: MAN_BOSS_PARAMS,
+        title: { ru: "Босс", en: "The Boss", es: "El Jefe" },
+        desc: { ru: "Загрузите фото, где хорошо видно лицо — оно сохранится с референса (без сглаживания и AI-эффекта). Драматичный чёрно-белый студийный портрет в костюме: выберите одежду, характер света, стиль бороды и аксессуар.", en: "Upload a photo where the face is clearly visible — it will be preserved exactly from the reference (no skin smoothing, no AI effect). A dramatic black-and-white studio portrait in a suit: choose the outfit, the lighting character, the beard style and an accessory.", es: "Sube una foto donde se vea bien la cara — se conservará tal cual de la referencia (sin suavizado de piel ni efecto de IA). Un retrato de estudio dramático en blanco y negro con traje: elige la ropa, el carácter de la luz, el estilo de la barba y un accesorio." }
+    },
+    "man-gangster-photo": {
+        type: "photo", cost: 30, model: "NanoBanana PRO",
+        preview: "/static/tpl/man-gangster-photo.jpg", full: "/static/tpl/man-gangster-photo.jpg",
+        ratio: "9:16", ratios: ["9:16", "3:4"], minPhotos: 1, maxPhotos: 8, prompt: MAN_GANGSTER_SKELETON,
+        skeleton: MAN_GANGSTER_SKELETON, params: MAN_GANGSTER_PARAMS,
+        title: { ru: "Острые козырьки", en: "Peaky Blinders", es: "Peaky Blinders" },
+        desc: { ru: "Загрузите фото, где хорошо видно лицо — оно сохранится с референса (без сглаживания и AI-эффекта). Выберите твидовый костюм-тройку, головной убор, аксессуар и атмосферный фон в духе 1920-х.", en: "Upload a photo where your face is clearly visible — it will be preserved from the reference (no smoothing, no AI effect). Choose your tweed three-piece suit, headwear, accessory and atmospheric 1920s backdrop.", es: "Sube una foto donde se vea bien tu rostro — se conservará del referente (sin suavizado ni efecto IA). Elige el traje de tres piezas de tweed, el sombrero, el accesorio y el fondo de los años 20." }
+    },
+    "man-alpine-photo": {
+        type: "photo", cost: 30, model: "NanoBanana PRO",
+        preview: "/static/tpl/man-alpine-photo.jpg", full: "/static/tpl/man-alpine-photo.jpg",
+        ratio: "9:16", ratios: ["9:16", "3:4"], minPhotos: 1, maxPhotos: 8, prompt: MAN_ALPINE_SKELETON,
+        skeleton: MAN_ALPINE_SKELETON, params: MAN_ALPINE_PARAMS,
+        title: { ru: "Горы", en: "Alpine", es: "Montañas" },
+        desc: { ru: "Загрузите фото, где хорошо видно лицо — оно сохранится с референса (без сглаживания и AI-эффекта). Выберите одежду, очки или маску, напиток и фон — соберём статусный кадр на премиальном горнолыжном курорте.", en: "Upload a photo where the face is clearly visible — it will be preserved from the reference (no skin smoothing, no AI look). Choose your outfit, glasses or goggles, drink and backdrop, and we'll build a status après-ski shot at a premium alpine resort.", es: "Sube una foto donde se vea bien la cara — se conservará del referente (sin suavizado ni efecto IA). Elige la ropa, las gafas o la máscara, la bebida y el fondo, y crearemos una foto con estatus en una estación de esquí premium." }
     }
 };
 
