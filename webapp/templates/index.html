@@ -7,8 +7,8 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css?v=81">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=Unbounded:wght@500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css?v=89">
 </head>
 <body>
 <div id="app">
@@ -29,27 +29,20 @@
 
     <!-- HOME -->
     <section id="page-home" class="page active">
-        <div class="hero-banner">
-            <div class="hero-glow"></div>
-            <div class="hero-mark"><svg width="44" height="44" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1.5l2.4 6.1 6.6.3-5.1 4.2 1.8 6.4L12 15.9 6.3 18.5l1.8-6.4L3 7.9l6.6-.3z"/></svg></div>
-            <span class="hero-label" data-i18n="heroLabel">СОЗДАВАЙТЕ ФОТО И ВИДЕО С ПОМОЩЬЮ НЕЙРОСЕТИ</span>
-            <h2><span data-i18n="heroTitlePre">Добро пожаловать в</span> <span class="grad-tx">PromptW</span></h2>
-            <div class="hero-dots"><span class="dot on"></span><span class="dot"></span><span class="dot"></span></div>
-        </div>
-        <div class="sec">
-            <h3 class="sec-title"><i class="bar"></i><span data-i18n="getStarted">С чего начать</span></h3>
-            <div class="acard" data-nav="create">
-                <div class="acard-ico gold-bg"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0A0A12" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
-                <div class="acard-body"><span class="acard-badge" data-i18n="easiest">ПРОЩЕ ВСЕГО</span><span class="acard-name" data-i18n="byTemplate">По шаблону</span><span class="acard-desc" data-i18n="byTemplateDesc">Выберите готовый и загрузите фото</span></div>
-                <svg class="acard-arr" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-            </div>
-            <div class="acard" data-nav="create">
-                <div class="acard-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
-                <div class="acard-body"><span class="acard-name" data-i18n="fromScratch">С нуля</span><span class="acard-desc" data-i18n="fromScratchDesc">Свой промпт и выбор нейросети</span></div>
-                <svg class="acard-arr" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        <div class="home-hook">
+            <h2 class="hook-title"><span data-i18n="hookTitle">Загрузи фото — получи</span> <span class="grad-tx" data-i18n="hookAccent">вау-результат</span></h2>
+            <div class="hook-actions">
+                <button class="hook-btn hook-primary" id="hook-tpl-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    <span data-i18n="byTemplate">По шаблону</span>
+                </button>
+                <button class="hook-btn hook-secondary" data-nav="create">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    <span data-i18n="fromScratch">С нуля</span>
+                </button>
             </div>
         </div>
-        <div class="sec">
+        <div class="sec" id="home-tpl" style="scroll-margin-top:64px">
             <h3 class="sec-title"><i class="bar"></i><span data-i18n="trends">Тренды</span></h3>
             <div class="trends-grid">
                 <div class="trend-t has-media" data-tpl="birthday-photo"><img class="trend-media" src="/static/tpl/birthday-photo.jpg" alt=""><span class="trend-badge trend-badge-ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span><span class="trend-cap" data-i18n="trendBdayPhoto">С ДНЁМ РОЖДЕНИЯ ФОТО</span></div>
@@ -109,7 +102,7 @@
             <div class="ccard">
                 <span class="up-title" data-i18n="uploadPhoto">Загрузить фото</span><span class="up-hint" data-i18n="uploadHint">До 8 фото</span>
                 <button class="ref-insert" id="ref-insert-btn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span data-i18n="useMyRef">Вставить мой референс</span></button>
-                <div class="up-area"><div class="up-btn"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div></div>
+                <div class="up-area"><div class="up-btn"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div></div>
                 <span class="gold small" data-i18n="refHint">Как подобрать фото-референс?</span>
             </div>
             <div class="ccard">
@@ -168,9 +161,9 @@
         <div class="sec"><span class="sec-lbl" data-i18n="balance">БАЛАНС</span><div class="bal-card"><div class="bal-left"><span class="coin lg">W</span><div><span class="bal-title" data-i18n="tokens">ТОКЕНЫ</span><span class="bal-amt user-balance" id="prof-bal">0</span></div></div><button class="topup-btn" id="topup-btn-p" data-i18n="topup">+ Пополнить</button></div></div>
 
         <div class="sec"><span class="sec-lbl" data-i18n="actions">ДЕЙСТВИЯ</span><div class="act-grid">
-            <div class="act-tile" data-nav="support"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span data-i18n="support">Поддержка</span></div>
-            <div class="act-tile" data-nav="info"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span data-i18n="info">Инфо</span></div>
-            <div class="act-tile" data-nav="stats"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span data-i18n="stats">Статистика</span></div>
+            <div class="act-tile" data-nav="support"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span data-i18n="support">Поддержка</span></div>
+            <div class="act-tile" data-nav="info"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span data-i18n="info">Инфо</span></div>
+            <div class="act-tile" data-nav="stats"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span data-i18n="stats">Статистика</span></div>
         </div></div>
 
         <div class="sec"><span class="sec-lbl" data-i18n="myRef">МОЙ РЕФЕРЕНС</span>
@@ -180,7 +173,7 @@
         </div>
 
         <div class="sec"><span class="sec-lbl" data-i18n="partnership">ПАРТНЁРСТВО</span><div class="partner-card">
-            <div class="partner-hdr"><span class="partner-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span><div class="partner-hdr-tx"><b data-i18n="partnerProgram">Партнёрская программа</b><span class="muted small block" data-i18n="partnerDesc">Зарабатывай с пополнений рефералов</span></div></div>
+            <div class="partner-hdr"><span class="partner-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span><div class="partner-hdr-tx"><b data-i18n="partnerProgram">Партнёрская программа</b><span class="muted small block" data-i18n="partnerDesc">Зарабатывай с пополнений рефералов</span></div></div>
             <div class="partner-stats">
                 <div class="pstat"><span class="pstat-pct grad-tx">30%</span><span class="pstat-l" data-i18n="line1">1 линия</span><span class="muted small" data-i18n="direct">прямые</span></div>
                 <div class="pstat"><span class="pstat-pct grad-tx">5%</span><span class="pstat-l" data-i18n="line2">2 линия</span><span class="muted small" data-i18n="passive">пассив</span></div>
@@ -435,7 +428,7 @@
     </div>
 
 </div>
-<script src="/static/js/i18n.js?v=77"></script>
-<script src="/static/js/app.js?v=77"></script>
+<script src="/static/js/i18n.js?v=83"></script>
+<script src="/static/js/app.js?v=86"></script>
 </body>
 </html>

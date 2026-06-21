@@ -1,5 +1,9 @@
 # Secrets — never commit
 .env
+key.txt
+*.key
+*.pem
+*secret*
 
 # Python
 __pycache__/
@@ -17,3 +21,4 @@ media/
 Thumbs.db
 .idea/
 .vscode/
+deploy.sh

@@ -369,6 +369,8 @@ var createRefHint = document.querySelector("#form-image [data-i18n='refHint']");
 if (createRefHint) createRefHint.addEventListener("click", function(){ openRefguide("create"); });
 // action cards
 document.querySelectorAll("[data-nav]").forEach(function(el){el.addEventListener("click",function(){showPage(el.dataset.nav)})});
+// "По шаблону" → scroll to the templates showcase on the home page
+(function(){ var b=document.getElementById("hook-tpl-btn"); if(b) b.addEventListener("click",function(){ var t=document.getElementById("home-tpl"); if(t) t.scrollIntoView({behavior:"smooth",block:"start"}); }); })();
 // stats period tabs
 document.querySelectorAll("#period-tabs .period-tab").forEach(function(b){b.addEventListener("click",function(){setStatsPeriod(b.dataset.period)})});
 // topup buttons
@@ -470,7 +472,7 @@ var VIDEO_MODELS = {
     },
 };
 
-var plusSvg = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+var plusSvg = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
 var uploadedFiles = {};
 
 function pickFile(accept, callback) {
@@ -1556,7 +1558,9 @@ function updateHistory(){
             : '<video src="'+escHtml(item.url)+'" preload="metadata"></video><div class="gal-play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>';
         var cost = item.cost ? '<span class="gal-cost">'+item.cost+' W</span>' : '';
         var meta = '<div class="gal-meta"><span class="gal-model">'+escHtml(item.model||"")+'</span>'+cost+'</div>';
-        return '<div class="gal-item" data-idx="'+idx+'">'+media+meta+'</div>';
+        var tagKey = item.type==="photo"?"photo":(item.type==="audio"?"audio":"video");
+        var tag = '<span class="gal-tag gal-tag-'+tagKey+'">'+t(tagKey)+'</span>';
+        return '<div class="gal-item" data-idx="'+idx+'">'+tag+media+meta+'</div>';
     }).join("");
     list.querySelectorAll(".gal-item").forEach(function(el){
         el.addEventListener("click",function(){ showGenDetail(galleryItems[parseInt(el.dataset.idx)]); });
@@ -1675,7 +1679,9 @@ function showGenDetail(item){
         }
     }
 
-    document.getElementById("gen-detail-content").innerHTML=html;
+    var dc=document.getElementById("gen-detail-content");
+    dc.className = item.type==="photo"?"z-photo":(item.type==="audio"?"z-audio":"z-video");
+    dc.innerHTML=html;
 
     var moreBtn=document.getElementById("detail-more");
     if(moreBtn) moreBtn.addEventListener("click",function(){
