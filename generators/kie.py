@@ -55,7 +55,8 @@ class KieGenerator(BaseGenerator):
         }
 
     async def _create_task(self, model: str, input_data: dict,
-                           callback_url: Optional[str] = None) -> str:
+                           callback_url: Optional[str] = None,
+                           on_task=None) -> str:
         url = f"{API_BASE}/api/v1/jobs/createTask"
         body = {
             "model": model,
@@ -75,10 +76,19 @@ class KieGenerator(BaseGenerator):
                 task_id = (data.get("data") or {}).get("taskId")
                 if not task_id:
                     raise RuntimeError(f"KIE createTask: no taskId in response: {data}")
-                return task_id
+        # Report the task id (persist it) BEFORE the long poll, so a restart can
+        # recover this generation. Outside the session ctx so a slow callback
+        # doesn't hold the HTTP connection.
+        if on_task:
+            try:
+                await on_task(task_id)
+            except Exception:
+                logger.exception("on_task callback failed for %s", task_id)
+        return task_id
 
     async def _create_audio_task(self, prompt: str,
                                  model: str = DEFAULT_AUDIO_MODEL,
+                                 on_task=None,
                                  **kwargs) -> str:
         url = f"{API_BASE}/api/v1/generate"
         body = {
@@ -119,7 +129,12 @@ class KieGenerator(BaseGenerator):
                 task_id = (data.get("data") or {}).get("taskId")
                 if not task_id:
                     raise RuntimeError(f"KIE audio: no taskId in response: {data}")
-                return task_id
+        if on_task:
+            try:
+                await on_task(task_id)
+            except Exception:
+                logger.exception("on_task callback failed for %s", task_id)
+        return task_id
 
     async def _poll_task(self, task_id: str, timeout: int = 300,
                          interval: int = 5) -> dict:
@@ -218,8 +233,12 @@ class KieGenerator(BaseGenerator):
         except (TypeError, ValueError):
             count = 1
 
-        async def _one():
-            task_id = await self._create_task(model, input_data)
+        on_task = kwargs.get("on_task")
+
+        async def _one(report):
+            # Only the first task reports its id back for recovery (one row, one id).
+            task_id = await self._create_task(model, input_data,
+                                              on_task=on_task if report else None)
             task = await self._poll_task(task_id)
             urls = self._parse_result_urls(task)
             if not urls:
@@ -228,7 +247,7 @@ class KieGenerator(BaseGenerator):
             return task_id, urls[0], filepath
 
         # run N independent generations concurrently (one task per image)
-        results = await asyncio.gather(*[_one() for _ in range(count)])
+        results = await asyncio.gather(*[_one(i == 0) for i in range(count)])
 
         task_ids = [r[0] for r in results]
         all_urls = [r[1] for r in results]
@@ -273,6 +292,12 @@ class KieGenerator(BaseGenerator):
                 task_id = (data.get("data") or {}).get("taskId")
                 if not task_id:
                     raise RuntimeError(f"KIE Veo: no taskId in response: {data}")
+        on_task = kwargs.get("on_task")
+        if on_task:
+            try:
+                await on_task(task_id)
+            except Exception:
+                logger.exception("on_task callback failed for %s", task_id)
 
         poll_url = f"{API_BASE}/api/v1/veo/record-info"
         deadline = asyncio.get_event_loop().time() + 600
@@ -415,7 +440,7 @@ class KieGenerator(BaseGenerator):
             if paths:
                 input_data[api_key] = [self._file_to_url(p) for p in paths]
 
-        task_id = await self._create_task(model, input_data)
+        task_id = await self._create_task(model, input_data, on_task=kwargs.get("on_task"))
         task = await self._poll_task(task_id, timeout=600, interval=10)
         urls = self._parse_result_urls(task)
 
@@ -444,3 +469,45 @@ class KieGenerator(BaseGenerator):
             file_path=filepath, media_type="audio", prompt=prompt,
             task_id=task_id, urls=urls,
         )
+
+    async def recover_task(self, task_id: str, gen_type: str,
+                           model: Optional[str] = None) -> Optional[str]:
+        """Single-shot re-check of an existing task (reconciliation sweep). Returns
+        the downloaded local path if done, None if still processing, raises if failed."""
+        ext = {"photo": "png", "image": "png", "audio": "mp3"}.get(gen_type, "mp4")
+
+        if model == "Veo 3.1 Fast":
+            url = f"{API_BASE}/api/v1/veo/record-info"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, params={"taskId": task_id},
+                                       headers=self._headers()) as resp:
+                    data = await resp.json()
+            if data.get("code") != 200:
+                raise RuntimeError(f"KIE Veo record-info failed: {data.get('msg', data)}")
+            d = data.get("data", {})
+            flag = d.get("successFlag")
+            if flag in (2, 3):
+                raise RuntimeError(f"Veo task failed: {d.get('errorMessage', 'unknown error')}")
+            if flag != 1:
+                return None
+            response = d.get("response") or {}
+            urls = response.get("resultUrls") or response.get("fullResultUrls") or []
+        else:
+            url = f"{API_BASE}/api/v1/jobs/recordInfo"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, params={"taskId": task_id},
+                                       headers=self._headers()) as resp:
+                    data = await resp.json()
+            if data.get("code") != 200:
+                raise RuntimeError(f"KIE recordInfo failed: {data.get('msg', data)}")
+            task = data.get("data") or {}
+            state = task.get("state", "")
+            if state in ("failed", "error"):
+                raise RuntimeError(f"Task failed: {task.get('failMsg', 'unknown error')}")
+            if state != "success":
+                return None
+            urls = self._parse_result_urls(task)
+
+        if not urls:
+            raise RuntimeError("Task done but no result URLs")
+        return await self._download_file(urls[0], ext)

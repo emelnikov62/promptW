@@ -84,7 +84,12 @@ async def _create_tables():
                 created_at TIMESTAMPTZ DEFAULT NOW()
             );
 
+            -- KIE task id, stored as soon as the task is created so a restart-killed
+            -- in-flight generation can be recovered (re-polled) on the next startup.
+            ALTER TABLE generations ADD COLUMN IF NOT EXISTS provider_task_id TEXT;
+
             CREATE INDEX IF NOT EXISTS idx_generations_user ON generations(user_tg_id);
+            CREATE INDEX IF NOT EXISTS idx_generations_pending ON generations(status) WHERE status = 'pending';
             CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions(user_tg_id);
             CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_tg_id);
             CREATE INDEX IF NOT EXISTS idx_chat_dialogs_user ON chat_dialogs(user_tg_id, updated_at DESC);

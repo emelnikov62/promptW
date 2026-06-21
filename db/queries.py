@@ -117,6 +117,55 @@ async def update_generation(gen_id: int, status: str,
         """, status, result_url, gen_id)
 
 
+async def set_generation_task(gen_id: int, task_id: str):
+    """Persist the provider (KIE) task id so a restart-killed generation can be
+    recovered later by re-polling that task."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE generations SET provider_task_id = $2 WHERE id = $1",
+            gen_id, task_id)
+
+
+async def get_pending_generations(limit: int = 50) -> List[dict]:
+    """Generations still in flight (status 'pending'), oldest first — fed to the
+    startup/periodic reconciliation sweep."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT id, user_tg_id, gen_type, model, cost, provider_task_id, created_at
+            FROM generations WHERE status = 'pending'
+            ORDER BY created_at ASC LIMIT $1
+        """, limit)
+        return [dict(r) for r in rows]
+
+
+async def finish_generation_if_pending(gen_id: int, result_url: str) -> bool:
+    """Atomically flip pending->done (only if still pending). Returns True if THIS
+    call won the transition — guards against the live task and the sweep racing."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("""
+            UPDATE generations SET status = 'done', result_url = $2
+            WHERE id = $1 AND status = 'pending'
+            RETURNING id
+        """, gen_id, result_url)
+        return row is not None
+
+
+async def fail_generation_if_pending(gen_id: int) -> Optional[dict]:
+    """Atomically flip pending->error. Returns {user_tg_id, cost} if THIS call won
+    the transition (caller then refunds exactly once), else None."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("""
+            UPDATE generations SET status = 'error'
+            WHERE id = $1 AND status = 'pending'
+            RETURNING user_tg_id, cost
+        """, gen_id)
+        return dict(row) if row else None
+
+
 async def delete_generation(gen_id: int, tg_id: int) -> Optional[str]:
     """Delete a generation owned by tg_id. Returns its result_url (to clean up the
     media file), or None if it didn't exist / wasn't owned by this user."""
