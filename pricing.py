@@ -13,8 +13,11 @@ CHAT_COST = 1                  # tokens charged per chat reply
 
 # Trend templates are fixed-price products: the user sees one advertised price and
 # must be charged exactly that, regardless of the underlying model's per-second math.
-# Keyed by the tplId the client sends in settings. MUST mirror TRENDS[*].cost in app.js.
-TEMPLATE_COST = {
+# The price is server-authoritative and lives in the `templates` DB table; this cache
+# is loaded from there at startup and refreshed on every admin edit (see
+# refresh_template_costs). The hardcoded fallback below only covers the case where the
+# DB has not been loaded yet (e.g. tests) — the DB always wins once loaded.
+_TEMPLATE_COST_FALLBACK = {
     "birthday-photo": 30,
     "yacht-photo": 30,
     "birthday-video": 420,
@@ -30,6 +33,15 @@ TEMPLATE_COST = {
     "man-gangster-photo": 30,
     "man-alpine-photo": 30,
 }
+TEMPLATE_COST = dict(_TEMPLATE_COST_FALLBACK)
+
+
+def refresh_template_costs(costs: dict) -> None:
+    """Replace the in-memory template-cost cache from the DB (keeps the hardcoded
+    fallback underneath so unknown/just-deleted ids degrade gracefully)."""
+    TEMPLATE_COST.clear()
+    TEMPLATE_COST.update(_TEMPLATE_COST_FALLBACK)
+    TEMPLATE_COST.update(costs or {})
 
 # Per-model video pricing (KIE credits, 1 credit = $0.005). Mirrors VIDEO_MODELS.
 VIDEO_PRICING = {

@@ -94,6 +94,15 @@ async def main():
     await init_db(DATABASE_URL)
     logging.info("Database connected")
 
+    # Load server-authoritative template prices from the DB into the pricing cache.
+    # Falls back to the hardcoded defaults in pricing.py if this fails.
+    try:
+        from db.queries import get_template_costs
+        from pricing import refresh_template_costs
+        refresh_template_costs(await get_template_costs())
+    except Exception:
+        logging.exception("failed to load template costs from DB; using fallback")
+
     gen_name = "KieGenerator" if KIE_API_KEY else "StubGenerator"
     logging.info("Generator: %s", gen_name)
 

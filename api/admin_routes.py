@@ -9,6 +9,11 @@ import uuid
 from aiohttp import web
 
 from db.database import get_pool
+from db.queries import (
+    admin_list_templates, admin_get_template, admin_create_template,
+    admin_update_template, admin_delete_template, get_template_costs,
+)
+from pricing import refresh_template_costs
 from bot.auth import make_auth_token
 from bot.config import BOT_TOKEN
 
@@ -373,6 +378,95 @@ async def admin_withdrawal_action(request):
                  {"status": old_status}, {"status": new_status},
                  reason, _client_ip(request))
     return web.json_response({"ok": True, "status": new_status})
+
+
+# ── Templates ──
+
+_TPL_TYPES = {"photo", "video", "audio"}
+
+
+def _tpl_payload(data: dict) -> dict:
+    """Normalize an incoming template body into the columns the queries expect."""
+    return {
+        "id": (data.get("id") or "").strip(),
+        "type": (data.get("type") or "").strip(),
+        "enabled": bool(data.get("enabled", True)),
+        "sort_order": int(data.get("sort_order", 0) or 0),
+        "category": (data.get("category") or None),
+        "cost": int(data.get("cost", 0) or 0),
+        "title": data.get("title") or {},
+        "preview": data.get("preview") or {},
+        "definition": data.get("definition") or {},
+    }
+
+
+async def _reload_costs():
+    refresh_template_costs(await get_template_costs())
+
+
+@admin_routes.get("/api/admin/templates")
+async def admin_templates_list(request):
+    _require_admin(request)
+    limit = min(int(request.query.get("limit", "200")), 500)
+    offset = int(request.query.get("offset", "0"))
+    return web.json_response(await admin_list_templates(limit, offset))
+
+
+@admin_routes.get("/api/admin/templates/{tpl_id}")
+async def admin_template_get(request):
+    _require_admin(request)
+    tpl = await admin_get_template(request.match_info["tpl_id"])
+    if not tpl:
+        return web.json_response({"error": "not_found"}, status=404)
+    return web.json_response(_row(tpl))
+
+
+@admin_routes.post("/api/admin/templates")
+async def admin_template_create(request):
+    admin_id = _require_admin(request)
+    data = _tpl_payload(await request.json())
+    if not data["id"] or data["type"] not in _TPL_TYPES:
+        return web.json_response({"error": "id and valid type required"}, status=400)
+    ok = await admin_create_template(data)
+    if not ok:
+        return web.json_response({"error": "id already exists"}, status=409)
+    await _reload_costs()
+    await _audit(admin_id, "template_create", "template", data["id"],
+                 None, {"cost": data["cost"], "type": data["type"]}, None, _client_ip(request))
+    return web.json_response({"ok": True})
+
+
+@admin_routes.put("/api/admin/templates/{tpl_id}")
+async def admin_template_update(request):
+    admin_id = _require_admin(request)
+    tpl_id = request.match_info["tpl_id"]
+    before = await admin_get_template(tpl_id)
+    if not before:
+        return web.json_response({"error": "not_found"}, status=404)
+    body = await request.json()
+    body["id"] = tpl_id  # id is immutable; ignore any id in the body
+    data = _tpl_payload(body)
+    if data["type"] not in _TPL_TYPES:
+        return web.json_response({"error": "valid type required"}, status=400)
+    await admin_update_template(tpl_id, data)
+    await _reload_costs()
+    await _audit(admin_id, "template_update", "template", tpl_id,
+                 {"cost": before.get("cost"), "enabled": before.get("enabled")},
+                 {"cost": data["cost"], "enabled": data["enabled"]},
+                 None, _client_ip(request))
+    return web.json_response({"ok": True})
+
+
+@admin_routes.delete("/api/admin/templates/{tpl_id}")
+async def admin_template_delete(request):
+    admin_id = _require_admin(request)
+    tpl_id = request.match_info["tpl_id"]
+    ok = await admin_delete_template(tpl_id)
+    if not ok:
+        return web.json_response({"error": "not_found"}, status=404)
+    await _reload_costs()
+    await _audit(admin_id, "template_delete", "template", tpl_id, None, None, None, _client_ip(request))
+    return web.json_response({"ok": True})
 
 
 # ── Audit log ──
