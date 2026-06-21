@@ -2111,6 +2111,47 @@ var YACHT_PHOTO_PARAMS = [
       }}
 ];
 
+// ── Girl with roses: female-only param template (NanoBanana PRO). No gender/hair
+//    params — hair is kept from the reference; identity preservation is hardened. ──
+var GIRL_ROSES_SKELETON = `Создай изображение на основе исходного фото девушки. Перенеси её лицо МАКСИМАЛЬНО точно, без изменений: те же черты лица, форма лица и головы, нос и ноздри, разрез и форма глаз, брови, форма и размер губ, овал лица, скулы, структура и текстура кожи, родинки и все индивидуальные особенности и мелкие несовершенства — 100% портретное сходство, это та же самая девушка. БЕЗ сглаживания кожи, БЕЗ AI-эффекта, не идеализируй, не омолаживай, не делай лицо красивее или «модельным», не меняй пропорции и форму носа — сохрани реальные детали внешности как есть. Волосы — цвет, длина и причёска строго как на загруженном фото. Кожа слегка загорелая. Девушка сидит на полу и делает селфи в зеркало (ракурс зеркало-селфи, рамку зеркала не видно), одна нога согнута в колене. Маникюр средней длины, чёткий квадрат, белый френч. Макияж: тонкие чёрные стрелки, большие губы с растушёванным коричневым карандашом по контуру и розовой помадой по центру. На руке золотой браслет Cartier Love, на шее золотой гвоздь Cartier. {watch}. Одета в {outfit}. На ногах {slippers}. Девушка фотографирует себя {phone}. Рядом с ней на полу {flowers}. Домашний минималистичный интерьер в бежевых тонах, сзади стена из бежевых панелей с вертикальной жёлтой подсветкой по краю, деревянный пол. Тёплый естественный солнечный свет слева сзади. Приглушённая неяркая цветовая гамма, тёплые тона, уютная домашняя атмосфера. Фотореализм, средняя глубина резкости, фокусное расстояние 50 мм, снято на iPhone 17 Pro Max, отражение в зеркале. Фон НЕ размывать, держать в фокусе. Без посторонних людей, без текста и водяных знаков.`;
+
+var GIRL_ROSES_PARAMS = [
+    { id:"flowers", control:"sheet", label:{ru:"Цветы",en:"Flowers",es:"Flores"},
+      options:[
+        {value:"roses-red", label:{ru:"Красные розы",en:"Red roses",es:"Rosas rojas"}, frag:"огромный букет из примерно 101 красной розы в большой плетёной корзине с белыми атласными лентами"},
+        {value:"roses-pink", label:{ru:"Розовые пионы",en:"Pink peonies",es:"Peonías rosas"}, frag:"огромный букет нежно-розовых пионов и роз в большой плетёной корзине с белыми атласными лентами"},
+        {value:"roses-white", label:{ru:"Белые розы",en:"White roses",es:"Rosas blancas"}, frag:"огромный букет белых роз в большой плетёной корзине с белыми атласными лентами"},
+        {value:"tulips", label:{ru:"Тюльпаны",en:"Tulips",es:"Tulipanes"}, frag:"большая охапка свежих разноцветных тюльпанов в крупной стеклянной вазе на полу"}
+      ]},
+    { id:"outfit", control:"sheet", label:{ru:"Одежда",en:"Clothing",es:"Ropa"},
+      options:[
+        {value:"tank-joggers", label:{ru:"Майка и джоггеры",en:"Tank & joggers",es:"Top y joggers"}, frag:"белая облегающая хлопковая майка и серые оверсайз-джоггеры, уютный домашний образ"},
+        {value:"hoodie-shorts", label:{ru:"Худи и шорты",en:"Hoodie & shorts",es:"Sudadera y shorts"}, frag:"бежевый оверсайз-худи и короткие трикотажные шорты, уютный лаунж-образ"},
+        {value:"silk-set", label:{ru:"Шёлковая пижама",en:"Silk set",es:"Conjunto de seda"}, frag:"шёлковый домашний комплект цвета шампанского — топ на тонких бретелях и свободные брюки"},
+        {value:"knit-dress", label:{ru:"Трикотажное платье",en:"Knit dress",es:"Vestido de punto"}, frag:"облегающее бежевое трикотажное мини-платье, домашний люкс"}
+      ]},
+    { id:"slippers", control:"sheet", label:{ru:"Тапочки",en:"Slippers",es:"Pantuflas"},
+      options:[
+        {value:"fur-pink", label:{ru:"Розовые меховые",en:"Pink fur",es:"Piel rosa"}, frag:"огромные нежно-розовые пушистые меховые тапочки с открытым носом"},
+        {value:"fur-white", label:{ru:"Белые меховые",en:"White fur",es:"Piel blanca"}, frag:"большие белые пушистые меховые тапочки с открытым носом"},
+        {value:"fur-beige", label:{ru:"Бежевые меховые",en:"Beige fur",es:"Piel beige"}, frag:"большие бежевые пушистые меховые тапочки с открытым носом"},
+        {value:"ugg-mini", label:{ru:"Мини-угги",en:"Mini uggs",es:"Mini uggs"}, frag:"уютные мини-угги цвета карамели"}
+      ]},
+    { id:"watch", control:"sheet", label:{ru:"Часы",en:"Watch",es:"Reloj"},
+      options:[
+        {value:"cartier-silver", label:{ru:"Cartier серебряные",en:"Cartier silver",es:"Cartier plateado"}, frag:"на запястье серебряные часы Cartier Santos с бриллиантовым безелем"},
+        {value:"cartier-gold", label:{ru:"Cartier золотые",en:"Cartier gold",es:"Cartier dorado"}, frag:"на запястье золотые часы Cartier с бриллиантами"},
+        {value:"rolex-gold", label:{ru:"Rolex золотые",en:"Rolex gold",es:"Rolex dorado"}, frag:"на запястье золотые часы Rolex"},
+        {value:"none", label:{ru:"Без часов",en:"No watch",es:"Sin reloj"}, frag:"без наручных часов"}
+      ]},
+    { id:"phone", control:"sheet", label:{ru:"Телефон",en:"Phone",es:"Teléfono"},
+      options:[
+        {value:"titanium", label:{ru:"iPhone титан",en:"iPhone titanium",es:"iPhone titanio"}, frag:"на iPhone 17 Pro Max цвета натуральный титан"},
+        {value:"black", label:{ru:"iPhone чёрный",en:"iPhone black",es:"iPhone negro"}, frag:"на чёрный iPhone 17 Pro Max"},
+        {value:"gold", label:{ru:"iPhone золотой",en:"iPhone gold",es:"iPhone dorado"}, frag:"на золотистый iPhone 17 Pro Max"}
+      ]}
+];
+
 var BDAY_VIDEO_PROMPT = `ИДЕНТИЧНОСТЬ (главное правило): человек в кадре — тот же самый человек, что на загруженном фото (@Image1). В КАЖДОМ кадре без изменений сохраняй его лицо и черты лица, причёску, цвет и длину волос, телосложение, оттенок и текстуру кожи и его одежду строго как на референсе — 100% сходство, это тот же человек, не подменяй, не идеализируй и не омолаживай лицо.
 Аутентичное вертикальное видео со смартфона, 9:16, 1080x1920, ручная съёмка ночью. Мобильная документалка: тряска, лёгкий смаз, низкосветовой шум и зерно. Макс. фотореализм — как видео от друга, НЕ кино, НЕ стилизация. Свет только от фонарей.
 【Длит.】10 сек
@@ -2156,6 +2197,14 @@ var TRENDS = {
         ratio: "9:16", quality: "720p", minPhotos: 1, maxPhotos: 7, prompt: YACHT_VIDEO_PROMPT, hidePrompt: true,
         title: { ru: "На яхте видео", en: "Yacht video", es: "Video en yate" },
         desc: { ru: "Загрузите фото, которое сгенерировали специально для этого видео (соседний шаблон).", en: "Upload the photo generated specifically for this video (the neighboring template).", es: "Sube la foto generada especialmente para este video (la plantilla vecina)." }
+    },
+    "girl-roses-photo": {
+        type: "photo", cost: 30, model: "NanoBanana PRO",
+        preview: "/static/tpl/girl-roses-photo.jpg", full: "/static/tpl/girl-roses-photo.jpg",
+        ratio: "9:16", minPhotos: 1, maxPhotos: 8, prompt: GIRL_ROSES_SKELETON,
+        skeleton: GIRL_ROSES_SKELETON, params: GIRL_ROSES_PARAMS,
+        title: { ru: "Девушка с розами", en: "Girl with roses", es: "Chica con rosas" },
+        desc: { ru: "Загрузите фото, где хорошо видно лицо — оно сохранится с референса (без сглаживания и AI-эффекта). Ниже выберите цветы, одежду, тапочки, часы и телефон, остальное соберётся автоматически.", en: "Upload a photo with a clearly visible face — it's kept from the reference (no skin smoothing, no AI look). Choose flowers, clothing, slippers, watch and phone below; the rest is assembled automatically.", es: "Sube una foto con la cara bien visible — se mantiene de la referencia (sin suavizado ni efecto AI). Elige flores, ropa, pantuflas, reloj y teléfono abajo; el resto se arma automáticamente." }
     }
 };
 
