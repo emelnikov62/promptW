@@ -1436,7 +1436,7 @@ function genOvOpen(){
     // sit between the persistent header and the bottom nav (keep both visible)
     var hdr=document.getElementById("main-header");
     var nav=document.getElementById("bnav");
-    o.style.top=(hdr?Math.round(hdr.getBoundingClientRect().bottom):56)+"px";
+    o.style.top=(hdr?Math.round(hdr.getBoundingClientRect().bottom)-1:56)+"px";
     o.style.bottom=(nav?Math.round(nav.getBoundingClientRect().height):60)+"px";
     o.classList.remove("hidden");
     requestAnimationFrame(function(){ o.classList.add("show"); });
