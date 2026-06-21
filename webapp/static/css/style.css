@@ -22,7 +22,7 @@ body.scrolled .header{border-bottom-color:var(--brd)}
 
 /* CONTENT */
 .content{padding:0 16px}
-.page{display:none}.page.active{display:block;animation:pageFade .22s ease}
+.page{display:none;padding-bottom:90px}.page.active{display:block;animation:pageFade .22s ease}
 /* opacity-only (no transform) so fixed .gen-bar isn't reparented mid-animation */
 @keyframes pageFade{from{opacity:0}to{opacity:1}}
 .create-form:not(.hidden){animation:formFade .2s ease}
