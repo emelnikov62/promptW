@@ -99,6 +99,17 @@ function _genCost(type){
     var el = document.getElementById(id);
     return el ? (parseInt(el.textContent,10)||0) : 0;
 }
+// Optimistic balance: the server reserves tokens at the START of a generation (atomic
+// try_charge before the job, refund on failure), but the displayed balance only changed
+// on the final response. Mirror the reservation in the UI immediately so the user sees
+// tokens taken at once and the gen buttons flip to "пополнить" if funds run out; restore
+// on failure (the server refunded), or overwrite with the authoritative balance on success.
+function applyBalanceDelta(d){
+    if(!currentUser || currentUser.balance == null) return;
+    currentUser.balance = Math.max(0, currentUser.balance + d);
+    document.querySelectorAll(".user-balance").forEach(function(el){ el.textContent = currentUser.balance; });
+    refreshGenButtons();
+}
 function refreshGenButtons(){
     [["gen-photo","image"],["gen-video","video"],["gen-audio","audio"]].forEach(function(p){
         var btn = document.getElementById(p[0]); if(!btn) return;
@@ -1522,11 +1533,13 @@ async function runGenerate(type, prompt){
     var apiType=type==="image"?"image":type;
     var pendType=type==="image"?"photo":type;
     var pendId=addPendingGen(pendType, model);
+    var genCost=_genCost(type);
+    applyBalanceDelta(-genCost);   // reserve in the UI immediately (server already charged at start)
     try {
         var fd=buildFormData(type, prompt);
         var res=await fetch("/api/generate/"+apiType, { method:"POST", headers:authHeaders(), body:fd });
         var data=await res.json();
-        if(res.status===402){ removePendingGen(pendId); updateHistory(); genOvClose(); toast(t("errNoBalance"),"error"); haptic.notify("error"); showPage("topup"); return; }
+        if(res.status===402){ applyBalanceDelta(genCost); removePendingGen(pendId); updateHistory(); genOvClose(); toast(t("errNoBalance"),"error"); haptic.notify("error"); showPage("topup"); return; }
         if(!res.ok) throw new Error(data.error||"Generation failed");
         if(data.balance!=null){ document.querySelectorAll(".user-balance").forEach(function(el){el.textContent=data.balance;}); if(currentUser) currentUser.balance=data.balance; refreshGenButtons(); }
         var mtype=data.media_type==="photo"?"photo":(data.media_type==="audio"?"audio":"video");
@@ -1544,6 +1557,7 @@ async function runGenerate(type, prompt){
         if(genViewOpen) genOvResult(mtype, data);
         else toast(t("genSavedToHistory"),"success");
     } catch(err){
+        applyBalanceDelta(genCost);   // generation failed — server refunds, restore the UI
         removePendingGen(pendId);
         updateHistory();
         haptic.notify("error");
@@ -2205,6 +2219,8 @@ async function tplGenerate(tpl, btn, id) {
     genOvOpen(); genOvLoading(ovType, tpl.model);
     haptic.impact("medium");
     var pendId = addPendingGen(ovType, tpl.model);
+    var genCost = tpl.cost || 0;
+    applyBalanceDelta(-genCost);   // reserve in the UI immediately (server already charged at start)
     try {
         var fd = new FormData();
         fd.append("prompt", prompt);
@@ -2229,7 +2245,7 @@ async function tplGenerate(tpl, btn, id) {
         var endpoint = "/api/generate/" + (tpl.type === "photo" ? "image" : "video");
         var res = await fetch(endpoint, { method: "POST", headers: authHeaders(), body: fd });
         var data = await res.json();
-        if (res.status === 402) { removePendingGen(pendId); updateHistory(); genOvClose(); toast(t("errNoBalance"), "error"); haptic.notify("error"); showPage("topup"); return; }
+        if (res.status === 402) { applyBalanceDelta(genCost); removePendingGen(pendId); updateHistory(); genOvClose(); toast(t("errNoBalance"), "error"); haptic.notify("error"); showPage("topup"); return; }
         if (!res.ok) throw new Error(data.error || "Generation failed");
         if (data.balance != null) { document.querySelectorAll(".user-balance").forEach(function(el){el.textContent=data.balance;}); if(currentUser) currentUser.balance=data.balance; refreshGenButtons(); }
 
@@ -2246,6 +2262,7 @@ async function tplGenerate(tpl, btn, id) {
         haptic.notify("success");
         if (genViewOpen) genOvResult(mtype, data); else toast(t("genSavedToHistory"), "success");
     } catch (err) {
+        applyBalanceDelta(genCost);   // generation failed — server refunds, restore the UI
         removePendingGen(pendId);
         updateHistory();
         haptic.notify("error");
