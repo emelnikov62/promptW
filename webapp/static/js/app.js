@@ -54,6 +54,9 @@ function toast(msg, type) {
 }
 
 var galleryItems = [];
+var HISTORY_PAGE = 30;          // how many more rows each "Показать ещё" reveals
+var historyLimit = HISTORY_PAGE; // current window size requested from the server
+var historyHasMore = false;     // server returned a full window → older rows may exist
 var ratios = ["1:1","3:4","4:3","9:16","16:9"];
 var quals = ["1K","2K","4K"];
 var state = { pRatio:1, pQual:1 };
@@ -197,9 +200,11 @@ async function loadUserHistory() {
     var tgId = getTgId();
     if (!tgId) return;
     try {
-        var res = await fetch("/api/user/" + tgId + "/history?limit=20", { headers: authHeaders() });
+        var res = await fetch("/api/user/" + tgId + "/history?limit=" + historyLimit, { headers: authHeaders() });
         if (res.ok) {
             var items = await res.json();
+            // A full window back means the server likely has older rows beyond it.
+            historyHasMore = items.length >= historyLimit;
             galleryItems = items.filter(function(i){ return i.result_url; }).map(function(i){
                 var s = i.settings || {};
                 if (typeof s === "string") { try { s = JSON.parse(s); } catch(e) { s = {}; } }
@@ -1696,9 +1701,16 @@ function updateHistory(){
         var tagKey = item.type==="photo"?"photo":(item.type==="audio"?"audio":"video");
         var tag = '<span class="gal-tag gal-tag-'+tagKey+'">'+t(tagKey)+'</span>';
         return '<div class="gal-item" data-idx="'+idx+'">'+tag+media+meta+'</div>';
-    }).join("");
+    }).join("")
+    + (historyHasMore ? '<button class="gal-more" id="hist-more">'+t("loadMore")+'</button>' : "");
     list.querySelectorAll(".gal-item[data-idx]").forEach(function(el){
         el.addEventListener("click",function(){ showGenDetail(galleryItems[parseInt(el.dataset.idx)]); });
+    });
+    var more=document.getElementById("hist-more");
+    if(more) more.addEventListener("click",function(){
+        more.disabled=true; more.textContent=t("loading");
+        historyLimit+=HISTORY_PAGE;
+        loadUserHistory();
     });
 }
 

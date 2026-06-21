@@ -125,6 +125,8 @@ var I18N = {
         // History
         history: "История",
         historyEmpty: "Пока ничего не сгенерировано",
+        loadMore: "Показать ещё",
+        loading: "Загрузка…",
         // Detail
         detailTitle: "Детали",
         detailParams: "ПАРАМЕТРЫ",
@@ -485,6 +487,8 @@ var I18N = {
         generating: "Generating...",
         history: "History",
         historyEmpty: "Nothing generated yet",
+        loadMore: "Show more",
+        loading: "Loading…",
         detailTitle: "Details",
         detailParams: "PARAMETERS",
         detailModel: "Model",
@@ -838,6 +842,8 @@ var I18N = {
         generating: "Generando...",
         history: "Historial",
         historyEmpty: "Nada generado aún",
+        loadMore: "Mostrar más",
+        loading: "Cargando…",
         detailTitle: "Detalles",
         detailParams: "PARÁMETROS",
         detailModel: "Modelo",
