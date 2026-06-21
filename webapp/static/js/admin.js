@@ -338,31 +338,70 @@ function loadTemplates(offset) {
     });
 }
 
+function tfField(label, inner) {
+    return '<div class="tf-field"><label class="tf-label">' + label + '</label>' + inner + '</div>';
+}
+
+function tfThumbInner(url) {
+    if (!url) return '<span class="tf-thumb-empty">Нет превью</span>';
+    if (/\.(mp4|webm|mov)(\?|#|$)/i.test(url)) return '<video src="' + esc(url) + '" muted playsinline></video>';
+    return '<img src="' + esc(url) + '" alt="">';
+}
+
+function refreshTfThumb() {
+    var box = document.getElementById("tf-thumb");
+    if (box) box.innerHTML = tfThumbInner(document.getElementById("tf-preview-img").value.trim());
+}
+
 function _tplForm(t, isNew) {
-    function ta(label, id, val) {
-        return '<div class="modal-section"><h4>' + label + '</h4><textarea id="tf-' + id + '" rows="' + (id==="definition"?12:3) + '" style="width:100%;font-family:monospace;font-size:12px">' + esc(val) + '</textarea></div>';
-    }
-    return '<h3 style="margin:0 0 12px">' + (isNew ? "Новый шаблон" : "Шаблон: " + esc(t.id)) + '</h3>' +
-        '<div class="modal-section"><h4>ID (слаг)</h4><input id="tf-id" value="' + esc(t.id||"") + '"' + (isNew?"":" disabled") + ' style="width:100%"></div>' +
-        '<div class="modal-section"><h4>Тип</h4><select id="tf-type" style="width:100%">' +
-            ['photo','video','audio'].map(function(x){return '<option'+(t.type===x?' selected':'')+'>'+x+'</option>';}).join("") + '</select></div>' +
-        '<div class="modal-section"><h4>Цена (W)</h4><input id="tf-cost" type="number" value="' + (t.cost||0) + '" style="width:100%"></div>' +
-        '<div class="modal-section"><h4>Порядок</h4><input id="tf-sort_order" type="number" value="' + (t.sort_order||0) + '" style="width:100%"></div>' +
-        '<div class="modal-section"><h4>Категория</h4><input id="tf-category" value="' + esc(t.category||"") + '" style="width:100%"></div>' +
-        '<div class="modal-section"><label><input id="tf-enabled" type="checkbox"' + (t.enabled!==false?' checked':'') + '> Включён</label></div>' +
-        '<div class="modal-section"><label><input id="tf-featured" type="checkbox"' + (t.featured?' checked':'') + '> В «Тренды» (главный экран)</label></div>' +
-        ta("Название (JSON {ru,en,es})", "title", JSON.stringify(t.title||{}, null, 1)) +
-        '<div class="modal-section"><h4>Превью (JSON {img,full})</h4>' +
-            '<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap">' +
-                '<input type="file" id="tf-preview-file" accept="image/*,video/*">' +
-                '<button class="btn btn-outline btn-sm" type="button" onclick="uploadPreview()">Загрузить файл</button>' +
-                '<span id="tf-preview-status" style="color:var(--tx2);font-size:12px"></span>' +
+    var ttl = t.title || {}, pv = t.preview || {};
+    var typeOpts = ['photo','video','audio'].map(function(x){ return '<option' + (t.type===x?' selected':'') + '>' + x + '</option>'; }).join("");
+    return '<h3>' + (isNew ? "Новый шаблон" : "Шаблон: " + esc(t.id)) + '</h3>' +
+        '<div class="tpl-form">' +
+            '<div class="tf-grid">' +
+                tfField("ID (слаг)", '<input class="tf-in" id="tf-id" value="' + esc(t.id||"") + '"' + (isNew?' placeholder="my-new-template"':' disabled') + '>') +
+                tfField("Тип", '<select class="tf-in" id="tf-type">' + typeOpts + '</select>') +
+                tfField("Цена (W)", '<input class="tf-in" id="tf-cost" type="number" min="0" value="' + (t.cost||0) + '">') +
+                tfField("Порядок", '<input class="tf-in" id="tf-sort_order" type="number" value="' + (t.sort_order||0) + '">') +
+                tfField("Категория", '<input class="tf-in" id="tf-category" value="' + esc(t.category||"") + '" placeholder="girls / men / …">') +
+                tfField("&nbsp;", '<div class="tf-toggles" style="margin-top:0">' +
+                    '<label class="tf-check"><input id="tf-enabled" type="checkbox"' + (t.enabled!==false?' checked':'') + '> Включён</label>' +
+                    '<label class="tf-check"><input id="tf-featured" type="checkbox"' + (t.featured?' checked':'') + '> В «Тренды»</label>' +
+                '</div>') +
             '</div>' +
-            '<textarea id="tf-preview" rows="3" style="width:100%;font-family:monospace;font-size:12px">' + esc(JSON.stringify(t.preview||{}, null, 1)) + '</textarea>' +
-        '</div>' +
-        ta("Definition (JSON)", "definition", JSON.stringify(t.definition||{}, null, 2)) +
-        '<div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-primary" onclick="saveTemplate(' + (isNew?'true':'false') + ')">Сохранить</button>' +
-        '<button class="btn btn-outline" onclick="closeModal()">Отмена</button></div>';
+
+            '<div class="tf-sec"><div class="tf-sec-h">Название</div><div class="tf-grid3">' +
+                tfField("RU", '<input class="tf-in" id="tf-title-ru" value="' + esc(ttl.ru||"") + '">') +
+                tfField("EN", '<input class="tf-in" id="tf-title-en" value="' + esc(ttl.en||"") + '">') +
+                tfField("ES", '<input class="tf-in" id="tf-title-es" value="' + esc(ttl.es||"") + '">') +
+            '</div></div>' +
+
+            '<div class="tf-sec"><div class="tf-sec-h">Превью</div>' +
+                '<div class="tf-preview-box">' +
+                    '<div class="tf-thumb" id="tf-thumb">' + tfThumbInner(pv.img) + '</div>' +
+                    '<div class="tf-preview-side">' +
+                        '<div class="tf-upload-row">' +
+                            '<input class="tf-file" type="file" id="tf-preview-file" accept="image/*,video/*">' +
+                            '<button class="btn btn-outline btn-sm" type="button" onclick="uploadPreview()">Загрузить</button>' +
+                            '<span class="tf-status" id="tf-preview-status"></span>' +
+                        '</div>' +
+                        '<input class="tf-in" id="tf-preview-img" value="' + esc(pv.img||"") + '" placeholder="URL превью (карточка)" oninput="refreshTfThumb()">' +
+                        '<input class="tf-in" id="tf-preview-full" value="' + esc(pv.full||"") + '" placeholder="URL полной версии (опц.)">' +
+                    '</div>' +
+                '</div>' +
+                '<p class="tf-hint">Картинка или видео карточки. Загрузите файл — URL подставится сам, либо вставьте вручную.</p>' +
+            '</div>' +
+
+            '<div class="tf-sec"><div class="tf-sec-h">Definition (JSON)</div>' +
+                '<textarea class="tf-in tf-area" id="tf-definition" rows="12">' + esc(JSON.stringify(t.definition||{}, null, 2)) + '</textarea>' +
+                '<p class="tf-hint">model, settings, skeleton, prompt, params, desc — промпт, параметры и настройки модели.</p>' +
+            '</div>' +
+
+            '<div class="tf-actions">' +
+                '<button class="btn btn-primary" onclick="saveTemplate(' + (isNew?'true':'false') + ')">Сохранить</button>' +
+                '<button class="btn btn-outline" onclick="closeModal()">Отмена</button>' +
+            '</div>' +
+        '</div>';
 }
 
 function newTemplate() {
@@ -377,24 +416,32 @@ function editTemplate(id) {
     });
 }
 
+function _tfVal(id) { var el = document.getElementById(id); return el ? el.value.trim() : ""; }
+
 function saveTemplate(isNew) {
-    var id = document.getElementById("tf-id").value.trim();
+    var id = _tfVal("tf-id");
     if (!id) { alert("ID обязателен"); return; }
-    var payload;
-    try {
-        payload = {
-            id: id,
-            type: document.getElementById("tf-type").value,
-            cost: parseInt(document.getElementById("tf-cost").value, 10) || 0,
-            sort_order: parseInt(document.getElementById("tf-sort_order").value, 10) || 0,
-            category: document.getElementById("tf-category").value.trim() || null,
-            enabled: document.getElementById("tf-enabled").checked,
-            featured: document.getElementById("tf-featured").checked,
-            title: JSON.parse(document.getElementById("tf-title").value || "{}"),
-            preview: JSON.parse(document.getElementById("tf-preview").value || "{}"),
-            definition: JSON.parse(document.getElementById("tf-definition").value || "{}")
-        };
-    } catch (e) { alert("Ошибка в JSON: " + e.message); return; }
+    var title = {}, ru = _tfVal("tf-title-ru"), en = _tfVal("tf-title-en"), es = _tfVal("tf-title-es");
+    if (ru) title.ru = ru; if (en) title.en = en; if (es) title.es = es;
+    var img = _tfVal("tf-preview-img"), full = _tfVal("tf-preview-full");
+    var preview = {};
+    if (img) preview.img = img;
+    if (full || img) preview.full = full || img;
+    var definition;
+    try { definition = JSON.parse(_tfVal("tf-definition") || "{}"); }
+    catch (e) { alert("Ошибка в Definition JSON: " + e.message); return; }
+    var payload = {
+        id: id,
+        type: document.getElementById("tf-type").value,
+        cost: parseInt(_tfVal("tf-cost"), 10) || 0,
+        sort_order: parseInt(_tfVal("tf-sort_order"), 10) || 0,
+        category: _tfVal("tf-category") || null,
+        enabled: document.getElementById("tf-enabled").checked,
+        featured: document.getElementById("tf-featured").checked,
+        title: title,
+        preview: preview,
+        definition: definition
+    };
     var path = isNew ? "/api/admin/templates" : "/api/admin/templates/" + encodeURIComponent(id);
     api(path, { method: isNew ? "POST" : "PUT", body: JSON.stringify(payload) }).then(function(d) {
         if (d.ok) { closeModal(); loadTemplates(0); }
@@ -405,10 +452,10 @@ function saveTemplate(isNew) {
 function uploadPreview() {
     var inp = document.getElementById("tf-preview-file");
     var st = document.getElementById("tf-preview-status");
-    if (!inp || !inp.files || !inp.files[0]) { alert("Выберите файл"); return; }
+    if (!inp || !inp.files || !inp.files[0]) { st.className = "tf-status err"; st.textContent = "Выберите файл"; return; }
     var fd = new FormData();
     fd.append("file", inp.files[0]);
-    st.textContent = "Загрузка…";
+    st.className = "tf-status"; st.textContent = "Загрузка…";
     // Auth headers only — NOT Content-Type, so the browser sets the multipart boundary.
     var h = {};
     var tg = window.Telegram && Telegram.WebApp;
@@ -417,15 +464,13 @@ function uploadPreview() {
     fetch("/api/admin/templates/upload", { method: "POST", headers: h, body: fd })
         .then(function(r){ return r.json(); })
         .then(function(d){
-            if (!d.url) { st.textContent = "Ошибка: " + (d.error || "unknown"); return; }
-            var pv;
-            try { pv = JSON.parse(document.getElementById("tf-preview").value || "{}"); } catch(e) { pv = {}; }
-            pv.img = d.url;
-            if (!pv.full) pv.full = d.url;
-            document.getElementById("tf-preview").value = JSON.stringify(pv, null, 1);
-            st.textContent = "Готово ✓ (не забудьте Сохранить)";
+            if (!d.url) { st.className = "tf-status err"; st.textContent = "Ошибка: " + (d.error || "unknown"); return; }
+            document.getElementById("tf-preview-img").value = d.url;
+            if (!document.getElementById("tf-preview-full").value) document.getElementById("tf-preview-full").value = d.url;
+            refreshTfThumb();
+            st.className = "tf-status ok"; st.textContent = "Готово ✓ — не забудьте Сохранить";
         })
-        .catch(function(){ st.textContent = "Ошибка загрузки"; });
+        .catch(function(){ st.className = "tf-status err"; st.textContent = "Ошибка загрузки"; });
 }
 
 function deleteTemplate(id) {
