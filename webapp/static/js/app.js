@@ -1884,6 +1884,18 @@ function showGenDetail(item){
     dc.className = item.type==="photo"?"z-photo":(item.type==="audio"?"z-audio":"z-video");
     dc.innerHTML=html;
 
+    var detailMediaEl=dc.querySelector(".detail-media:not(.detail-audio)");
+    if(detailMediaEl) detailMediaEl.addEventListener("click",function(){
+        var src=item.url;
+        var lbContent=document.getElementById("lb-content");
+        if(item.type==="photo"){
+            lbContent.innerHTML='<img src="'+escHtml(src)+'">';
+        } else {
+            lbContent.innerHTML='<video src="'+escHtml(src)+'" controls autoplay playsinline></video>';
+        }
+        document.getElementById("media-lightbox").classList.add("open");
+    });
+
     var moreBtn=document.getElementById("detail-more");
     if(moreBtn) moreBtn.addEventListener("click",function(){
         var p=document.getElementById("detail-prompt");
@@ -2675,4 +2687,17 @@ loadUserHistory();
             showPage(p);
         }
     } catch (e) {}
+})();
+
+(function(){
+    var lb=document.getElementById("media-lightbox");
+    if(!lb) return;
+    function closeLb(){
+        lb.classList.remove("open");
+        var v=lb.querySelector("video");
+        if(v) v.pause();
+        document.getElementById("lb-content").innerHTML="";
+    }
+    document.getElementById("lb-close").addEventListener("click",closeLb);
+    lb.addEventListener("click",function(e){ if(e.target===lb) closeLb(); });
 })();
