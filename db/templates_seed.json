@@ -217,7 +217,8 @@
         "en": "Upload your photo — the face is kept from the reference. Choose gender, age, clothing and hairstyle below; the rest is assembled automatically. Switching gender changes the look while keeping the face as close as possible.",
         "es": "Sube tu foto — la cara se mantiene de la referencia. Elige género, edad, ropa y peinado abajo; el resto se arma automáticamente. Cambiar de género cambia el look manteniendo la cara lo más parecida posible."
       }
-    }
+    },
+    "featured": true
   },
   {
     "id": "birthday-video",
@@ -253,7 +254,8 @@
         "en": "Upload the photo generated earlier for this video.",
         "es": "Sube la foto generada antes para este video."
       }
-    }
+    },
+    "featured": true
   },
   {
     "id": "yacht-photo",
@@ -461,7 +463,8 @@
         "en": "Upload a photo with clearly visible facial features — the face is kept from the reference. Choose gender, age, clothing and hairstyle below; the rest is assembled automatically. Switching gender changes the look while keeping the face as close as possible.",
         "es": "Sube una foto donde se vean bien los rasgos faciales — la cara se mantiene de la referencia. Elige género, edad, ropa y peinado abajo; el resto se arma automáticamente. Cambiar de género cambia el look manteniendo la cara lo más parecida posible."
       }
-    }
+    },
+    "featured": true
   },
   {
     "id": "yacht-video",
@@ -494,14 +497,15 @@
         "en": "Upload the photo generated specifically for this video (the neighboring template).",
         "es": "Sube la foto generada especialmente para este video (la plantilla vecina)."
       }
-    }
+    },
+    "featured": true
   },
   {
     "id": "girl-roses-photo",
     "type": "photo",
     "cost": 30,
     "sort_order": 4,
-    "category": null,
+    "category": "girls",
     "enabled": true,
     "title": {
       "ru": "Девушка с розами",
@@ -756,14 +760,15 @@
         "en": "Upload a photo with a clearly visible face — it's kept from the reference (no skin smoothing, no AI look). Choose flowers, clothing, slippers, watch and phone below; the rest is assembled automatically.",
         "es": "Sube una foto con la cara bien visible — se mantiene de la referencia (sin suavizado ni efecto AI). Elige flores, ropa, pantuflas, reloj y teléfono abajo; el resto se arma automáticamente."
       }
-    }
+    },
+    "featured": false
   },
   {
     "id": "girl-sunset-photo",
     "type": "photo",
     "cost": 30,
     "sort_order": 5,
-    "category": null,
+    "category": "girls",
     "enabled": true,
     "title": {
       "ru": "Селфи на закате",
@@ -980,14 +985,15 @@
         "en": "Upload a photo with a clearly visible face — it's kept from the reference (no skin smoothing, no AI look). Choose clothing, headscarf, earrings and glasses below; the rest is assembled automatically.",
         "es": "Sube una foto con la cara bien visible — se mantiene de la referencia (sin suavizado ni efecto AI). Elige ropa, pañuelo, pendientes y gafas abajo; el resto se arma automáticamente."
       }
-    }
+    },
+    "featured": false
   },
   {
     "id": "girl-porsche-photo",
     "type": "photo",
     "cost": 30,
     "sort_order": 6,
-    "category": null,
+    "category": "girls",
     "enabled": true,
     "title": {
       "ru": "В кабриолете",
@@ -1251,14 +1257,15 @@
         "en": "Upload a photo with a clearly visible face — it's kept from the reference (no skin smoothing, no AI look). Choose bouquet, clothing, glasses, watch and interior color below; the rest is assembled automatically.",
         "es": "Sube una foto con la cara bien visible — se mantiene de la referencia (sin suavizado ni efecto AI). Elige ramo, ropa, gafas, reloj y color del interior abajo; el resto se arma automáticamente."
       }
-    }
+    },
+    "featured": false
   },
   {
     "id": "girl-vogue-photo",
     "type": "photo",
     "cost": 30,
     "sort_order": 7,
-    "category": null,
+    "category": "girls",
     "enabled": true,
     "title": {
       "ru": "Обложка VOGUE",
@@ -1466,14 +1473,15 @@
         "en": "Upload a photo with a clearly visible face — it's kept from the reference (no skin smoothing, no AI look). A black-and-white cover-level editorial portrait. Choose clothing, hair, light and earrings below.",
         "es": "Sube una foto con la cara bien visible — se mantiene de la referencia (sin suavizado ni efecto AI). Un retrato editorial en blanco y negro nivel portada. Elige ropa, peinado, luz y pendientes abajo."
       }
-    }
+    },
+    "featured": false
   },
   {
     "id": "girl-neon-photo",
     "type": "photo",
     "cost": 30,
     "sort_order": 8,
-    "category": null,
+    "category": "girls",
     "enabled": true,
     "title": {
       "ru": "Неон",
@@ -1663,14 +1671,15 @@
         "en": "Upload a photo with a clearly visible face — it's kept from the reference (no skin smoothing, no AI look). A cinematic neon-lit selfie in the rain at night. Choose clothing, neon color, umbrella and accessory below.",
         "es": "Sube una foto con la cara bien visible — se mantiene de la referencia (sin suavizado ni efecto AI). Un selfie cinematográfico con neón bajo la lluvia de noche. Elige ropa, color de neón, paraguas y accesorio abajo."
       }
-    }
+    },
+    "featured": false
   },
   {
     "id": "man-jet-photo",
     "type": "photo",
     "cost": 30,
     "sort_order": 9,
-    "category": null,
+    "category": "men",
     "enabled": true,
     "title": {
       "ru": "Бизнес-класс",
@@ -1934,14 +1943,15 @@
         "en": "Upload a photo where the face is clearly visible — it stays exactly as on the reference (no skin smoothing, no AI look). Pick the suit, watch, drink, accessory and the jet cabin background.",
         "es": "Sube una foto donde se vea bien la cara — se conserva tal cual del referente (sin suavizado ni efecto IA). Elige el traje, el reloj, la bebida, el accesorio y el fondo de la cabina del jet."
       }
-    }
+    },
+    "featured": false
   },
   {
     "id": "man-supercar-photo",
     "type": "photo",
     "cost": 30,
     "sort_order": 10,
-    "category": null,
+    "category": "men",
     "enabled": true,
     "title": {
       "ru": "Суперкар",
@@ -2205,14 +2215,15 @@
         "en": "Upload a photo where the face is clearly visible — it will be kept from the reference (no skin smoothing, no AI look). Choose the car, outfit, glasses, watch and background.",
         "es": "Sube una foto donde se vea bien la cara — se conservará de la referencia (sin suavizado ni efecto de IA). Elige el coche, la ropa, las gafas, el reloj y el fondo."
       }
-    }
+    },
+    "featured": false
   },
   {
     "id": "man-boss-photo",
     "type": "photo",
     "cost": 30,
     "sort_order": 11,
-    "category": null,
+    "category": "men",
     "enabled": true,
     "title": {
       "ru": "Босс",
@@ -2402,14 +2413,15 @@
         "en": "Upload a photo where the face is clearly visible — it will be preserved exactly from the reference (no skin smoothing, no AI effect). A dramatic black-and-white studio portrait in a suit: choose the outfit, the lighting character, the beard style and an accessory.",
         "es": "Sube una foto donde se vea bien la cara — se conservará tal cual de la referencia (sin suavizado de piel ni efecto de IA). Un retrato de estudio dramático en blanco y negro con traje: elige la ropa, el carácter de la luz, el estilo de la barba y un accesorio."
       }
-    }
+    },
+    "featured": false
   },
   {
     "id": "man-gangster-photo",
     "type": "photo",
     "cost": 30,
     "sort_order": 12,
-    "category": null,
+    "category": "men",
     "enabled": true,
     "title": {
       "ru": "Острые козырьки",
@@ -2590,14 +2602,15 @@
         "en": "Upload a photo where your face is clearly visible — it will be preserved from the reference (no smoothing, no AI effect). Choose your tweed three-piece suit, headwear, accessory and atmospheric 1920s backdrop.",
         "es": "Sube una foto donde se vea bien tu rostro — se conservará del referente (sin suavizado ni efecto IA). Elige el traje de tres piezas de tweed, el sombrero, el accesorio y el fondo de los años 20."
       }
-    }
+    },
+    "featured": false
   },
   {
     "id": "man-alpine-photo",
     "type": "photo",
     "cost": 30,
     "sort_order": 13,
-    "category": null,
+    "category": "men",
     "enabled": true,
     "title": {
       "ru": "Горы",
@@ -2778,6 +2791,7 @@
         "en": "Upload a photo where the face is clearly visible — it will be preserved from the reference (no skin smoothing, no AI look). Choose your outfit, glasses or goggles, drink and backdrop, and we'll build a status après-ski shot at a premium alpine resort.",
         "es": "Sube una foto donde se vea bien la cara — se conservará del referente (sin suavizado ni efecto IA). Elige la ropa, las gafas o la máscara, la bebida y el fondo, y crearemos una foto con estatus en una estación de esquí premium."
       }
-    }
+    },
+    "featured": false
   }
 ]

@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=Unbounded:wght@500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css?v=106">
+    <link rel="stylesheet" href="/static/css/style.css?v=107">
 </head>
 <body>
 <div id="app">
@@ -44,21 +44,12 @@
         </div>
         <div class="sec" id="home-tpl" style="scroll-margin-top:64px">
             <h3 class="sec-title"><i class="bar"></i><span data-i18n="trends">Тренды</span></h3>
-            <div class="trends-grid">
-                <div class="trend-t has-media" data-tpl="birthday-photo"><img class="trend-media" src="/static/tpl/birthday-photo.jpg" alt=""><span class="trend-badge trend-badge-ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span><span class="trend-cap" data-i18n="trendBdayPhoto">С ДНЁМ РОЖДЕНИЯ ФОТО</span></div>
-                <div class="trend-t has-media" data-tpl="birthday-video"><video class="trend-media" src="/static/tpl/birthday-video.mp4?v=2" autoplay muted loop playsinline preload="metadata"></video><span class="trend-badge trend-badge-pill"><span class="pill-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7M19 12H5"/></svg></span><span data-i18n="trendNeedPhoto">Сначала создай фото</span></span><span class="trend-cap" data-i18n="trendBdayVideo">С ДНЁМ РОЖДЕНИЯ ВИДЕО</span></div>
-                <div class="trend-t has-media" data-tpl="yacht-photo"><img class="trend-media" src="/static/tpl/yacht-photo.jpg" alt=""><span class="trend-badge trend-badge-ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span><span class="trend-cap" data-i18n="trendYachtPhoto">НА ЯХТЕ ФОТО</span></div>
-                <div class="trend-t has-media" data-tpl="yacht-video"><video class="trend-media" src="/static/tpl/yacht-video.mp4" autoplay muted loop playsinline preload="metadata"></video><span class="trend-badge trend-badge-pill"><span class="pill-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7M19 12H5"/></svg></span><span data-i18n="trendNeedPhoto">Сначала создай фото</span></span><span class="trend-cap" data-i18n="trendYachtVideo">НА ЯХТЕ ВИДЕО</span></div>
-                <div class="trend-t"><span data-i18n="trendDance">ТАНЕЦ НА МИЛЛИОН</span></div>
-                <div class="trend-t"><span data-i18n="trendMakePhoto">СНАЧАЛА СДЕЛАЙ ФОТО</span></div>
-            </div>
+            <div class="trends-grid" id="trends-grid"></div>
             <button class="btn-outline full" data-i18n="seeAll">Посмотреть все ↓</button>
         </div>
         <div class="sec">
             <h3 class="sec-title"><i class="bar"></i><span data-i18n="templates">Шаблоны</span></h3>
-            <div class="tpl-cat"><div class="tpl-hdr"><span class="tpl-hdr-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><b data-i18n="girls">Девушки</b><span class="muted" data-i18n="tplCount">· шаблоны</span><span class="gold ml-auto" data-i18n="tplAll">все →</span></div><div class="tpl-scroll"><div class="tpl-thumb has-media" data-tpl="girl-roses-photo"><img src="/static/tpl/girl-roses-photo.jpg?v=1" alt=""><span class="tpl-thumb-cap" data-i18n="trendGirlRoses">ДЕВУШКА С РОЗАМИ</span></div><div class="tpl-thumb has-media" data-tpl="girl-sunset-photo"><img src="/static/tpl/girl-sunset-photo.jpg?v=1" alt=""><span class="tpl-thumb-cap" data-i18n="trendGirlSunset">СЕЛФИ НА ЗАКАТЕ</span></div><div class="tpl-thumb has-media" data-tpl="girl-porsche-photo"><img src="/static/tpl/girl-porsche-photo.jpg?v=1" alt=""><span class="tpl-thumb-cap" data-i18n="trendGirlPorsche">В КАБРИОЛЕТЕ</span></div><div class="tpl-thumb has-media" data-tpl="girl-vogue-photo"><img src="/static/tpl/girl-vogue-photo.jpg?v=2" alt=""><span class="tpl-thumb-cap" data-i18n="trendGirlVogue">ОБЛОЖКА VOGUE</span></div><div class="tpl-thumb has-media" data-tpl="girl-neon-photo"><img src="/static/tpl/girl-neon-photo.jpg?v=1" alt=""><span class="tpl-thumb-cap" data-i18n="trendGirlNeon">НЕОН</span></div></div></div>
-            <div class="tpl-cat"><div class="tpl-hdr"><span class="tpl-hdr-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><b data-i18n="kids">Дети</b><span class="muted" data-i18n="tplCount">· шаблоны</span><span class="gold ml-auto" data-i18n="tplAll">все →</span></div><div class="tpl-scroll"><div class="tpl-thumb"></div><div class="tpl-thumb"></div><div class="tpl-thumb"></div><div class="tpl-thumb"></div></div></div>
-            <div class="tpl-cat"><div class="tpl-hdr"><span class="tpl-hdr-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><b data-i18n="men">Мужчины</b><span class="muted" data-i18n="tplCount">· шаблоны</span><span class="gold ml-auto" data-i18n="tplAll">все →</span></div><div class="tpl-scroll"><div class="tpl-thumb has-media" data-tpl="man-jet-photo"><img src="/static/tpl/man-jet-photo.jpg?v=1" alt=""><span class="tpl-thumb-cap" data-i18n="trendManJet">ЧАСТНЫЙ ДЖЕТ</span></div><div class="tpl-thumb has-media" data-tpl="man-supercar-photo"><img src="/static/tpl/man-supercar-photo.jpg?v=1" alt=""><span class="tpl-thumb-cap" data-i18n="trendManSupercar">СТАТУС И ДРАЙВ</span></div><div class="tpl-thumb has-media" data-tpl="man-boss-photo"><img src="/static/tpl/man-boss-photo.jpg?v=1" alt=""><span class="tpl-thumb-cap" data-i18n="trendManBoss">БОСС</span></div><div class="tpl-thumb has-media" data-tpl="man-gangster-photo"><img src="/static/tpl/man-gangster-photo.jpg?v=1" alt=""><span class="tpl-thumb-cap" data-i18n="trendManGangster">СТИЛЬ 1920-Х</span></div><div class="tpl-thumb has-media" data-tpl="man-alpine-photo"><img src="/static/tpl/man-alpine-photo.jpg?v=1" alt=""><span class="tpl-thumb-cap" data-i18n="trendManAlpine">ВЕРШИНЫ</span></div></div></div>
+            <div id="tpl-cats"></div>
         </div>
     </section>
 
@@ -567,6 +558,6 @@
 
 </div>
 <script src="/static/js/i18n.js?v=98"></script>
-<script src="/static/js/app.js?v=125"></script>
+<script src="/static/js/app.js?v=126"></script>
 </body>
 </html>

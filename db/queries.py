@@ -588,10 +588,13 @@ def _tpl_flat(row: dict, full: bool) -> dict:
         "cost": row["cost"],
         "sort_order": row.get("sort_order", 0),
         "category": row.get("category"),
+        "featured": bool(row.get("featured")),
         "title": title,
         "preview": (preview or {}).get("img"),
         "full": (preview or {}).get("full"),
     }
+    if "need_photo" in row:
+        out["need_photo"] = bool(row.get("need_photo"))
     if full:
         definition = row.get("definition")
         if isinstance(definition, str):
@@ -608,13 +611,15 @@ async def list_templates_public(type_filter: Optional[str] = None) -> List[dict]
     pool = await get_pool()
     if type_filter:
         rows = await pool.fetch("""
-            SELECT id, type, cost, sort_order, category, title, preview
+            SELECT id, type, cost, sort_order, category, title, preview, featured,
+                   (definition->>'needPhoto')::boolean AS need_photo
             FROM templates WHERE enabled = TRUE AND type = $1
             ORDER BY sort_order, id
         """, type_filter)
     else:
         rows = await pool.fetch("""
-            SELECT id, type, cost, sort_order, category, title, preview
+            SELECT id, type, cost, sort_order, category, title, preview, featured,
+                   (definition->>'needPhoto')::boolean AS need_photo
             FROM templates WHERE enabled = TRUE
             ORDER BY sort_order, id
         """)
@@ -673,14 +678,15 @@ async def admin_create_template(data: dict) -> bool:
     """Insert a new template. Returns False if the id already exists."""
     pool = await get_pool()
     res = await pool.execute("""
-        INSERT INTO templates (id, type, enabled, sort_order, category, cost, title, preview, definition)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        INSERT INTO templates (id, type, enabled, sort_order, category, cost, title, preview, definition, featured)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         ON CONFLICT (id) DO NOTHING
     """, data["id"], data["type"], data.get("enabled", True), data.get("sort_order", 0),
         data.get("category"), data.get("cost", 0),
         json.dumps(data.get("title") or {}, ensure_ascii=False),
         json.dumps(data.get("preview") or {}, ensure_ascii=False),
-        json.dumps(data.get("definition") or {}, ensure_ascii=False))
+        json.dumps(data.get("definition") or {}, ensure_ascii=False),
+        data.get("featured", False))
     return res.endswith("1")
 
 
@@ -690,13 +696,14 @@ async def admin_update_template(tpl_id: str, data: dict) -> bool:
     res = await pool.execute("""
         UPDATE templates SET
             type = $2, enabled = $3, sort_order = $4, category = $5, cost = $6,
-            title = $7, preview = $8, definition = $9, updated_at = NOW()
+            title = $7, preview = $8, definition = $9, featured = $10, updated_at = NOW()
         WHERE id = $1
     """, tpl_id, data["type"], data.get("enabled", True), data.get("sort_order", 0),
         data.get("category"), data.get("cost", 0),
         json.dumps(data.get("title") or {}, ensure_ascii=False),
         json.dumps(data.get("preview") or {}, ensure_ascii=False),
-        json.dumps(data.get("definition") or {}, ensure_ascii=False))
+        json.dumps(data.get("definition") or {}, ensure_ascii=False),
+        data.get("featured", False))
     return res.endswith("1")
 
 
