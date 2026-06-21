@@ -1931,7 +1931,7 @@ var TRENDS = {
         desc: { ru: "Загрузите своё фото — лицо сохранится с референса. Ниже выберите пол, возраст, одежду и причёску, остальное соберётся автоматически. Смена пола меняет образ, но лицо остаётся максимально похожим.", en: "Upload your photo — the face is kept from the reference. Choose gender, age, clothing and hairstyle below; the rest is assembled automatically. Switching gender changes the look while keeping the face as close as possible.", es: "Sube tu foto — la cara se mantiene de la referencia. Elige género, edad, ropa y peinado abajo; el resto se arma automáticamente. Cambiar de género cambia el look manteniendo la cara lo más parecida posible." }
     },
     "birthday-video": {
-        type: "video", cost: 420, model: "Seedance 2.0", mode: "fast", quality: "480p", duration: 10, refField: "ref-images", needPhoto: true,
+        type: "video", cost: 420, model: "Seedance 2.0", mode: "fast", quality: "480p", duration: 10, sound: true, refField: "ref-images", needPhoto: true,
         preview: "/static/tpl/birthday-video.mp4?v=2", full: "/static/tpl/birthday-video.mp4",
         ratio: "9:16", minPhotos: 1, maxPhotos: 1, prompt: BDAY_VIDEO_PROMPT, hidePrompt: true,
         title: { ru: "С днём рождения видео", en: "Birthday video", es: "Video de cumpleaños" },
@@ -2214,6 +2214,7 @@ async function tplGenerate(tpl, btn, id) {
         if (tpl.quality) settings.quality = tpl.quality;
         if (tpl.mode) settings.mode = tpl.mode;
         if (tpl.duration) settings.duration = tpl.duration;
+        if (tpl.sound) settings.sound = true;
         if (tpl.params) settings.tplParams = readTplParams(tpl);
         fd.append("settings", JSON.stringify(settings));
         // Send the reference photo under the field name the generator reads. Photo ->
