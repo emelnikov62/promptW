@@ -321,36 +321,93 @@ class KieGenerator(BaseGenerator):
         input_data = {"prompt": prompt}
         if kwargs.get("aspect_ratio"):
             input_data["aspect_ratio"] = kwargs["aspect_ratio"]
-        if kwargs.get("duration"):
-            input_data["duration"] = str(kwargs["duration"])
-        if kwargs.get("sound") is not None:
-            input_data["sound"] = kwargs["sound"]
-        # Seedance 2.0 honours an explicit resolution (480p / 720p)
-        if model_name == "Seedance 2.0" and kwargs.get("resolution"):
-            input_data["resolution"] = kwargs["resolution"]
-        # Kling Motion 3.0 character orientation: byVideo -> video, byPhoto -> image
-        orient = str(kwargs.get("orientation") or "")
-        if model_name == "Kling Motion 3.0" and orient:
-            input_data["character_orientation"] = "image" if orient == "byPhoto" else "video"
 
-        # map upload field ids (from app.js VIDEO_MODELS) to KIE input keys
-        file_map = {
-            "v-start-frame": "image",          # Kling 3.0 / Seedance first frame
-            "v-end-frame": "tail_image",       # Kling 3.0 / Seedance last frame
-            "v-first-frame": "image",
-            "v-last-frame": "tail_image",
-            "v-char-photo": "subject_reference",   # Kling Motion character photo
-            "v-motion-video": "video",             # Kling Motion driving video
-            "v-grok15-photo": "image",             # Grok Imagine image-to-video input
-            "v-grok-photo": "image",
-        }
-        for form_key, api_key in file_map.items():
-            paths = self._collect_files(files, form_key)
-            if paths:
-                input_data[api_key] = self._file_to_url(paths[0])
+        # Pull uploaded frames/references from whichever form field the UI used
+        # (templates send "v-first-frame"; the Create flow uses model-specific ids).
+        def _first(*keys):
+            for k in keys:
+                paths = self._collect_files(files, k)
+                if paths:
+                    return paths
+            return []
+        first_frames = _first("v-first-frame", "v-start-frame", "v-grok15-photo", "v-grok-photo")
+        last_frames = _first("v-last-frame", "v-end-frame")
+        ref_images = self._collect_files(files, "ref-images")
+        first_url = self._file_to_url(first_frames[0]) if first_frames else None
+        last_url = self._file_to_url(last_frames[0]) if last_frames else None
 
-        for ref_key, api_key in [("ref-images", "reference_images"),
-                                  ("ref-videos", "reference_videos"),
+        duration = kwargs.get("duration")
+        sound = kwargs.get("sound")
+        resolution = kwargs.get("resolution")
+
+        # Each KIE model has its OWN input schema — sending the wrong key silently drops
+        # the reference image (model falls back to text-to-video and invents a face).
+        if model_name == "Seedance 2.0":
+            # first_frame_url (str) anchors the opening frame; reference_image_urls (array)
+            # resolves the @ImageN mentions in the prompt. duration is an integer (4-15).
+            if first_url:
+                input_data["first_frame_url"] = first_url
+            if last_url:
+                input_data["last_frame_url"] = last_url
+            refs = [self._file_to_url(p) for p in ref_images] if ref_images else ([first_url] if first_url else [])
+            if refs:
+                input_data["reference_image_urls"] = refs[:9]
+            if duration:
+                try:
+                    input_data["duration"] = int(duration)
+                except (TypeError, ValueError):
+                    pass
+            if resolution:
+                input_data["resolution"] = resolution
+            if sound is not None:
+                input_data["generate_audio"] = bool(sound)
+
+        elif model_name == "Grok Imagine 1.5":
+            # Image-to-video input is image_urls (array, up to 7). duration is a string (6-30).
+            imgs = [self._file_to_url(p) for p in first_frames] if first_frames else []
+            if ref_images:
+                imgs += [self._file_to_url(p) for p in ref_images]
+            if imgs:
+                input_data["image_urls"] = imgs[:7]
+            if duration:
+                input_data["duration"] = str(duration)
+            if resolution:
+                input_data["resolution"] = resolution
+
+        elif model_name == "Kling 3.0":
+            # First frame is image_urls (array); optional end frame is tail_image_url (str).
+            if first_url:
+                input_data["image_urls"] = [first_url]
+            if last_url:
+                input_data["tail_image_url"] = last_url
+            if duration:
+                input_data["duration"] = str(duration)
+            if sound is not None:
+                input_data["sound"] = sound
+
+        elif model_name == "Kling Motion 3.0":
+            # Character-driven motion control: subject photo + driving video.
+            char = _first("v-char-photo")
+            motion = _first("v-motion-video")
+            if char:
+                input_data["subject_reference"] = self._file_to_url(char[0])
+            if motion:
+                input_data["video"] = self._file_to_url(motion[0])
+            orient = str(kwargs.get("orientation") or "")
+            if orient:
+                input_data["character_orientation"] = "image" if orient == "byPhoto" else "video"
+            if duration:
+                input_data["duration"] = str(duration)
+
+        else:
+            # Unknown model: best-effort image-to-video with the common array key.
+            if first_url:
+                input_data["image_urls"] = [first_url]
+            if duration:
+                input_data["duration"] = str(duration)
+
+        # Advanced create-flow reference media (model-agnostic).
+        for ref_key, api_key in [("ref-videos", "reference_videos"),
                                   ("ref-audio", "reference_audio")]:
             paths = self._collect_files(files, ref_key)
             if paths:
