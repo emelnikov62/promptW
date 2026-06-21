@@ -2082,8 +2082,8 @@ function showTplDetail(id) {
                   '<div class="tpl-select">' + tpl.ratio + chevSvg + '</div>';
     } else {
         afterUploads = '<p class="tpl-minmax">' + t("minPhoto") + ': ' + (tpl.minPhotos || 1) + '. ' + t("maxPhoto") + ': ' + (tpl.maxPhotos || 7) + '.</p>';
-        setting = '<h4 class="tpl-sec">' + t("quality") + '</h4>' +
-                  '<div class="tpl-select">' + tpl.quality + chevSvg + '</div>';
+        setting = tpl.quality ? ('<h4 class="tpl-sec">' + t("quality") + '</h4>' +
+                  '<div class="tpl-select">' + tpl.quality + chevSvg + '</div>') : '';
     }
 
     // Param mode (hide raw prompt, show key params) vs legacy textarea mode.
