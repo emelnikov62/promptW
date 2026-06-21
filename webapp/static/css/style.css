@@ -83,6 +83,10 @@ body.scrolled .header{border-bottom-color:var(--brd)}
 .tpl-scroll{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}
 .tpl-scroll::-webkit-scrollbar{display:none}
 .tpl-thumb{min-width:110px;height:140px;border-radius:var(--rs);background:var(--card2);border:1px solid var(--brd);flex-shrink:0}
+.tpl-thumb.has-media{position:relative;overflow:hidden;cursor:pointer}
+.tpl-thumb.has-media img{width:100%;height:100%;object-fit:cover;display:block}
+.tpl-thumb.has-media:active{transform:scale(.98)}
+.tpl-thumb-cap{position:absolute;left:0;right:0;bottom:0;padding:14px 8px 7px;font-size:9px;font-weight:700;letter-spacing:.04em;color:#fff;text-transform:uppercase;line-height:1.2;background:linear-gradient(transparent,rgba(0,0,0,.72))}
 /* TEXT / CHAT */
 .chat-bar{display:flex;align-items:center;gap:8px;padding:4px 0 12px}
 .chat-ic{position:relative;width:38px;height:38px;border-radius:12px;border:1px solid var(--brd);background:var(--card);color:var(--tx);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
