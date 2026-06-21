@@ -353,8 +353,26 @@ function refreshTfThumb() {
     if (box) box.innerHTML = tfThumbInner(document.getElementById("tf-preview-img").value.trim());
 }
 
+// Known values for datalist suggestions (free-text still allowed).
+var TF_MODELS = ["NanoBanana PRO", "Seedance 2.0", "Grok Imagine 1.5", "Kling 3.0", "Kling Motion 3.0", "Suno V5", "Suno V4.5"];
+var TF_RATIOS = ["9:16", "3:4", "1:1", "4:3", "16:9"];
+var TF_QUALS = ["480p", "720p", "1080p", "1K", "2K", "4K"];
+var _tfOrigDef = {};   // original definition, so unknown keys survive a save
+
+function _dl(id, opts) { return '<datalist id="' + id + '">' + opts.map(function(o){ return '<option value="' + esc(o) + '">'; }).join("") + '</datalist>'; }
+
+function tfTextField(label, id, val, ph) {
+    return tfField(label, '<input class="tf-in" id="' + id + '" value="' + esc(val == null ? "" : String(val)) + '"' + (ph ? ' placeholder="' + ph + '"' : "") + '>');
+}
+function tfNumField(label, id, val) {
+    return tfField(label, '<input class="tf-in" id="' + id + '" type="number" value="' + (val == null || val === "" ? "" : val) + '">');
+}
+
 function _tplForm(t, isNew) {
     var ttl = t.title || {}, pv = t.preview || {};
+    var d = t.definition || {};
+    _tfOrigDef = d;
+    var dsc = d.desc || {};
     var typeOpts = ['photo','video','audio'].map(function(x){ return '<option' + (t.type===x?' selected':'') + '>' + x + '</option>'; }).join("");
     return '<h3>' + (isNew ? "Новый шаблон" : "Шаблон: " + esc(t.id)) + '</h3>' +
         '<div class="tpl-form">' +
@@ -392,9 +410,42 @@ function _tplForm(t, isNew) {
                 '<p class="tf-hint">Картинка или видео карточки. Загрузите файл — URL подставится сам, либо вставьте вручную.</p>' +
             '</div>' +
 
-            '<div class="tf-sec"><div class="tf-sec-h">Definition (JSON)</div>' +
-                '<textarea class="tf-in tf-area" id="tf-definition" rows="12">' + esc(JSON.stringify(t.definition||{}, null, 2)) + '</textarea>' +
-                '<p class="tf-hint">model, settings, skeleton, prompt, params, desc — промпт, параметры и настройки модели.</p>' +
+            '<div class="tf-sec"><div class="tf-sec-h">Настройки модели</div>' +
+                '<div class="tf-grid">' +
+                    tfField("Модель", '<input class="tf-in" id="tf-model" list="tf-models" value="' + esc(d.model||"") + '" placeholder="NanoBanana PRO">') +
+                    tfTextField("Соотношение (ratio)", "tf-ratio", d.ratio, "9:16") +
+                    tfTextField("Доп. соотношения", "tf-ratios", (d.ratios||[]).join(", "), "9:16, 3:4") +
+                    tfField("Качество", '<input class="tf-in" id="tf-quality" list="tf-quals" value="' + esc(d.quality||"") + '" placeholder="480p / 720p">') +
+                    tfNumField("Длительность (сек)", "tf-duration", d.duration) +
+                    tfTextField("Режим (mode)", "tf-mode", d.mode, "fast") +
+                    tfNumField("Мин. фото", "tf-minPhotos", d.minPhotos) +
+                    tfNumField("Макс. фото", "tf-maxPhotos", d.maxPhotos) +
+                    tfTextField("Поле референса (refField)", "tf-refField", d.refField, "ref-images") +
+                '</div>' +
+                '<div class="tf-toggles">' +
+                    '<label class="tf-check"><input id="tf-sound" type="checkbox"' + (d.sound?' checked':'') + '> Звук</label>' +
+                    '<label class="tf-check"><input id="tf-needPhoto" type="checkbox"' + (d.needPhoto?' checked':'') + '> Нужно фото</label>' +
+                    '<label class="tf-check"><input id="tf-hidePrompt" type="checkbox"' + (d.hidePrompt?' checked':'') + '> Скрыть промпт</label>' +
+                '</div>' +
+                _dl("tf-models", TF_MODELS) + _dl("tf-quals", TF_QUALS) +
+            '</div>' +
+
+            '<div class="tf-sec"><div class="tf-sec-h">Промпт</div>' +
+                '<label class="tf-label">Скелет (со слотами {subject}/{outfit}/…)</label>' +
+                '<textarea class="tf-in tf-area" id="tf-skeleton" rows="4">' + esc(d.skeleton||"") + '</textarea>' +
+                '<label class="tf-label" style="margin-top:12px">Готовый промпт (для «скрыть промпт»)</label>' +
+                '<textarea class="tf-in tf-area" id="tf-prompt" rows="4">' + esc(d.prompt||"") + '</textarea>' +
+            '</div>' +
+
+            '<div class="tf-sec"><div class="tf-sec-h">Описание (под превью)</div><div class="tf-grid3">' +
+                tfField("RU", '<textarea class="tf-in tf-area" id="tf-desc-ru" rows="3" style="min-height:64px">' + esc(dsc.ru||"") + '</textarea>') +
+                tfField("EN", '<textarea class="tf-in tf-area" id="tf-desc-en" rows="3" style="min-height:64px">' + esc(dsc.en||"") + '</textarea>') +
+                tfField("ES", '<textarea class="tf-in tf-area" id="tf-desc-es" rows="3" style="min-height:64px">' + esc(dsc.es||"") + '</textarea>') +
+            '</div></div>' +
+
+            '<div class="tf-sec"><div class="tf-sec-h">Параметры (для продвинутых)</div>' +
+                '<textarea class="tf-in tf-area" id="tf-params" rows="8">' + esc(d.params ? JSON.stringify(d.params, null, 2) : "") + '</textarea>' +
+                '<p class="tf-hint">JSON-массив параметров движка (пол/возраст/одежда/причёска). Пусто — без параметров.</p>' +
             '</div>' +
 
             '<div class="tf-actions">' +
@@ -427,9 +478,41 @@ function saveTemplate(isNew) {
     var preview = {};
     if (img) preview.img = img;
     if (full || img) preview.full = full || img;
-    var definition;
-    try { definition = JSON.parse(_tfVal("tf-definition") || "{}"); }
-    catch (e) { alert("Ошибка в Definition JSON: " + e.message); return; }
+
+    // Rebuild definition from the structured fields, starting from the original so
+    // any keys we don't surface as inputs survive the edit.
+    var def = Object.assign({}, _tfOrigDef || {});
+    function setStr(k, id) { var v = _tfVal(id); if (v) def[k] = v; else delete def[k]; }
+    function setNum(k, id) { var v = _tfVal(id); if (v !== "" && !isNaN(+v)) def[k] = parseInt(v, 10); else delete def[k]; }
+    function setBool(k, id) { if (document.getElementById(id).checked) def[k] = true; else delete def[k]; }
+    setStr("model", "tf-model");
+    setStr("ratio", "tf-ratio");
+    var rs = _tfVal("tf-ratios").split(",").map(function(s){ return s.trim(); }).filter(Boolean);
+    if (rs.length) def.ratios = rs; else delete def.ratios;
+    setStr("quality", "tf-quality");
+    setNum("duration", "tf-duration");
+    setStr("mode", "tf-mode");
+    setNum("minPhotos", "tf-minPhotos");
+    setNum("maxPhotos", "tf-maxPhotos");
+    setStr("refField", "tf-refField");
+    setBool("sound", "tf-sound");
+    setBool("needPhoto", "tf-needPhoto");
+    setBool("hidePrompt", "tf-hidePrompt");
+    setStr("skeleton", "tf-skeleton");
+    setStr("prompt", "tf-prompt");
+    var desc = {}, dru = _tfVal("tf-desc-ru"), den = _tfVal("tf-desc-en"), des = _tfVal("tf-desc-es");
+    if (dru) desc.ru = dru; if (den) desc.en = den; if (des) desc.es = des;
+    if (Object.keys(desc).length) def.desc = desc; else delete def.desc;
+    var praw = _tfVal("tf-params");
+    if (praw) {
+        var parsed;
+        try { parsed = JSON.parse(praw); }
+        catch (e) { alert("Ошибка в JSON параметров: " + e.message); return; }
+        if (!Array.isArray(parsed)) { alert("Параметры должны быть JSON-массивом"); return; }
+        if (parsed.length) def.params = parsed; else delete def.params;
+    } else { delete def.params; }
+    var definition = def;
+
     var payload = {
         id: id,
         type: document.getElementById("tf-type").value,
