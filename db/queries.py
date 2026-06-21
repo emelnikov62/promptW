@@ -567,3 +567,140 @@ async def delete_chat_dialog(tg_id: int, dialog_id: int) -> bool:
             dialog_id, tg_id,
         )
         return res.endswith("1")
+
+
+# ── Templates ("тренды") ──
+# JSONB columns (title/preview/definition) come back from asyncpg as strings;
+# the API layer json.loads them. _tpl_flat() assembles the client-facing shape.
+
+def _tpl_flat(row: dict, full: bool) -> dict:
+    """Assemble a template row into the flat shape the client expects (same keys as
+    the legacy TRENDS entry). `full=False` omits the heavy `definition` (list view)."""
+    title = row.get("title")
+    preview = row.get("preview")
+    if isinstance(title, str):
+        title = json.loads(title or "{}")
+    if isinstance(preview, str):
+        preview = json.loads(preview or "{}")
+    out = {
+        "id": row["id"],
+        "type": row["type"],
+        "cost": row["cost"],
+        "sort_order": row.get("sort_order", 0),
+        "category": row.get("category"),
+        "title": title,
+        "preview": (preview or {}).get("img"),
+        "full": (preview or {}).get("full"),
+    }
+    if full:
+        definition = row.get("definition")
+        if isinstance(definition, str):
+            definition = json.loads(definition or "{}")
+        # Flatten definition onto the top level so buildTplPrompt/showTplDetail read
+        # the same property names they did with the inline TRENDS object.
+        for k, v in (definition or {}).items():
+            out.setdefault(k, v)
+    return out
+
+
+async def list_templates_public(type_filter: Optional[str] = None) -> List[dict]:
+    """Light list of enabled templates for the gallery (no heavy `definition`)."""
+    pool = await get_pool()
+    if type_filter:
+        rows = await pool.fetch("""
+            SELECT id, type, cost, sort_order, category, title, preview
+            FROM templates WHERE enabled = TRUE AND type = $1
+            ORDER BY sort_order, id
+        """, type_filter)
+    else:
+        rows = await pool.fetch("""
+            SELECT id, type, cost, sort_order, category, title, preview
+            FROM templates WHERE enabled = TRUE
+            ORDER BY sort_order, id
+        """)
+    return [_tpl_flat(dict(r), full=False) for r in rows]
+
+
+async def get_template_public(tpl_id: str) -> Optional[dict]:
+    """Full enabled template (flat shape incl. definition) for the detail screen."""
+    pool = await get_pool()
+    row = await pool.fetchrow("""
+        SELECT id, type, cost, sort_order, category, title, preview, definition
+        FROM templates WHERE id = $1 AND enabled = TRUE
+    """, tpl_id)
+    return _tpl_flat(dict(row), full=True) if row else None
+
+
+async def get_template_costs() -> dict:
+    """{id: cost} for the server-authoritative pricing cache."""
+    pool = await get_pool()
+    rows = await pool.fetch("SELECT id, cost FROM templates")
+    return {r["id"]: r["cost"] for r in rows}
+
+
+# ── Templates: admin CRUD ──
+
+async def admin_list_templates(limit: int = 200, offset: int = 0) -> dict:
+    pool = await get_pool()
+    rows = await pool.fetch("""
+        SELECT id, type, enabled, sort_order, category, cost, title, preview, updated_at
+        FROM templates ORDER BY sort_order, id LIMIT $1 OFFSET $2
+    """, limit, offset)
+    total = await pool.fetchval("SELECT COUNT(*) FROM templates")
+    items = []
+    for r in rows:
+        d = dict(r)
+        for k in ("title", "preview"):
+            if isinstance(d.get(k), str):
+                d[k] = json.loads(d[k] or "{}")
+        items.append(d)
+    return {"items": items, "total": total}
+
+
+async def admin_get_template(tpl_id: str) -> Optional[dict]:
+    pool = await get_pool()
+    row = await pool.fetchrow("SELECT * FROM templates WHERE id = $1", tpl_id)
+    if not row:
+        return None
+    d = dict(row)
+    for k in ("title", "preview", "definition"):
+        if isinstance(d.get(k), str):
+            d[k] = json.loads(d[k] or "{}")
+    return d
+
+
+async def admin_create_template(data: dict) -> bool:
+    """Insert a new template. Returns False if the id already exists."""
+    pool = await get_pool()
+    res = await pool.execute("""
+        INSERT INTO templates (id, type, enabled, sort_order, category, cost, title, preview, definition)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        ON CONFLICT (id) DO NOTHING
+    """, data["id"], data["type"], data.get("enabled", True), data.get("sort_order", 0),
+        data.get("category"), data.get("cost", 0),
+        json.dumps(data.get("title") or {}, ensure_ascii=False),
+        json.dumps(data.get("preview") or {}, ensure_ascii=False),
+        json.dumps(data.get("definition") or {}, ensure_ascii=False))
+    return res.endswith("1")
+
+
+async def admin_update_template(tpl_id: str, data: dict) -> bool:
+    """Update mutable fields of an existing template. Returns False if not found."""
+    pool = await get_pool()
+    res = await pool.execute("""
+        UPDATE templates SET
+            type = $2, enabled = $3, sort_order = $4, category = $5, cost = $6,
+            title = $7, preview = $8, definition = $9, updated_at = NOW()
+        WHERE id = $1
+    """, tpl_id, data["type"], data.get("enabled", True), data.get("sort_order", 0),
+        data.get("category"), data.get("cost", 0),
+        json.dumps(data.get("title") or {}, ensure_ascii=False),
+        json.dumps(data.get("preview") or {}, ensure_ascii=False),
+        json.dumps(data.get("definition") or {}, ensure_ascii=False))
+    return res.endswith("1")
+
+
+async def admin_delete_template(tpl_id: str) -> bool:
+    pool = await get_pool()
+    res = await pool.execute("DELETE FROM templates WHERE id = $1", tpl_id)
+    return res.endswith("1")

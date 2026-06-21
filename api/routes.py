@@ -27,6 +27,7 @@ from db.queries import (
     create_withdrawal, list_withdrawals, set_withdrawal_status, has_pending_withdrawal,
     list_references, add_reference, delete_reference,
     list_chat_dialogs, get_chat_dialog, append_chat_turn, delete_chat_dialog,
+    list_templates_public, get_template_public,
 )
 import payments_gw as pg
 import storage
@@ -423,6 +424,22 @@ async def api_get_history(request: web.Request):
                 item["settings"] = {}
         result.append(item)
     return web.json_response(result)
+
+
+@routes.get("/api/templates")
+async def api_templates(request: web.Request):
+    """Light list of enabled templates for the gallery (no heavy definition)."""
+    items = await list_templates_public(request.query.get("type"))
+    return web.json_response(items)
+
+
+@routes.get("/api/templates/{tpl_id}")
+async def api_template_detail(request: web.Request):
+    """Full template definition, fetched lazily when a user opens a template."""
+    tpl = await get_template_public(request.match_info["tpl_id"])
+    if not tpl:
+        return web.json_response({"error": "not_found"}, status=404)
+    return web.json_response(tpl)
 
 
 @routes.post("/api/generation/delete")

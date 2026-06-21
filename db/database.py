@@ -1,5 +1,10 @@
 import asyncpg
+import json
+import logging
+import os
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 _pool: Optional[asyncpg.Pool] = None
 
@@ -8,6 +13,7 @@ async def init_db(dsn: str):
     global _pool
     _pool = await asyncpg.create_pool(dsn, min_size=2, max_size=10)
     await _create_tables()
+    await _seed_templates()
 
 
 async def get_pool() -> asyncpg.Pool:
@@ -167,4 +173,54 @@ async def _create_tables():
             -- User ban/note fields
             ALTER TABLE users ADD COLUMN IF NOT EXISTS banned BOOLEAN DEFAULT FALSE;
             ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_note TEXT;
+
+            -- Generation templates ("тренды"). Light columns for the gallery list +
+            -- a `definition` JSONB holding the heavy prompt/params/settings payload.
+            CREATE TABLE IF NOT EXISTS templates (
+                id TEXT PRIMARY KEY,
+                type VARCHAR(20) NOT NULL,
+                enabled BOOLEAN DEFAULT TRUE,
+                sort_order INT DEFAULT 0,
+                category TEXT,
+                cost INTEGER NOT NULL DEFAULT 0,
+                title JSONB NOT NULL DEFAULT '{}',
+                preview JSONB NOT NULL DEFAULT '{}',
+                definition JSONB NOT NULL DEFAULT '{}',
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                updated_at TIMESTAMPTZ DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS idx_templates_enabled ON templates(enabled, sort_order);
         """)
+
+
+async def _seed_templates():
+    """Bootstrap templates from the repo seed. Admin owns rows once they exist:
+    INSERT ... ON CONFLICT DO NOTHING means a deploy only adds NEW templates and
+    never overwrites edits made through the admin panel."""
+    seed_path = os.path.join(os.path.dirname(__file__), "templates_seed.json")
+    if not os.path.exists(seed_path):
+        logger.warning("templates_seed.json not found, skipping template seed")
+        return
+    try:
+        with open(seed_path, encoding="utf-8") as f:
+            rows = json.load(f)
+        inserted = 0
+        async with _pool.acquire() as conn:
+            for r in rows:
+                res = await conn.execute("""
+                    INSERT INTO templates (id, type, enabled, sort_order, category, cost, title, preview, definition)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                    ON CONFLICT (id) DO NOTHING
+                """, r["id"], r["type"], r.get("enabled", True), r.get("sort_order", 0),
+                    r.get("category"), r.get("cost", 0),
+                    json.dumps(r.get("title") or {}, ensure_ascii=False),
+                    json.dumps(r.get("preview") or {}, ensure_ascii=False),
+                    json.dumps(r.get("definition") or {}, ensure_ascii=False))
+                if res.endswith("1"):
+                    inserted += 1
+        if inserted:
+            logger.info("Seeded %d new template(s)", inserted)
+    except Exception:
+        # Seeding must never block startup — the app can run with an empty/partial
+        # templates table (re-runs are idempotent via ON CONFLICT DO NOTHING).
+        logger.exception("template seed failed")

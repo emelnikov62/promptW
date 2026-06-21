@@ -91,7 +91,7 @@ function logout() {
 
 // ── Navigation ──
 var navItems = document.querySelectorAll(".nav-item");
-var sectionTitles = {dashboard:"Dashboard",users:"Пользователи",generations:"Генерации",payments:"Платежи",withdrawals:"Выводы",audit:"Аудит-лог"};
+var sectionTitles = {dashboard:"Dashboard",users:"Пользователи",generations:"Генерации",payments:"Платежи",withdrawals:"Выводы",templates:"Шаблоны",audit:"Аудит-лог"};
 
 navItems.forEach(function(btn) {
     btn.addEventListener("click", function() {
@@ -119,6 +119,7 @@ function showSection(name) {
         generations: function() { loadGenerations(0); },
         payments: function() { loadPayments(0); },
         withdrawals: function() { loadWithdrawals(0); },
+        templates: function() { loadTemplates(0); },
         audit: function() { loadAudit(0); }
     };
     if (loaders[name]) loaders[name]();
@@ -311,6 +312,91 @@ function wdAction(id, action) {
         method: "POST", body: JSON.stringify({action: action, reason: reason})
     }).then(function(d) {
         if (d.ok) loadWithdrawals(0);
+        else alert("Ошибка: " + (d.error || "unknown"));
+    });
+}
+
+// ── Templates ──
+var _tplCache = {};   // id -> full row, for the edit modal
+
+function loadTemplates(offset) {
+    var mc = document.getElementById("main-content");
+    mc.innerHTML = '<p style="color:var(--tx2)">Загрузка...</p>';
+    api("/api/admin/templates?limit=" + PAGE_SIZE + "&offset=" + offset).then(function(d) {
+        _tplCache = {};
+        var rows = d.items.map(function(tt) {
+            var ttl = (tt.title && (tt.title.ru || tt.title.en)) || "";
+            var en = tt.enabled ? '<span class="badge badge-done">on</span>' : '<span class="badge badge-error">off</span>';
+            return '<tr><td>' + esc(tt.id) + '</td><td>' + esc(tt.type) + '</td><td>' + esc(tt.category||"—") + '</td><td>' + tt.cost + '</td><td>' + tt.sort_order + '</td><td>' + en + '</td><td>' + esc(ttl) + '</td>' +
+                '<td><button class="btn btn-outline btn-sm" onclick="editTemplate(\'' + esc(tt.id) + '\')">Изм.</button> ' +
+                '<button class="btn btn-danger btn-sm" onclick="deleteTemplate(\'' + esc(tt.id) + '\')">Удал.</button></td></tr>';
+        }).join("");
+        mc.innerHTML = '<div style="margin-bottom:12px"><button class="btn btn-primary btn-sm" onclick="newTemplate()">+ Новый шаблон</button></div>' +
+            '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>ID</th><th>Тип</th><th>Категория</th><th>Цена</th><th>Порядок</th><th>Вкл</th><th>Название</th><th>Действия</th></tr></thead><tbody>' +
+            (rows || '<tr><td colspan="8" style="text-align:center;color:var(--tx3)">Нет данных</td></tr>') + '</tbody></table></div>' +
+            pagination(d.total, offset, "loadTemplates");
+    });
+}
+
+function _tplForm(t, isNew) {
+    function ta(label, id, val) {
+        return '<div class="modal-section"><h4>' + label + '</h4><textarea id="tf-' + id + '" rows="' + (id==="definition"?12:3) + '" style="width:100%;font-family:monospace;font-size:12px">' + esc(val) + '</textarea></div>';
+    }
+    return '<h3 style="margin:0 0 12px">' + (isNew ? "Новый шаблон" : "Шаблон: " + esc(t.id)) + '</h3>' +
+        '<div class="modal-section"><h4>ID (слаг)</h4><input id="tf-id" value="' + esc(t.id||"") + '"' + (isNew?"":" disabled") + ' style="width:100%"></div>' +
+        '<div class="modal-section"><h4>Тип</h4><select id="tf-type" style="width:100%">' +
+            ['photo','video','audio'].map(function(x){return '<option'+(t.type===x?' selected':'')+'>'+x+'</option>';}).join("") + '</select></div>' +
+        '<div class="modal-section"><h4>Цена (W)</h4><input id="tf-cost" type="number" value="' + (t.cost||0) + '" style="width:100%"></div>' +
+        '<div class="modal-section"><h4>Порядок</h4><input id="tf-sort_order" type="number" value="' + (t.sort_order||0) + '" style="width:100%"></div>' +
+        '<div class="modal-section"><h4>Категория</h4><input id="tf-category" value="' + esc(t.category||"") + '" style="width:100%"></div>' +
+        '<div class="modal-section"><label><input id="tf-enabled" type="checkbox"' + (t.enabled!==false?' checked':'') + '> Включён</label></div>' +
+        ta("Название (JSON {ru,en,es})", "title", JSON.stringify(t.title||{}, null, 1)) +
+        ta("Превью (JSON {img,full})", "preview", JSON.stringify(t.preview||{}, null, 1)) +
+        ta("Definition (JSON)", "definition", JSON.stringify(t.definition||{}, null, 2)) +
+        '<div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-primary" onclick="saveTemplate(' + (isNew?'true':'false') + ')">Сохранить</button>' +
+        '<button class="btn btn-outline" onclick="closeModal()">Отмена</button></div>';
+}
+
+function newTemplate() {
+    openModal(_tplForm({enabled:true, type:"photo"}, true));
+}
+
+function editTemplate(id) {
+    api("/api/admin/templates/" + encodeURIComponent(id)).then(function(t) {
+        if (t.error) { alert("Ошибка: " + t.error); return; }
+        _tplCache[id] = t;
+        openModal(_tplForm(t, false));
+    });
+}
+
+function saveTemplate(isNew) {
+    var id = document.getElementById("tf-id").value.trim();
+    if (!id) { alert("ID обязателен"); return; }
+    var payload;
+    try {
+        payload = {
+            id: id,
+            type: document.getElementById("tf-type").value,
+            cost: parseInt(document.getElementById("tf-cost").value, 10) || 0,
+            sort_order: parseInt(document.getElementById("tf-sort_order").value, 10) || 0,
+            category: document.getElementById("tf-category").value.trim() || null,
+            enabled: document.getElementById("tf-enabled").checked,
+            title: JSON.parse(document.getElementById("tf-title").value || "{}"),
+            preview: JSON.parse(document.getElementById("tf-preview").value || "{}"),
+            definition: JSON.parse(document.getElementById("tf-definition").value || "{}")
+        };
+    } catch (e) { alert("Ошибка в JSON: " + e.message); return; }
+    var path = isNew ? "/api/admin/templates" : "/api/admin/templates/" + encodeURIComponent(id);
+    api(path, { method: isNew ? "POST" : "PUT", body: JSON.stringify(payload) }).then(function(d) {
+        if (d.ok) { closeModal(); loadTemplates(0); }
+        else alert("Ошибка: " + (d.error || "unknown"));
+    });
+}
+
+function deleteTemplate(id) {
+    if (!confirm("Удалить шаблон «" + id + "»? Это действие необратимо.")) return;
+    api("/api/admin/templates/" + encodeURIComponent(id), { method: "DELETE" }).then(function(d) {
+        if (d.ok) loadTemplates(0);
         else alert("Ошибка: " + (d.error || "unknown"));
     });
 }
