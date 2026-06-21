@@ -11,6 +11,7 @@ from bot.handlers import router, setup as setup_bot
 from api.routes import routes, setup as setup_api, auth_middleware, start_reconciler
 from api.admin_routes import admin_routes
 from db.database import init_db, close_db
+import storage
 
 logging.basicConfig(level=logging.INFO)
 
@@ -62,6 +63,12 @@ def create_app() -> web.Application:
     gen = _create_generator()
     setup_bot(gen)
     setup_api(gen)
+
+    # Surface the active file-storage backend so a misconfigured prod (silent
+    # fallback to local /tmp) is obvious in the logs at boot.
+    logging.getLogger(__name__).info(
+        "storage backend: %s (bucket=%s)", storage.backend(),
+        storage.S3_BUCKET if storage.is_s3() else "-")
 
     app.router.add_get("/", index)
     app.router.add_get("/terms", terms_page)

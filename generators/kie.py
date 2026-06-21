@@ -8,6 +8,7 @@ from typing import Optional
 import aiohttp
 
 from generators.base import BaseGenerator, GenerationResult
+import storage
 
 logger = logging.getLogger(__name__)
 
@@ -189,9 +190,15 @@ class KieGenerator(BaseGenerator):
                 with open(filepath, "wb") as f:
                     async for chunk in resp.content.iter_chunked(8192):
                         f.write(chunk)
+        if storage.is_s3():
+            # Push to object storage and return its permanent public URL; the
+            # local temp is removed by put_file. Local mode keeps the disk path.
+            return await storage.aput_file(filepath)
         return filepath
 
     def _file_to_url(self, filepath: str) -> str:
+        if storage.is_remote(filepath):
+            return filepath   # already a public object-storage URL (s3 mode reference)
         if self.callback_url:
             base = self.callback_url.rsplit("/api/callback", 1)[0]
         else:

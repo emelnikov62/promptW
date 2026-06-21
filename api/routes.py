@@ -10,7 +10,7 @@ from decimal import Decimal
 import aiohttp
 from aiohttp import web
 from aiogram import Bot
-from aiogram.types import FSInputFile
+from aiogram.types import FSInputFile, BufferedInputFile
 
 from generators.base import BaseGenerator
 from bot.config import BOT_TOKEN
@@ -29,6 +29,7 @@ from db.queries import (
     list_chat_dialogs, get_chat_dialog, append_chat_turn, delete_chat_dialog,
 )
 import payments_gw as pg
+import storage
 
 logger = logging.getLogger(__name__)
 routes = web.RouteTableDef()
@@ -265,15 +266,18 @@ async def _reconcile_once():
             if age > _RECONCILE_GIVEUP:
                 await _reconcile_fail(gen_id, model, "timeout")
             continue
-        file_url = f"/media/{os.path.basename(path)}"
+        file_url = _media_url(path)
         if await finish_generation_if_pending(gen_id, file_url):
             logger.info("reconcile: recovered gen %s -> %s", gen_id, file_url)
         else:
-            # another path already finalized this row — drop the duplicate download
-            try:
-                os.remove(path)
-            except OSError:
-                pass
+            # another path already finalized this row — drop the duplicate object/file
+            if storage.is_remote(path):
+                await storage.adelete_url(path)
+            else:
+                try:
+                    os.remove(path)
+                except OSError:
+                    pass
 
 
 async def _reconcile_loop(interval: int):
@@ -431,13 +435,16 @@ async def api_delete_generation(request: web.Request):
     result_url = await delete_generation(gen_id, tg_id)
     if result_url is None:
         return web.json_response({"error": "not_found"}, status=404)
-    # Best-effort cleanup of the stored media file (kept inside MEDIA_DIR).
-    try:
-        fpath = os.path.join(MEDIA_DIR, os.path.basename(result_url))
-        if os.path.realpath(fpath).startswith(os.path.realpath(MEDIA_DIR) + os.sep) and os.path.isfile(fpath):
-            os.remove(fpath)
-    except OSError:
-        pass
+    # Best-effort cleanup of the stored media (s3 object or legacy MEDIA_DIR file).
+    if storage.is_remote(result_url):
+        await storage.adelete_url(result_url)
+    else:
+        try:
+            fpath = os.path.join(MEDIA_DIR, os.path.basename(result_url))
+            if os.path.realpath(fpath).startswith(os.path.realpath(MEDIA_DIR) + os.sep) and os.path.isfile(fpath):
+                os.remove(fpath)
+        except OSError:
+            pass
     return web.json_response({"ok": True})
 
 
@@ -460,7 +467,28 @@ _REF_MAX_BYTES = 12 * 1024 * 1024  # 12 MB
 
 
 def _media_url(path: str) -> str:
+    # s3-backed results/uploads are already full public URLs — keep them verbatim;
+    # local files are exposed via the /media/<basename> route.
+    if storage.is_remote(path):
+        return path
     return "/media/" + os.path.basename(path)
+
+
+async def _publish_refs(files: dict) -> dict:
+    """Turn parsed upload paths into reference URLs (for the KIE call + the
+    settings record). In s3 mode each upload is pushed to object storage and the
+    `files` dict is rewritten to the resulting public URL so the generator hands
+    KIE a fetchable link; local mode is unchanged (disk paths, /media/<name>)."""
+    refs = {}
+    for key, val in files.items():
+        vals = val if isinstance(val, list) else [val]
+        if storage.is_s3():
+            urls = [await storage.aput_file(p) for p in vals]
+            files[key] = urls if isinstance(val, list) else urls[0]
+        else:
+            urls = [_media_url(p) for p in vals]
+        refs[key] = urls if isinstance(val, list) else urls[0]
+    return refs
 
 
 @routes.get("/api/user/{tg_id}/references")
@@ -470,9 +498,11 @@ async def api_list_references(request: web.Request):
     out = []
     for r in rows:
         item = _row_to_json(r)
-        # stored as a filesystem path or already a /media url — normalise to url
-        if item.get("file_url") and not str(item["file_url"]).startswith("/media/"):
-            item["file_url"] = _media_url(item["file_url"])
+        # normalise: keep /media urls and remote (s3) urls as-is; a bare disk path
+        # (legacy) becomes /media/<basename>
+        fu = item.get("file_url")
+        if fu and not str(fu).startswith("/media/") and not storage.is_remote(fu):
+            item["file_url"] = _media_url(fu)
         out.append(item)
     return web.json_response(out)
 
@@ -499,10 +529,15 @@ async def api_add_reference(request: web.Request):
         except OSError: pass
         return web.json_response({"error": "bad_file"}, status=400)
     title = (data.get("title") or "").strip()[:60] or None
-    row = await add_reference(tg_id, _media_url(fpath), title)
+    # s3: upload (public-read) and store the public URL; local: keep the /media url
+    file_url = await storage.aput_file(fpath) if storage.is_s3() else _media_url(fpath)
+    row = await add_reference(tg_id, file_url, title)
     if row is None:
-        try: os.remove(fpath)
-        except OSError: pass
+        if storage.is_remote(file_url):
+            await storage.adelete_url(file_url)
+        else:
+            try: os.remove(fpath)
+            except OSError: pass
         return web.json_response({"error": "limit_reached"}, status=409)
     return web.json_response(_row_to_json(row))
 
@@ -515,9 +550,12 @@ async def api_delete_reference(request: web.Request):
     file_url = await delete_reference(tg_id, int(request.match_info["ref_id"]))
     if file_url is None:
         return web.json_response({"error": "not_found"}, status=404)
-    fpath = os.path.join(MEDIA_DIR, os.path.basename(file_url))
-    try: os.remove(fpath)
-    except OSError: pass
+    if storage.is_remote(file_url):
+        await storage.adelete_url(file_url)
+    else:
+        fpath = os.path.join(MEDIA_DIR, os.path.basename(file_url))
+        try: os.remove(fpath)
+        except OSError: pass
     return web.json_response({"ok": True})
 
 
@@ -861,13 +899,7 @@ async def generate_image(request: web.Request):
         return web.json_response({"error": "prompt is required"}, status=400)
 
     if files:
-        file_refs = {}
-        for key, val in files.items():
-            if isinstance(val, list):
-                file_refs[key] = [f"/media/{os.path.basename(p)}" for p in val]
-            else:
-                file_refs[key] = f"/media/{os.path.basename(val)}"
-        settings["references"] = file_refs
+        settings["references"] = await _publish_refs(files)
 
     cost = compute_cost("photo", model, settings)
     ok, balance = await _charge(tg_id, cost, f"photo:{model}")
@@ -889,7 +921,7 @@ async def generate_image(request: web.Request):
             on_task=_task_saver(gen_id),
         )
         paths = result.file_paths or [result.file_path]
-        file_urls = [f"/media/{os.path.basename(p)}" for p in paths]
+        file_urls = [_media_url(p) for p in paths]
         file_url = file_urls[0]
         if gen_id:
             await update_generation(gen_id, "done", file_url)
@@ -924,13 +956,7 @@ async def generate_video(request: web.Request):
         return web.json_response({"error": "prompt is required"}, status=400)
 
     if files:
-        file_refs = {}
-        for key, val in files.items():
-            if isinstance(val, list):
-                file_refs[key] = [f"/media/{os.path.basename(p)}" for p in val]
-            else:
-                file_refs[key] = f"/media/{os.path.basename(val)}"
-        settings["references"] = file_refs
+        settings["references"] = await _publish_refs(files)
 
     cost = compute_cost("video", model, settings)
     ok, balance = await _charge(tg_id, cost, f"video:{model}")
@@ -954,7 +980,7 @@ async def generate_video(request: web.Request):
             files=files,
             on_task=_task_saver(gen_id),
         )
-        file_url = f"/media/{os.path.basename(result.file_path)}"
+        file_url = _media_url(result.file_path)
         if gen_id:
             await update_generation(gen_id, "done", file_url)
         return {
@@ -1012,7 +1038,7 @@ async def generate_audio(request: web.Request):
             files=files,
             on_task=_task_saver(gen_id),
         )
-        file_url = f"/media/{os.path.basename(result.file_path)}"
+        file_url = _media_url(result.file_path)
         if gen_id:
             await update_generation(gen_id, "done", file_url)
         return {
@@ -1044,23 +1070,36 @@ async def api_send_media(request: web.Request):
     if not tg_id or not file_url:
         return web.json_response({"error": "tg_id and file_url required"}, status=400)
 
-    # Contain to MEDIA_DIR (basename strips traversal; realpath blocks edge cases).
-    filepath = os.path.join(MEDIA_DIR, os.path.basename(file_url))
-    if os.path.realpath(filepath).startswith(os.path.realpath(MEDIA_DIR) + os.sep) is False \
-            or not os.path.isfile(filepath):
-        return web.json_response({"error": "file not found"}, status=404)
+    # Resolve the media source. s3: stream the object's bytes through the bot
+    # (BufferedInputFile); legacy/local: serve the on-disk file, contained to
+    # MEDIA_DIR (basename strips traversal; realpath blocks edge cases).
+    if storage.is_remote(file_url):
+        if not storage.key_from_url(file_url):
+            return web.json_response({"error": "file not found"}, status=404)
+        try:
+            src = BufferedInputFile(await storage.aget_bytes(file_url),
+                                    filename=os.path.basename(file_url))
+        except Exception:
+            logger.exception("send-media: s3 fetch failed")
+            return web.json_response({"error": "file not found"}, status=404)
+    else:
+        filepath = os.path.join(MEDIA_DIR, os.path.basename(file_url))
+        if os.path.realpath(filepath).startswith(os.path.realpath(MEDIA_DIR) + os.sep) is False \
+                or not os.path.isfile(filepath):
+            return web.json_response({"error": "file not found"}, status=404)
+        src = FSInputFile(filepath)
 
     bot = _get_bot()
     try:
         if media_type == "video":
-            await bot.send_video(tg_id, FSInputFile(filepath))
+            await bot.send_video(tg_id, src)
         elif media_type == "audio":
-            await bot.send_audio(tg_id, FSInputFile(filepath))
+            await bot.send_audio(tg_id, src)
         else:
             # Send the image as a document, NOT send_photo — Telegram re-compresses
             # photos (JPEG, downscaled) and would degrade the generated result. A
             # document preserves the original file (full resolution, no recompression).
-            await bot.send_document(tg_id, FSInputFile(filepath))
+            await bot.send_document(tg_id, src)
         return web.json_response({"ok": True})
     except Exception:
         logger.exception("Send media error")
@@ -1081,15 +1120,21 @@ async def api_share_media(request: web.Request):
     media_type = data.get("media_type", "photo")
     if not file_url:
         return web.json_response({"error": "bad_request"}, status=400)
-    # Only allow our own media files (no arbitrary-URL inline messages).
-    fname = os.path.basename(file_url)
-    filepath = os.path.join(MEDIA_DIR, fname)
-    if not os.path.realpath(filepath).startswith(os.path.realpath(MEDIA_DIR) + os.sep) \
-            or not os.path.isfile(filepath):
-        return web.json_response({"error": "file_not_found"}, status=404)
-    if not WEBAPP_URL:
-        return web.json_response({"error": "unavailable"}, status=503)
-    public_url = WEBAPP_URL.rstrip("/") + "/media/" + fname
+    # Only allow our own media (no arbitrary-URL inline messages). s3: the public
+    # object URL is Telegram-fetchable as-is; legacy/local: serve via WEBAPP_URL.
+    if storage.is_remote(file_url):
+        if not storage.key_from_url(file_url):
+            return web.json_response({"error": "file_not_found"}, status=404)
+        public_url = file_url
+    else:
+        fname = os.path.basename(file_url)
+        filepath = os.path.join(MEDIA_DIR, fname)
+        if not os.path.realpath(filepath).startswith(os.path.realpath(MEDIA_DIR) + os.sep) \
+                or not os.path.isfile(filepath):
+            return web.json_response({"error": "file_not_found"}, status=404)
+        if not WEBAPP_URL:
+            return web.json_response({"error": "unavailable"}, status=503)
+        public_url = WEBAPP_URL.rstrip("/") + "/media/" + fname
     rid = uuid.uuid4().hex
     if media_type == "audio":
         result = {"type": "audio", "id": rid, "audio_url": public_url, "title": "PromptW"}
