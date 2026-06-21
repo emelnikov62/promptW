@@ -16,6 +16,7 @@ from db.queries import (
 from pricing import refresh_template_costs
 from bot.auth import make_auth_token
 from bot.config import BOT_TOKEN
+import storage
 
 logger = logging.getLogger(__name__)
 
@@ -468,6 +469,39 @@ async def admin_template_delete(request):
     await _reload_costs()
     await _audit(admin_id, "template_delete", "template", tpl_id, None, None, None, _client_ip(request))
     return web.json_response({"ok": True})
+
+
+_PREVIEW_EXT_OK = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".mp4", ".webm", ".mov"}
+_PREVIEW_MAX = 30 * 1024 * 1024  # 30 MB
+
+
+@admin_routes.post("/api/admin/templates/upload")
+async def admin_template_upload(request):
+    """Upload a template preview (image/video). Stored via `storage` (S3 or /media,
+    never the git checkout) so adding a template needs no deploy. Returns its URL."""
+    admin_id = _require_admin(request)
+    reader = await request.multipart()
+    field = await reader.next()
+    while field is not None and field.name != "file":
+        field = await reader.next()
+    if field is None:
+        return web.json_response({"error": "no file"}, status=400)
+    ext = os.path.splitext(field.filename or "")[1].lower()
+    if ext not in _PREVIEW_EXT_OK:
+        return web.json_response({"error": "unsupported file type"}, status=400)
+    data = bytearray()
+    while True:
+        chunk = await field.read_chunk(64 * 1024)
+        if not chunk:
+            break
+        data.extend(chunk)
+        if len(data) > _PREVIEW_MAX:
+            return web.json_response({"error": "file too large (max 30MB)"}, status=413)
+    fname = "tpl-" + uuid.uuid4().hex + ext
+    url = await storage.aput_bytes(bytes(data), fname)
+    await _audit(admin_id, "template_upload", "template", fname,
+                 None, {"url": url}, None, _client_ip(request))
+    return web.json_response({"ok": True, "url": url})
 
 
 # ── Audit log ──
