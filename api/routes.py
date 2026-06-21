@@ -1,6 +1,7 @@
 import os
 import json
 import uuid
+import asyncio
 import logging
 from typing import Optional
 from datetime import datetime, date
@@ -161,6 +162,39 @@ async def _insufficient(tg_id, cost: int):
         {"error": "insufficient_balance", "needed": cost, "balance": balance},
         status=402,
     )
+
+
+# Generations run for minutes (video especially). Awaiting the work directly in
+# the request handler meant a client disconnect (Telegram webview / nginx read
+# timeout) cancelled the handler coroutine mid-flight — the KIE task was abandoned,
+# the file never downloaded, the DB row stuck "pending" and the tokens spent.
+# Instead run `build` (generate + persist 'done') as a DETACHED task and only
+# shield-await it for the connected response: if the client goes away the task
+# keeps running to completion, writes the result (or refunds + marks 'error' on
+# failure), and the client picks it up via the History poll.
+_BG_GENS = set()
+
+
+async def _run_generation(gen_id, tg_id, cost: int, label: str, build):
+    """Run `build()` to completion regardless of whether the HTTP client stays
+    connected. `build` returns the JSON-able response dict (and writes the 'done'
+    row itself). On failure: mark the row 'error', refund, return an error marker."""
+    async def _runner():
+        try:
+            return await build()
+        except Exception:
+            logger.exception("Generation failed (%s)", label)
+            if gen_id:
+                await update_generation(gen_id, "error")
+            await _refund(tg_id, cost, "refund " + label)
+            return {"__error__": True}
+
+    task = asyncio.ensure_future(_runner())
+    _BG_GENS.add(task)
+    task.add_done_callback(_BG_GENS.discard)
+    # shield: if the client disconnects, our await is cancelled but `task` keeps
+    # running in the background (and _BG_GENS holds a strong ref so it isn't GC'd).
+    return await asyncio.shield(task)
 
 
 def _get_bot() -> Bot:
@@ -750,7 +784,7 @@ async def generate_image(request: web.Request):
     if tg_id:
         gen_id = await create_generation(tg_id, "photo", prompt, model, settings, cost)
 
-    try:
+    async def _build():
         result = await generator.generate_image(
             prompt,
             model=model,
@@ -762,11 +796,9 @@ async def generate_image(request: web.Request):
         paths = result.file_paths or [result.file_path]
         file_urls = [f"/media/{os.path.basename(p)}" for p in paths]
         file_url = file_urls[0]
-
         if gen_id:
             await update_generation(gen_id, "done", file_url)
-
-        return web.json_response({
+        return {
             "file_url": file_url,
             "file_urls": file_urls,
             "media_type": result.media_type,
@@ -775,13 +807,12 @@ async def generate_image(request: web.Request):
             "urls": result.urls,
             "cost": cost,
             "balance": balance,
-        })
-    except Exception as e:
-        logger.exception("Image generation error")
-        if gen_id:
-            await update_generation(gen_id, "error")
-        await _refund(tg_id, cost, f"refund photo:{model}")
+        }
+
+    resp = await _run_generation(gen_id, tg_id, cost, f"photo:{model}", _build)
+    if resp.get("__error__"):
         return web.json_response({"error": "generation_failed"}, status=500)
+    return web.json_response(resp)
 
 
 @routes.post("/api/generate/video")
@@ -815,7 +846,7 @@ async def generate_video(request: web.Request):
     if tg_id:
         gen_id = await create_generation(tg_id, "video", prompt, model, settings, cost)
 
-    try:
+    async def _build():
         result = await generator.generate_video(
             prompt,
             model=model,
@@ -828,11 +859,9 @@ async def generate_video(request: web.Request):
             files=files,
         )
         file_url = f"/media/{os.path.basename(result.file_path)}"
-
         if gen_id:
             await update_generation(gen_id, "done", file_url)
-
-        return web.json_response({
+        return {
             "file_url": file_url,
             "media_type": result.media_type,
             "prompt": result.prompt,
@@ -840,13 +869,12 @@ async def generate_video(request: web.Request):
             "urls": result.urls,
             "cost": cost,
             "balance": balance,
-        })
-    except Exception as e:
-        logger.exception("Video generation error")
-        if gen_id:
-            await update_generation(gen_id, "error")
-        await _refund(tg_id, cost, f"refund video:{model}")
+        }
+
+    resp = await _run_generation(gen_id, tg_id, cost, f"video:{model}", _build)
+    if resp.get("__error__"):
         return web.json_response({"error": "generation_failed"}, status=500)
+    return web.json_response(resp)
 
 
 @routes.post("/api/generate/audio")
@@ -871,7 +899,7 @@ async def generate_audio(request: web.Request):
     if tg_id:
         gen_id = await create_generation(tg_id, "audio", prompt, model, settings, cost)
 
-    try:
+    async def _build():
         result = await generator.generate_audio(
             prompt,
             model=model,
@@ -888,11 +916,9 @@ async def generate_audio(request: web.Request):
             files=files,
         )
         file_url = f"/media/{os.path.basename(result.file_path)}"
-
         if gen_id:
             await update_generation(gen_id, "done", file_url)
-
-        return web.json_response({
+        return {
             "file_url": file_url,
             "media_type": result.media_type,
             "prompt": result.prompt,
@@ -900,13 +926,12 @@ async def generate_audio(request: web.Request):
             "urls": result.urls,
             "cost": cost,
             "balance": balance,
-        })
-    except Exception as e:
-        logger.exception("Audio generation error")
-        if gen_id:
-            await update_generation(gen_id, "error")
-        await _refund(tg_id, cost, f"refund audio:{model}")
+        }
+
+    resp = await _run_generation(gen_id, tg_id, cost, f"audio:{model}", _build)
+    if resp.get("__error__"):
         return web.json_response({"error": "generation_failed"}, status=500)
+    return web.json_response(resp)
 
 
 @routes.post("/api/send-media")
