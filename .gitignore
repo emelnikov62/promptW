@@ -21,3 +21,4 @@ media/
 Thumbs.db
 .idea/
 .vscode/
+deploy.sh
