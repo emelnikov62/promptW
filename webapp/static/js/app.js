@@ -2187,6 +2187,47 @@ var GIRL_SUNSET_PARAMS = [
       ]}
 ];
 
+// ── Cabrio (Porsche + red roses): female-only param template (NanoBanana PRO). ──
+var GIRL_PORSCHE_SKELETON = `Создай изображение на основе исходного фото девушки — это РЕФЕРЕНС ЛИЦА, скопируй лицо с него максимально точно, 1:1. Сохрани без изменений: форму и ШИРИНУ лица и полноту щёк (НЕ сужай лицо, не делай его тоньше или более вытянутым), овал и линию челюсти, форму и пропорции носа, форму и разрез глаз, расстояние между глазами, брови, форму и полноту губ, скулы, структуру и текстуру кожи, родинки, веснушки и все индивидуальные особенности — это та же самая девушка, 100% узнаваемость. БЕЗ сглаживания кожи, БЕЗ AI-эффекта, не идеализируй, не омолаживай, не делай лицо тоньше, красивее или «модельным», не меняй форму носа и пропорции лица. Если сомневаешься — копируй черты точно с референса, ничего не приукрашивай. Волосы — цвет, длина и причёска строго как на загруженном фото референса. Кожа естественная с лёгким загаром, но сохрани реальный тон кожи девушки. Маникюр средней длины, чёткий квадрат, белый френч. Макияж: тонкие чёрные стрелки, губы с мягким растушёванным коричневым контуром и розовой помадой по центру, но форма и размер губ — строго как на референсе. На запястье браслет Van Cleef Alhambra. {watch}. Одежда: {outfit}. {glasses}. Девушка сидит в кабриолете Porsche 911: {interior}. Она откинулась на сиденье, запрокинула голову, одна рука у лба. {flowers}. Ракурс сверху. Лёгкий смаз в движении, но лицо остаётся чётким и узнаваемым. Приглушённая цветовая гамма, тёмная сцена ночью. Снято на компактную камеру Canon G7X со вспышкой в темноте: жёсткий прямой свет вспышки, яркие блики на коже, глубокие тени. Фон НЕ размывать. Без посторонних людей, без текста и водяных знаков.`;
+
+var GIRL_PORSCHE_PARAMS = [
+    { id:"flowers", control:"sheet", label:{ru:"Букет",en:"Bouquet",es:"Ramo"},
+      options:[
+        {value:"roses-red", label:{ru:"Красные розы",en:"Red roses",es:"Rosas rojas"}, frag:"большой букет крупных красных роз лежит у неё на груди и руках"},
+        {value:"roses-white", label:{ru:"Белые розы",en:"White roses",es:"Rosas blancas"}, frag:"большой букет белых роз лежит у неё на груди и руках"},
+        {value:"peonies", label:{ru:"Пионы",en:"Peonies",es:"Peonías"}, frag:"большой букет розовых пионов лежит у неё на груди и руках"},
+        {value:"none", label:{ru:"Без букета",en:"No bouquet",es:"Sin ramo"}, frag:"без букета цветов"}
+      ]},
+    { id:"outfit", control:"sheet", label:{ru:"Одежда",en:"Clothing",es:"Ropa"},
+      options:[
+        {value:"tank-black", label:{ru:"Чёрная майка",en:"Black tank",es:"Top negro"}, frag:"чёрная облегающая майка"},
+        {value:"slip-black", label:{ru:"Чёрная комбинация",en:"Black slip",es:"Vestido lencero negro"}, frag:"чёрное облегающее платье-комбинация на тонких бретельках"},
+        {value:"tank-white", label:{ru:"Белая майка",en:"White tank",es:"Top blanco"}, frag:"белая облегающая майка"},
+        {value:"knit-beige", label:{ru:"Бежевый трикотаж",en:"Beige knit",es:"Punto beige"}, frag:"бежевый облегающий трикотажный топ"}
+      ]},
+    { id:"glasses", control:"sheet", label:{ru:"Очки",en:"Glasses",es:"Gafas"},
+      options:[
+        {value:"rimless", label:{ru:"Без оправы",en:"Rimless",es:"Sin montura"}, frag:"чёрные солнцезащитные очки без оправы в стиле начала 2000-х, тёмные линзы"},
+        {value:"rect-black", label:{ru:"Прямоугольные",en:"Rectangular",es:"Rectangulares"}, frag:"узкие прямоугольные чёрные солнцезащитные очки"},
+        {value:"cat-eye", label:{ru:"Кошачий глаз",en:"Cat-eye",es:"Ojo de gato"}, frag:"солнцезащитные очки «кошачий глаз» в чёрной оправе"},
+        {value:"none", label:{ru:"Без очков",en:"No glasses",es:"Sin gafas"}, frag:"без солнцезащитных очков, выразительный макияж глаз хорошо виден"}
+      ]},
+    { id:"watch", control:"sheet", label:{ru:"Часы",en:"Watch",es:"Reloj"},
+      options:[
+        {value:"cartier-silver", label:{ru:"Cartier серебряные",en:"Cartier silver",es:"Cartier plateado"}, frag:"на запястье серебряные часы Cartier"},
+        {value:"cartier-gold", label:{ru:"Cartier золотые",en:"Cartier gold",es:"Cartier dorado"}, frag:"на запястье золотые часы Cartier"},
+        {value:"rolex-gold", label:{ru:"Rolex золотые",en:"Rolex gold",es:"Rolex dorado"}, frag:"на запястье золотые часы Rolex"},
+        {value:"none", label:{ru:"Без часов",en:"No watch",es:"Sin reloj"}, frag:"без наручных часов"}
+      ]},
+    { id:"interior", control:"sheet", label:{ru:"Салон",en:"Interior",es:"Interior"},
+      options:[
+        {value:"red", label:{ru:"Красный",en:"Red",es:"Rojo"}, frag:"полностью красный кожаный салон, красное сиденье"},
+        {value:"black", label:{ru:"Чёрный",en:"Black",es:"Negro"}, frag:"чёрный кожаный салон, чёрное сиденье"},
+        {value:"beige", label:{ru:"Бежевый",en:"Beige",es:"Beige"}, frag:"бежевый кожаный салон, бежевое сиденье"},
+        {value:"white", label:{ru:"Белый",en:"White",es:"Blanco"}, frag:"белый кожаный салон, белое сиденье"}
+      ]}
+];
+
 var BDAY_VIDEO_PROMPT = `ИДЕНТИЧНОСТЬ (главное правило): человек в кадре — тот же самый человек, что на загруженном фото (@Image1). В КАЖДОМ кадре без изменений сохраняй его лицо и черты лица, причёску, цвет и длину волос, телосложение, оттенок и текстуру кожи и его одежду строго как на референсе — 100% сходство, это тот же человек, не подменяй, не идеализируй и не омолаживай лицо.
 Аутентичное вертикальное видео со смартфона, 9:16, 1080x1920, ручная съёмка ночью. Мобильная документалка: тряска, лёгкий смаз, низкосветовой шум и зерно. Макс. фотореализм — как видео от друга, НЕ кино, НЕ стилизация. Свет только от фонарей.
 【Длит.】10 сек
@@ -2248,6 +2289,14 @@ var TRENDS = {
         skeleton: GIRL_SUNSET_SKELETON, params: GIRL_SUNSET_PARAMS,
         title: { ru: "Селфи на закате", en: "Sunset selfie", es: "Selfie al atardecer" },
         desc: { ru: "Загрузите фото, где хорошо видно лицо — оно сохранится с референса (без сглаживания и AI-эффекта). Ниже выберите одежду, платок, серёжки и очки, остальное соберётся автоматически.", en: "Upload a photo with a clearly visible face — it's kept from the reference (no skin smoothing, no AI look). Choose clothing, headscarf, earrings and glasses below; the rest is assembled automatically.", es: "Sube una foto con la cara bien visible — se mantiene de la referencia (sin suavizado ni efecto AI). Elige ropa, pañuelo, pendientes y gafas abajo; el resto se arma automáticamente." }
+    },
+    "girl-porsche-photo": {
+        type: "photo", cost: 30, model: "NanoBanana PRO",
+        preview: "/static/tpl/girl-porsche-photo.jpg", full: "/static/tpl/girl-porsche-photo.jpg",
+        ratio: "9:16", ratios: ["9:16", "3:4"], minPhotos: 1, maxPhotos: 8, prompt: GIRL_PORSCHE_SKELETON,
+        skeleton: GIRL_PORSCHE_SKELETON, params: GIRL_PORSCHE_PARAMS,
+        title: { ru: "В кабриолете", en: "In the cabrio", es: "En el cabrio" },
+        desc: { ru: "Загрузите фото, где хорошо видно лицо — оно сохранится с референса (без сглаживания и AI-эффекта). Ниже выберите букет, одежду, очки, часы и цвет салона, остальное соберётся автоматически.", en: "Upload a photo with a clearly visible face — it's kept from the reference (no skin smoothing, no AI look). Choose bouquet, clothing, glasses, watch and interior color below; the rest is assembled automatically.", es: "Sube una foto con la cara bien visible — se mantiene de la referencia (sin suavizado ni efecto AI). Elige ramo, ropa, gafas, reloj y color del interior abajo; el resto se arma automáticamente." }
     }
 };
 
