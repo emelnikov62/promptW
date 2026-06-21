@@ -658,6 +658,8 @@ async def admin_list_templates(limit: int = 200, offset: int = 0) -> dict:
         for k in ("title", "preview"):
             if isinstance(d.get(k), str):
                 d[k] = json.loads(d[k] or "{}")
+        if d.get("updated_at") is not None:
+            d["updated_at"] = d["updated_at"].isoformat()
         items.append(d)
     return {"items": items, "total": total}
 
