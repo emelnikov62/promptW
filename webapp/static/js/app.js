@@ -1433,21 +1433,26 @@ var genRepeatFn = null;      // unified "Повторить" handler (Create run
 
 function genOvOpen(){
     var o=document.getElementById("gen-overlay");
-    // sit between the persistent header and the bottom nav (keep both visible)
     var hdr=document.getElementById("main-header");
     var nav=document.getElementById("bnav");
-    o.style.top=(hdr?Math.round(hdr.getBoundingClientRect().bottom)-1:56)+"px";
-    o.style.bottom=(nav?Math.round(nav.getBoundingClientRect().height):60)+"px";
+    var hb=hdr?Math.round(hdr.getBoundingClientRect().bottom):56;
+    var nh=nav?Math.round(nav.getBoundingClientRect().height):60;
+    // Cover the full column (incl. BEHIND the frosted header, which is a higher z-index) so the
+    // page never bleeds through the translucent header; push the overlay's own content below it.
+    o.style.top="0px";
+    o.style.bottom=nh+"px";
+    var card=o.querySelector(".gen-ov-card");
+    if(card) card.style.paddingTop=hb+"px";
     o.classList.remove("hidden");
     requestAnimationFrame(function(){ o.classList.add("show"); });
-    document.body.classList.add("noscroll","gen-open");
+    document.body.classList.add("noscroll");
     genViewOpen=true;
 }
 function genOvClose(){
     var o=document.getElementById("gen-overlay");
     o.classList.remove("show");
     setTimeout(function(){ o.classList.add("hidden"); },200);
-    document.body.classList.remove("noscroll","gen-open");
+    document.body.classList.remove("noscroll");
     genViewOpen=false;
 }
 function genOvLoading(type, model){
