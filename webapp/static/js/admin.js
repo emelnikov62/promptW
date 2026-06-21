@@ -352,7 +352,14 @@ function _tplForm(t, isNew) {
         '<div class="modal-section"><label><input id="tf-enabled" type="checkbox"' + (t.enabled!==false?' checked':'') + '> Включён</label></div>' +
         '<div class="modal-section"><label><input id="tf-featured" type="checkbox"' + (t.featured?' checked':'') + '> В «Тренды» (главный экран)</label></div>' +
         ta("Название (JSON {ru,en,es})", "title", JSON.stringify(t.title||{}, null, 1)) +
-        ta("Превью (JSON {img,full})", "preview", JSON.stringify(t.preview||{}, null, 1)) +
+        '<div class="modal-section"><h4>Превью (JSON {img,full})</h4>' +
+            '<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap">' +
+                '<input type="file" id="tf-preview-file" accept="image/*,video/*">' +
+                '<button class="btn btn-outline btn-sm" type="button" onclick="uploadPreview()">Загрузить файл</button>' +
+                '<span id="tf-preview-status" style="color:var(--tx2);font-size:12px"></span>' +
+            '</div>' +
+            '<textarea id="tf-preview" rows="3" style="width:100%;font-family:monospace;font-size:12px">' + esc(JSON.stringify(t.preview||{}, null, 1)) + '</textarea>' +
+        '</div>' +
         ta("Definition (JSON)", "definition", JSON.stringify(t.definition||{}, null, 2)) +
         '<div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-primary" onclick="saveTemplate(' + (isNew?'true':'false') + ')">Сохранить</button>' +
         '<button class="btn btn-outline" onclick="closeModal()">Отмена</button></div>';
@@ -393,6 +400,32 @@ function saveTemplate(isNew) {
         if (d.ok) { closeModal(); loadTemplates(0); }
         else alert("Ошибка: " + (d.error || "unknown"));
     });
+}
+
+function uploadPreview() {
+    var inp = document.getElementById("tf-preview-file");
+    var st = document.getElementById("tf-preview-status");
+    if (!inp || !inp.files || !inp.files[0]) { alert("Выберите файл"); return; }
+    var fd = new FormData();
+    fd.append("file", inp.files[0]);
+    st.textContent = "Загрузка…";
+    // Auth headers only — NOT Content-Type, so the browser sets the multipart boundary.
+    var h = {};
+    var tg = window.Telegram && Telegram.WebApp;
+    if (tg && tg.initData) h["X-Init-Data"] = tg.initData;
+    if (authToken) h["X-Auth-Token"] = authToken;
+    fetch("/api/admin/templates/upload", { method: "POST", headers: h, body: fd })
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+            if (!d.url) { st.textContent = "Ошибка: " + (d.error || "unknown"); return; }
+            var pv;
+            try { pv = JSON.parse(document.getElementById("tf-preview").value || "{}"); } catch(e) { pv = {}; }
+            pv.img = d.url;
+            if (!pv.full) pv.full = d.url;
+            document.getElementById("tf-preview").value = JSON.stringify(pv, null, 1);
+            st.textContent = "Готово ✓ (не забудьте Сохранить)";
+        })
+        .catch(function(){ st.textContent = "Ошибка загрузки"; });
 }
 
 function deleteTemplate(id) {
