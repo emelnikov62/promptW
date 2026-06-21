@@ -200,7 +200,19 @@ async function loadUserHistory() {
                     cost: i.cost || 0, created_at: i.created_at
                 };
             });
+            // Still-running jobs (status pending, no result yet) → placeholder cards that
+            // survive reloads. Skip stale rows so a crashed job doesn't spin forever.
+            var now = Date.now();
+            serverPending = items.filter(function(i){
+                if (i.result_url || i.status !== "pending") return false;
+                var ts = i.created_at ? new Date(i.created_at).getTime() : now;
+                return (now - ts) < PENDING_MAX_AGE_MS;
+            }).map(function(i){
+                return { id: "s" + i.id, type: (i.gen_type === "photo" || i.gen_type === "audio") ? i.gen_type : "video", model: i.model || "" };
+            });
+            recomputePending();
             updateHistory();
+            if (serverPending.length) pendingPoll();
         }
     } catch(e) { console.error("Failed to load history", e); }
 }
@@ -1527,6 +1539,7 @@ async function runGenerate(type, prompt){
         }
         removePendingGen(pendId);
         updateHistory();
+        if(getTgId()) loadUserHistory();   // reconcile with the server (clears its pending row)
         haptic.notify("success");
         if(genViewOpen) genOvResult(mtype, data);
         else toast(t("genSavedToHistory"),"success");
@@ -1559,12 +1572,29 @@ bindGen("gen-audio","prompt-audio","audio");
     if(c) c.addEventListener("click", genOvClose);
 })();
 
-// In-progress generations tracked client-side (the generate request is held open for
-// the whole job, so there is no server row yet). Shown as animated placeholder cards
-// at the top of History until the request resolves.
-var pendingGens=[], pendingSeq=0;
-function addPendingGen(type, model){ var id=++pendingSeq; pendingGens.unshift({id:id,type:type,model:model||""}); updateHistory(); return id; }
-function removePendingGen(id){ pendingGens=pendingGens.filter(function(p){return p.id!==id;}); }
+// In-progress generations shown as animated placeholder cards at the top of History.
+// Two sources, merged so a single job never shows twice:
+//  - serverPending: rows with status 'pending' from /history (authoritative; survive a
+//    reload; we ignore ones older than ~15 min so a crashed job can't spin forever).
+//  - localPending: optimistic cards added the instant a request fires, for immediate
+//    feedback in the firing tab before the server row is fetched.
+var pendingGens=[], serverPending=[], localPending=[], pendingSeq=0, pendingPollT=null;
+var PENDING_MAX_AGE_MS=15*60*1000;
+function recomputePending(){
+    // Server rows win; add only the local cards a server row doesn't already cover (by type).
+    var left={}; serverPending.forEach(function(p){ left[p.type]=(left[p.type]||0)+1; });
+    var extras=[]; localPending.forEach(function(p){ if(left[p.type]>0){ left[p.type]--; } else extras.push(p); });
+    pendingGens=serverPending.concat(extras);
+}
+function addPendingGen(type, model){ var id=++pendingSeq; localPending.push({id:id,type:type,model:model||""}); recomputePending(); updateHistory(); return id; }
+function removePendingGen(id){ localPending=localPending.filter(function(p){return p.id!==id;}); recomputePending(); }
+function pendingPoll(){
+    if(pendingPollT) return;
+    pendingPollT=setInterval(function(){
+        if(!serverPending.length){ clearInterval(pendingPollT); pendingPollT=null; return; }
+        loadUserHistory();
+    }, 5000);
+}
 function pendingGenHtml(p){
     var tag='<span class="gal-tag gal-tag-'+p.type+'">'+t(p.type)+'</span>';
     var meta='<div class="gal-meta"><span class="gal-model">'+escHtml(p.model)+'</span></div>';
@@ -2204,6 +2234,7 @@ async function tplGenerate(tpl, btn, id) {
         }
         removePendingGen(pendId);
         updateHistory();
+        if (getTgId()) loadUserHistory();   // reconcile with the server (clears its pending row)
         haptic.notify("success");
         if (genViewOpen) genOvResult(mtype, data); else toast(t("genSavedToHistory"), "success");
     } catch (err) {
