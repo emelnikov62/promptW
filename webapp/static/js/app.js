@@ -1508,11 +1508,13 @@ async function runGenerate(type, prompt){
     genOvOpen(); genOvLoading(type, model);
     haptic.impact("medium");
     var apiType=type==="image"?"image":type;
+    var pendType=type==="image"?"photo":type;
+    var pendId=addPendingGen(pendType, model);
     try {
         var fd=buildFormData(type, prompt);
         var res=await fetch("/api/generate/"+apiType, { method:"POST", headers:authHeaders(), body:fd });
         var data=await res.json();
-        if(res.status===402){ genOvClose(); toast(t("errNoBalance"),"error"); haptic.notify("error"); showPage("topup"); return; }
+        if(res.status===402){ removePendingGen(pendId); updateHistory(); genOvClose(); toast(t("errNoBalance"),"error"); haptic.notify("error"); showPage("topup"); return; }
         if(!res.ok) throw new Error(data.error||"Generation failed");
         if(data.balance!=null){ document.querySelectorAll(".user-balance").forEach(function(el){el.textContent=data.balance;}); if(currentUser) currentUser.balance=data.balance; refreshGenButtons(); }
         var mtype=data.media_type==="photo"?"photo":(data.media_type==="audio"?"audio":"video");
@@ -1523,11 +1525,14 @@ async function runGenerate(type, prompt){
         } else {
             galleryItems.unshift(makeItem(data.file_url));
         }
+        removePendingGen(pendId);
         updateHistory();
         haptic.notify("success");
         if(genViewOpen) genOvResult(mtype, data);
         else toast(t("genSavedToHistory"),"success");
     } catch(err){
+        removePendingGen(pendId);
+        updateHistory();
         haptic.notify("error");
         if(genViewOpen) genOvError(err.message);
         else toast(t("genFailed"),"error");
@@ -1554,10 +1559,25 @@ bindGen("gen-audio","prompt-audio","audio");
     if(c) c.addEventListener("click", genOvClose);
 })();
 
+// In-progress generations tracked client-side (the generate request is held open for
+// the whole job, so there is no server row yet). Shown as animated placeholder cards
+// at the top of History until the request resolves.
+var pendingGens=[], pendingSeq=0;
+function addPendingGen(type, model){ var id=++pendingSeq; pendingGens.unshift({id:id,type:type,model:model||""}); updateHistory(); return id; }
+function removePendingGen(id){ pendingGens=pendingGens.filter(function(p){return p.id!==id;}); }
+function pendingGenHtml(p){
+    var tag='<span class="gal-tag gal-tag-'+p.type+'">'+t(p.type)+'</span>';
+    var meta='<div class="gal-meta"><span class="gal-model">'+escHtml(p.model)+'</span></div>';
+    return '<div class="gal-item gal-pending gal-pending-'+p.type+'">'+tag+
+        '<div class="gal-gen"><div class="gal-gen-spin"></div><span class="gal-gen-t">'+t("genInProgress")+'</span></div>'+
+        meta+'</div>';
+}
+
 function updateHistory(){
     var list=document.getElementById("history-list");
-    if(!galleryItems.length){list.innerHTML='<div class="empty-state"><div class="empty-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><p class="empty-title">' + t("historyEmpty") + '</p></div>';return}
-    list.innerHTML=galleryItems.map(function(item, idx){
+    if(!galleryItems.length && !pendingGens.length){list.innerHTML='<div class="empty-state"><div class="empty-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><p class="empty-title">' + t("historyEmpty") + '</p></div>';return}
+    var pendingHtml=pendingGens.map(pendingGenHtml).join("");
+    list.innerHTML=pendingHtml+galleryItems.map(function(item, idx){
         var media = item.type==="photo"
             ? '<img src="'+escHtml(item.url)+'" alt="g">'
             : item.type==="audio"
@@ -1569,7 +1589,7 @@ function updateHistory(){
         var tag = '<span class="gal-tag gal-tag-'+tagKey+'">'+t(tagKey)+'</span>';
         return '<div class="gal-item" data-idx="'+idx+'">'+tag+media+meta+'</div>';
     }).join("");
-    list.querySelectorAll(".gal-item").forEach(function(el){
+    list.querySelectorAll(".gal-item[data-idx]").forEach(function(el){
         el.addEventListener("click",function(){ showGenDetail(galleryItems[parseInt(el.dataset.idx)]); });
     });
 }
@@ -2152,6 +2172,7 @@ async function tplGenerate(tpl, btn, id) {
     var ovType = tpl.type === "video" ? "video" : "photo";
     genOvOpen(); genOvLoading(ovType, tpl.model);
     haptic.impact("medium");
+    var pendId = addPendingGen(ovType, tpl.model);
     try {
         var fd = new FormData();
         fd.append("prompt", prompt);
@@ -2170,7 +2191,7 @@ async function tplGenerate(tpl, btn, id) {
         var endpoint = "/api/generate/" + (tpl.type === "photo" ? "image" : "video");
         var res = await fetch(endpoint, { method: "POST", headers: authHeaders(), body: fd });
         var data = await res.json();
-        if (res.status === 402) { genOvClose(); toast(t("errNoBalance"), "error"); haptic.notify("error"); showPage("topup"); return; }
+        if (res.status === 402) { removePendingGen(pendId); updateHistory(); genOvClose(); toast(t("errNoBalance"), "error"); haptic.notify("error"); showPage("topup"); return; }
         if (!res.ok) throw new Error(data.error || "Generation failed");
         if (data.balance != null) { document.querySelectorAll(".user-balance").forEach(function(el){el.textContent=data.balance;}); if(currentUser) currentUser.balance=data.balance; refreshGenButtons(); }
 
@@ -2181,10 +2202,13 @@ async function tplGenerate(tpl, btn, id) {
         } else {
             galleryItems.unshift(makeItem(data.file_url));
         }
+        removePendingGen(pendId);
         updateHistory();
         haptic.notify("success");
         if (genViewOpen) genOvResult(mtype, data); else toast(t("genSavedToHistory"), "success");
     } catch (err) {
+        removePendingGen(pendId);
+        updateHistory();
         haptic.notify("error");
         if (genViewOpen) genOvError(err.message); else toast(t("genFailed"), "error");
     }

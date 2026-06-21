@@ -323,6 +323,16 @@ body.noscroll{overflow:hidden}
 .gal-meta{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:16px 8px 8px;background:linear-gradient(to top,rgba(22,19,15,.82),rgba(22,19,15,0));pointer-events:none}
 .gal-model{font-size:11px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 3px rgba(0,0,0,.8)}
 .gal-cost{font-family:var(--font-mono);font-size:10px;color:#fff;opacity:.85;flex-shrink:0;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+.gal-pending{cursor:default}.gal-pending:active{opacity:1}
+.gal-gen{width:100%;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;position:relative;overflow:hidden;background:linear-gradient(135deg,var(--card2),var(--card))}
+.gal-gen::before{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.06) 50%,transparent 65%);background-size:220% 100%;animation:galShimmer 1.5s linear infinite}
+.gal-gen-spin{width:36px;height:36px;border-radius:50%;border:3px solid rgba(255,255,255,.13);border-top-color:var(--photo);animation:galSpin .8s linear infinite;z-index:1}
+.gal-gen-t{font-family:var(--font-mono);font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--tx2);z-index:1}
+.gal-pending-photo .gal-gen{background:linear-gradient(135deg,rgba(255,107,92,.16),rgba(255,107,92,.04))}
+.gal-pending-video .gal-gen{background:linear-gradient(135deg,rgba(255,178,62,.16),rgba(255,178,62,.05))}.gal-pending-video .gal-gen-spin{border-top-color:var(--video)}
+.gal-pending-audio .gal-gen{background:linear-gradient(135deg,rgba(61,214,140,.14),rgba(61,214,140,.05))}.gal-pending-audio .gal-gen-spin{border-top-color:var(--audio)}
+@keyframes galShimmer{0%{background-position:220% 0}100%{background-position:-220% 0}}
+@keyframes galSpin{to{transform:rotate(360deg)}}
 
 /* Gen Detail */
 .detail-media{margin-bottom:12px;border-radius:var(--r);overflow:hidden;text-align:center;background:var(--card)}
