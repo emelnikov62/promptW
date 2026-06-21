@@ -11,6 +11,16 @@ CREDIT_TO_TOKEN = 2.2          # KIE credit -> token fallback multiplier
 AUDIO_CREDITS = {"Suno V5": 16, "Suno V4.5": 12}
 CHAT_COST = 1                  # tokens charged per chat reply
 
+# Trend templates are fixed-price products: the user sees one advertised price and
+# must be charged exactly that, regardless of the underlying model's per-second math.
+# Keyed by the tplId the client sends in settings. MUST mirror TRENDS[*].cost in app.js.
+TEMPLATE_COST = {
+    "birthday-photo": 30,
+    "yacht-photo": 30,
+    "birthday-video": 420,
+    "yacht-video": 50,
+}
+
 # Per-model video pricing (KIE credits, 1 credit = $0.005). Mirrors VIDEO_MODELS.
 VIDEO_PRICING = {
     "Kling 3.0": {
@@ -104,6 +114,11 @@ def video_cost(model: str, settings: dict) -> int:
 
 
 def compute_cost(gen_type: str, model: str, settings: dict) -> int:
+    # Fixed-price templates win over per-model math (server stays authoritative: the
+    # client only selects a known tplId, it cannot forge an arbitrary price).
+    tpl_id = (settings or {}).get("tplId")
+    if tpl_id in TEMPLATE_COST:
+        return TEMPLATE_COST[tpl_id]
     if gen_type in ("photo", "image"):
         return photo_cost(settings)
     if gen_type == "audio":

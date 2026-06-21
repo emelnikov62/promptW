@@ -1931,7 +1931,7 @@ var TRENDS = {
         desc: { ru: "Загрузите своё фото — лицо сохранится с референса. Ниже выберите пол, возраст, одежду и причёску, остальное соберётся автоматически. Смена пола меняет образ, но лицо остаётся максимально похожим.", en: "Upload your photo — the face is kept from the reference. Choose gender, age, clothing and hairstyle below; the rest is assembled automatically. Switching gender changes the look while keeping the face as close as possible.", es: "Sube tu foto — la cara se mantiene de la referencia. Elige género, edad, ropa y peinado abajo; el resto se arma automáticamente. Cambiar de género cambia el look manteniendo la cara lo más parecida posible." }
     },
     "birthday-video": {
-        type: "video", cost: 420, model: "Seedance 2.0", mode: "fast", needPhoto: true,
+        type: "video", cost: 420, model: "Seedance 2.0", mode: "fast", quality: "720p", duration: 10, needPhoto: true,
         preview: "/static/tpl/birthday-video.mp4?v=2", full: "/static/tpl/birthday-video.mp4",
         ratio: "9:16", minPhotos: 1, maxPhotos: 1, prompt: BDAY_VIDEO_PROMPT, hidePrompt: true,
         title: { ru: "С днём рождения видео", en: "Birthday video", es: "Video de cumpleaños" },
@@ -1945,7 +1945,7 @@ var TRENDS = {
         desc: { ru: "Загрузите свое фото, где хорошо видны черты лица.", en: "Upload a photo with clearly visible facial features.", es: "Sube una foto donde se vean bien los rasgos faciales." }
     },
     "yacht-video": {
-        type: "video", cost: 50, model: "Grok Imagine 1.5", needPhoto: true,
+        type: "video", cost: 50, model: "Grok Imagine 1.5", duration: 8, needPhoto: true,
         preview: "/static/tpl/yacht-video.mp4", full: "/static/tpl/yacht-video.mp4",
         ratio: "9:16", quality: "480p", minPhotos: 1, maxPhotos: 7, prompt: YACHT_VIDEO_PROMPT, hidePrompt: true,
         title: { ru: "На яхте видео", en: "Yacht video", es: "Video en yate" },
@@ -2208,13 +2208,17 @@ async function tplGenerate(tpl, btn, id) {
         fd.append("prompt", prompt);
         fd.append("tg_id", getTgId() || "");
         fd.append("model", tpl.model);
-        var settings = { ratio: tpl.ratio };
+        // Always send tplId — the server charges the fixed template price by it (pricing.py
+        // TEMPLATE_COST), so the charged amount matches the price shown in the UI.
+        var settings = { ratio: tpl.ratio, tplId: id };
         if (tpl.quality) settings.quality = tpl.quality;
         if (tpl.mode) settings.mode = tpl.mode;
-        if (tpl.params) { settings.tplId = id; settings.tplParams = readTplParams(tpl); }
+        if (tpl.duration) settings.duration = tpl.duration;
+        if (tpl.params) settings.tplParams = readTplParams(tpl);
         fd.append("settings", JSON.stringify(settings));
-        // Send the reference photo under the field name the generator actually reads:
-        // images -> "photo-refs" (kie.generate_image), video -> "v-first-frame" (maps to KIE "image").
+        // Send the reference photo under the field name the generator reads. Photo ->
+        // "photo-refs" (kie.generate_image). Video -> "v-first-frame"; kie.generate_video
+        // routes it to the right per-model key (Seedance first_frame_url, Grok image_urls…).
         var refField = tpl.type === "photo" ? "photo-refs" : "v-first-frame";
         tplFiles.forEach(function(f) { fd.append(refField, f); });
 
