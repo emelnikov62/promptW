@@ -1558,7 +1558,9 @@ function updateHistory(){
             : '<video src="'+escHtml(item.url)+'" preload="metadata"></video><div class="gal-play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>';
         var cost = item.cost ? '<span class="gal-cost">'+item.cost+' W</span>' : '';
         var meta = '<div class="gal-meta"><span class="gal-model">'+escHtml(item.model||"")+'</span>'+cost+'</div>';
-        return '<div class="gal-item" data-idx="'+idx+'">'+media+meta+'</div>';
+        var tagKey = item.type==="photo"?"photo":(item.type==="audio"?"audio":"video");
+        var tag = '<span class="gal-tag gal-tag-'+tagKey+'">'+t(tagKey)+'</span>';
+        return '<div class="gal-item" data-idx="'+idx+'">'+tag+media+meta+'</div>';
     }).join("");
     list.querySelectorAll(".gal-item").forEach(function(el){
         el.addEventListener("click",function(){ showGenDetail(galleryItems[parseInt(el.dataset.idx)]); });
@@ -1677,7 +1679,9 @@ function showGenDetail(item){
         }
     }
 
-    document.getElementById("gen-detail-content").innerHTML=html;
+    var dc=document.getElementById("gen-detail-content");
+    dc.className = item.type==="photo"?"z-photo":(item.type==="audio"?"z-audio":"z-video");
+    dc.innerHTML=html;
 
     var moreBtn=document.getElementById("detail-more");
     if(moreBtn) moreBtn.addEventListener("click",function(){
