@@ -2017,6 +2017,44 @@ var BDAY_PHOTO_PARAMS = [
         ]
       }}
 ];
+
+// ── Yacht photo: same param engine as birthday, yacht-specific scene + catalogs ──
+var YACHT_PHOTO_SKELETON = `Это фотография конкретного человека с загруженного референса. Перенеси его лицо без изменений: те же черты лица, форма лица и головы, нос, глаза, разрез глаз, брови, губы, овал лица, оттенок кожи и индивидуальные особенности — 100% портретное сходство, это тот же самый человек, не придумывай, не идеализируй и не омолаживай новое лицо. Помести этого человека в сцену: ультра-реалистичное роскошное фэшн-фото на яхте, вертикальный кадр 9:16. Крупный план до талии, ноги не видны. Камера сверху под драматическим углом сверху-вниз над краем движущейся яхты. {subject} в правой части кадра у нержавеющих стальных перил над морем, откидывается назад, держась обеими руками за перила, плечи раскрыты, уверенный интенсивный взгляд прямо в камеру. Левую часть кадра заполняет ярко-бирюзовая морская вода и мощная белая пена кильватерного следа. Правый край — тиковая палуба и полированные металлические перила. Асимметричная композиция, океан доминирует в кадре. Одежда: {outfit}. {hair}. Естественный дневной свет над открытой водой, без вспышки, реалистичные морские отражения и брызги, насыщенная бирюзовая палитра. Слегка верхний ракурс, ощущение телефонного объектива, лёгкая зернистость, без HDR, эстетика снимка на iPhone, роскошный travel-лайфстайл. ВАЖНО: лицо строго как на загруженном фото — не менять, не омолаживать, не подменять, сохранить индивидуальные черты и узнаваемость человека; без посторонних людей, без текста и водяных знаков.`;
+
+var YACHT_PHOTO_PARAMS = [
+    { id:"gender", control:"pills", default:"female", label:{ru:"Пол",en:"Gender",es:"Género"},
+      options:[
+        {value:"female", label:{ru:"Женщина",en:"Woman",es:"Mujer"}, grammar:{noun:"женщина",adjE:"ая"}},
+        {value:"male",   label:{ru:"Мужчина",en:"Man",es:"Hombre"}, grammar:{noun:"мужчина",adjE:"ый"}}
+      ]},
+    { id:"outfit", control:"sheet", dependsOn:"gender", label:{ru:"Одежда",en:"Clothing",es:"Ropa"},
+      options:{
+        female:[
+          {value:"white-dress", label:{ru:"Белое платье",en:"White dress",es:"Vestido blanco"}, frag:"элегантное белое платье без бретелек из гладкой струящейся ткани, глубокий вырез в форме сердца, облегающий корсетный верх, чистый роскошный силуэт"},
+          {value:"silk-slip", label:{ru:"Шёлковая комбинация",en:"Silk slip",es:"Vestido lencero"}, frag:"шёлковое платье-комбинация цвета шампанского на тонких бретелях, струящаяся ткань развевается на морском ветру"},
+          {value:"bikini-luxe", label:{ru:"Купальник-люкс",en:"Luxe swimwear",es:"Bañador de lujo"}, frag:"стильный однотонный купальник премиум-класса с лёгким струящимся парео, морской гламур"}
+        ],
+        male:[
+          {value:"linen-open", label:{ru:"Льняная рубашка",en:"Linen shirt",es:"Camisa de lino"}, frag:"расстёгнутая белая льняная рубашка навыпуск и светлые брюки, лёгкий курортный люкс"},
+          {value:"polo-navy", label:{ru:"Поло",en:"Polo",es:"Polo"}, frag:"тёмно-синее поло и белые шорты, яхтенный кэжуал-образ"},
+          {value:"suit-summer", label:{ru:"Летний костюм",en:"Summer suit",es:"Traje de verano"}, frag:"светлый летний костюм без галстука, рубашка расстёгнута на верхнюю пуговицу, премиальный курортный образ"}
+        ]
+      }},
+    { id:"hair", control:"sheet", dependsOn:"gender", label:{ru:"Причёска",en:"Hairstyle",es:"Peinado"},
+      options:{
+        female:[
+          {value:"ref", label:{ru:"Как на фото",en:"As in photo",es:"Como en la foto"}, frag:"причёска, цвет и длина волос строго как на загруженном фото, отдельные пряди подхвачены морским ветром; естественный сияющий макияж"},
+          {value:"windswept", label:{ru:"По ветру набок",en:"Windswept side",es:"Al viento de lado"}, frag:"мягкие волны полностью зачёсаны на одну сторону сильным морским ветром, объёмное текучее движение, глянцевая текстура, несколько прядей развеваются по лицу; чёткие стрелки «кошачий глаз», длинные ресницы, глянцевые губы"},
+          {value:"wet-slick", label:{ru:"Мокрый эффект",en:"Wet look",es:"Efecto mojado"}, frag:"влажный эффект, волосы зачёсаны назад, гладкая глянцевая текстура с каплями морской воды; естественный сияющий макияж"}
+        ],
+        male:[
+          {value:"ref", label:{ru:"Как на фото",en:"As in photo",es:"Como en la foto"}, frag:"причёска, цвет и длина волос строго как на загруженном фото, слегка растрёпаны морским ветром"},
+          {value:"windswept", label:{ru:"По ветру",en:"Windswept",es:"Al viento"}, frag:"волосы естественно растрёпаны сильным морским ветром, динамичное движение"},
+          {value:"slick", label:{ru:"Зачёсанные назад",en:"Slicked back",es:"Hacia atrás"}, frag:"волосы зачёсаны назад с лёгким влажным глянцем"}
+        ]
+      }}
+];
+
 var BDAY_VIDEO_PROMPT = `ИДЕНТИЧНОСТЬ (главное правило): человек в кадре — тот же самый человек, что на загруженном фото (@Image1). В КАЖДОМ кадре без изменений сохраняй его лицо и черты лица, причёску, цвет и длину волос, телосложение, оттенок и текстуру кожи и его одежду строго как на референсе — 100% сходство, это тот же человек, не подменяй, не идеализируй и не омолаживай лицо.
 Аутентичное вертикальное видео со смартфона, 9:16, 1080x1920, ручная съёмка ночью. Мобильная документалка: тряска, лёгкий смаз, низкосветовой шум и зерно. Макс. фотореализм — как видео от друга, НЕ кино, НЕ стилизация. Свет только от фонарей.
 【Длит.】10 сек
@@ -2052,8 +2090,9 @@ var TRENDS = {
         type: "photo", cost: 30, model: "NanoBanana PRO",
         preview: "/static/tpl/yacht-photo.jpg", full: "/static/tpl/yacht-photo-full.jpg",
         ratio: "9:16", minPhotos: 1, maxPhotos: 8, prompt: YACHT_PHOTO_PROMPT,
+        skeleton: YACHT_PHOTO_SKELETON, params: YACHT_PHOTO_PARAMS,
         title: { ru: "На яхте фото", en: "Yacht photo", es: "Foto en yate" },
-        desc: { ru: "Загрузите свое фото, где хорошо видны черты лица.", en: "Upload a photo with clearly visible facial features.", es: "Sube una foto donde se vean bien los rasgos faciales." }
+        desc: { ru: "Загрузите фото, где хорошо видны черты лица — оно сохранится с референса. Ниже выберите пол, возраст, одежду и причёску, остальное соберётся автоматически. Смена пола меняет образ, но лицо остаётся максимально похожим.", en: "Upload a photo with clearly visible facial features — the face is kept from the reference. Choose gender, age, clothing and hairstyle below; the rest is assembled automatically. Switching gender changes the look while keeping the face as close as possible.", es: "Sube una foto donde se vean bien los rasgos faciales — la cara se mantiene de la referencia. Elige género, edad, ropa y peinado abajo; el resto se arma automáticamente. Cambiar de género cambia el look manteniendo la cara lo más parecida posible." }
     },
     "yacht-video": {
         type: "video", cost: 50, model: "Grok Imagine 1.5", duration: 8, needPhoto: true,
@@ -2131,7 +2170,10 @@ function buildTplPrompt(tpl, pv){
         ctx.age = clampAge(tpl, pv.age);
         // Anchor the subject to the reference person — no idealizing adjective ("эффектный"
         // pushed NanoBanana to invent a generic handsome face instead of keeping the real one).
-        ctx.subject = gr.noun+" ~"+ctx.age+" лет, тот же самый человек, что на загруженном фото-референсе, с его реальными чертами лица";
+        // Age is woven into the subject only when the template exposes an age param (birthday);
+        // templates without it (yacht) get a clean noun so no "~27 лет" is invented.
+        var ageStr = tplParamById(tpl,"age") ? " ~"+ctx.age+" лет," : "";
+        ctx.subject = gr.noun+ageStr+" тот же самый человек, что на загруженном фото-референсе, с его реальными чертами лица";
     } else {
         ctx.age = clampAge(tpl, pv.age);
     }
