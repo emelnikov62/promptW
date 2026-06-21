@@ -320,6 +320,7 @@ body.noscroll{overflow:hidden}
 .gal-grid.cols-4 .gal-model{font-size:9px}.gal-grid.cols-4 .gal-cost{font-size:8px}
 .gal-grid.cols-4 .gal-gen-t{display:none}.gal-grid.cols-4 .gal-gen-spin{width:26px;height:26px}
 .gal-grid img,.gal-grid video{width:100%;aspect-ratio:1;object-fit:cover;border-radius:var(--rs)}
+.gal-vthumb-load{background:var(--card2)}
 .gal-more{grid-column:1/-1;margin-top:4px;padding:13px;border:1px solid var(--brd);border-radius:999px;background:var(--card);color:var(--tx);font-family:var(--font-mono);font-size:12px;letter-spacing:.04em;cursor:pointer;transition:background .15s}
 .gal-more:active{background:var(--card2)}
 .gal-more:disabled{opacity:.6;cursor:default}
