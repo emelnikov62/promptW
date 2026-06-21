@@ -572,13 +572,16 @@ function initUploads() {
         }
         var frameUp = e.target.closest(".frame-up[data-uid]");
         if (frameUp && !uploadedFiles[frameUp.dataset.uid]) {
-            pickFile(frameUp.dataset.accept || "image/*", function(file) {
+            var fAccept = frameUp.dataset.accept || "image/*";
+            var fOnFile = function(file) {
                 uploadedFiles[frameUp.dataset.uid] = file;
                 showSinglePreview(frameUp);
                 if (frameUp.dataset.uid === "v-motion-video") {
                     measureVideoDuration(file, function(sec) { motionVideoRawSec = sec; updateMotionDuration(); });
                 }
-            });
+            };
+            // Image frames get the phone/history/reference chooser; video files stay native.
+            if (fAccept.indexOf("image") === 0) openImageSource(fOnFile); else pickFile(fAccept, fOnFile);
             return;
         }
         var refAdd = e.target.closest(".ref-add");
@@ -587,11 +590,13 @@ function initUploads() {
             var uid = area.dataset.uid;
             var max = parseInt(area.dataset.max) || 9;
             if (uploadedFiles[uid] && uploadedFiles[uid].length >= max) return;
-            pickFile(area.dataset.accept || "image/*", function(file) {
+            var rAccept = area.dataset.accept || "image/*";
+            var rOnFile = function(file) {
                 if (!uploadedFiles[uid]) uploadedFiles[uid] = [];
                 uploadedFiles[uid].push(file);
                 renderRefChips(area);
-            });
+            };
+            if (rAccept.indexOf("image") === 0) openImageSource(rOnFile); else pickFile(rAccept, rOnFile);
             return;
         }
     });
@@ -702,6 +707,86 @@ async function insertReferenceToUpload(url){
     var gl = document.getElementById("ref-guide-link"); if (gl) gl.addEventListener("click", function(){ openRefguide("profile"); });
 })();
 
+// ── Flexible image-source chooser (phone / history / saved reference) ──
+// One bottom sheet reused for every photo upload (Create + templates). The caller
+// passes a callback that receives a File, regardless of where the user picked it.
+var imgSrcOnFile = null;
+var IMGSRC_PHONE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3.2"/></svg>';
+var IMGSRC_HIST = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>';
+var IMGSRC_REF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+function imgSrcOpt(k, ic, title, sub){
+    return '<button class="imgsrc-opt" data-src="'+k+'"><span class="imgsrc-opt-ic">'+ic+'</span>'+
+           '<span class="imgsrc-opt-tx"><span class="imgsrc-opt-title">'+title+'</span><span class="imgsrc-opt-sub">'+sub+'</span></span></button>';
+}
+function imgSrcMenu(){
+    document.getElementById("imgsrc-back").classList.add("hidden");
+    document.getElementById("imgsrc-title").textContent = t("imgSrcTitle");
+    document.getElementById("imgsrc-body").innerHTML = '<div class="imgsrc-menu">'+
+        imgSrcOpt("phone", IMGSRC_PHONE, t("imgSrcPhone"), t("imgSrcPhoneSub"))+
+        imgSrcOpt("history", IMGSRC_HIST, t("imgSrcHistory"), t("imgSrcHistorySub"))+
+        imgSrcOpt("ref", IMGSRC_REF, t("imgSrcRef"), t("imgSrcRefSub"))+
+    '</div>';
+}
+function imgSrcGrid(kind){
+    document.getElementById("imgsrc-back").classList.remove("hidden");
+    var title = document.getElementById("imgsrc-title"), body = document.getElementById("imgsrc-body");
+    var items, empty;
+    if (kind === "history"){
+        title.textContent = t("imgSrcHistory");
+        items = galleryItems.filter(function(g){ return g.type === "photo" && g.url; }).map(function(g){ return g.url; });
+        empty = t("imgSrcEmptyHist");
+    } else {
+        title.textContent = t("imgSrcRef");
+        items = (referenceList || []).map(function(r){ return r.file_url; });
+        empty = t("imgSrcEmptyRef");
+    }
+    if (!items.length){ body.innerHTML = '<div class="imgsrc-empty">'+empty+'</div>'; return; }
+    body.innerHTML = '<div class="imgsrc-grid">'+items.map(function(u){
+        return '<div class="imgsrc-cell" data-url="'+escHtml(u)+'"><img src="'+escHtml(u)+'" loading="lazy"></div>';
+    }).join("")+'</div>';
+}
+function imgSrcClose(){
+    var o = document.getElementById("imgsrc-overlay"); if (!o) return;
+    o.classList.remove("show");
+    setTimeout(function(){ o.classList.add("hidden"); }, 300);
+    imgSrcOnFile = null;
+}
+// Fetch a same-origin media URL and hand it back as a File for FormData upload.
+function urlToFile(url, cb){
+    fetch(url).then(function(r){ return r.blob(); }).then(function(blob){
+        var m = url.split("?")[0].match(/\.[a-z0-9]+$/i);
+        cb(new File([blob], "image"+(m ? m[0] : ".jpg"), { type: blob.type || "image/jpeg" }));
+    }).catch(function(){ toast(t("genFailed"), "error"); });
+}
+function openImageSource(onFile){
+    var o = document.getElementById("imgsrc-overlay");
+    if (!o){ pickFile("image/*", onFile); return; }   // graceful fallback
+    imgSrcOnFile = onFile;
+    imgSrcMenu();
+    o.classList.remove("hidden");
+    requestAnimationFrame(function(){ o.classList.add("show"); });
+    loadReferences();   // warm the saved-reference cache for the "Мой референс" tab
+    haptic.impact("light");
+}
+(function setupImgSrc(){
+    var o = document.getElementById("imgsrc-overlay"); if (!o) return;
+    o.addEventListener("click", function(e){ if (e.target === o) imgSrcClose(); });
+    document.getElementById("imgsrc-back").addEventListener("click", imgSrcMenu);
+    document.getElementById("imgsrc-body").addEventListener("click", function(e){
+        var opt = e.target.closest(".imgsrc-opt");
+        if (opt){
+            var k = opt.dataset.src;
+            haptic.select();
+            if (k === "phone"){ var cb = imgSrcOnFile; imgSrcClose(); pickFile("image/*", cb); }
+            else if (k === "history"){ imgSrcGrid("history"); }
+            else { imgSrcGrid("ref"); loadReferences().then(function(){ imgSrcGrid("ref"); }); }
+            return;
+        }
+        var cell = e.target.closest(".imgsrc-cell");
+        if (cell){ var cb2 = imgSrcOnFile, url = cell.dataset.url; haptic.impact("light"); imgSrcClose(); urlToFile(url, cb2); }
+    });
+})();
+
 function initPhotoUpload() {
     var area = document.querySelector("#form-image .up-area");
     if (!area) return;
@@ -722,7 +807,7 @@ function initPhotoUpload() {
         if (e.target.closest(".ref-add")) {
             var max = 8;
             if (uploadedFiles["photo-refs"] && uploadedFiles["photo-refs"].length >= max) return;
-            pickFile("image/*", function(file) {
+            openImageSource(function(file) {
                 if (!uploadedFiles["photo-refs"]) uploadedFiles["photo-refs"] = [];
                 uploadedFiles["photo-refs"].push(file);
                 renderRefChips(area);
@@ -2018,7 +2103,7 @@ function renderTplUploads(tpl) {
     area.innerHTML = html;
     var add = document.getElementById("tpl-up-add");
     if (add) add.addEventListener("click", function() {
-        pickFile("image/*", function(file) { tplFiles.push(file); renderTplUploads(tpl); });
+        openImageSource(function(file) { tplFiles.push(file); renderTplUploads(tpl); });
     });
     area.querySelectorAll(".tpl-up-x").forEach(function(b) {
         b.addEventListener("click", function(e) {
