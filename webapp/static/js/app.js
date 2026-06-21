@@ -2724,6 +2724,20 @@ document.querySelectorAll("[data-tpl]").forEach(function(el) {
     el.addEventListener("click", function() { showTplDetail(el.dataset.tpl); });
 });
 
+// "все →" expands a template category into a full 2-column grid (and back).
+document.querySelectorAll(".tpl-hdr .gold").forEach(function(link) {
+    link.addEventListener("click", function() {
+        var cat = link.closest(".tpl-cat");
+        if (!cat) return;
+        // empty categories (no real templates yet) just say "coming soon".
+        if (!cat.querySelector(".tpl-thumb.has-media")) { toast(t("tplSoon")); return; }
+        var open = cat.classList.toggle("expanded");
+        link.dataset.i18n = open ? "tplCollapse" : "tplAll";
+        link.textContent = t(open ? "tplCollapse" : "tplAll");
+        haptic.impact("light");
+    });
+});
+
 // ── Rewards (dot over the gift pulses while there are unclaimed tasks) ──
 function rwdKey(){ return "promptw_rwd_" + (getTgId() || "anon"); }
 function rwdGetDone(){ try { return JSON.parse(localStorage.getItem(rwdKey())) || []; } catch(e){ return []; } }
