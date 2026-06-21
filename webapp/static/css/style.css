@@ -232,6 +232,23 @@ textarea::placeholder{color:var(--tx3)}
 .gen-bar{display:flex;margin-top:14px}
 .gen-bar .gen-btn{margin:0;width:100%}
 .tok{display:flex;align-items:center;gap:4px;background:rgba(0,0,0,.2);padding:4px 12px;border-radius:999px;font-family:var(--font-mono);font-size:13px;font-weight:700}
+/* Create — zone color-coding (photo=coral / video=amber / audio=jade) */
+#form-image{--z:var(--photo);--zdim:rgba(255,107,92,.12);--zbrd:rgba(255,107,92,.34);--zink:#3A1109}
+#form-video{--z:var(--video);--zdim:rgba(255,178,62,.13);--zbrd:rgba(255,178,62,.34);--zink:#3A2606}
+#form-audio{--z:var(--audio);--zdim:rgba(61,214,140,.13);--zbrd:rgba(61,214,140,.36);--zink:#06321F}
+.create-form .gen-btn{background:var(--z);color:var(--zink);box-shadow:0 10px 28px -8px var(--z)}
+.create-form .gen-btn .tok{background:rgba(0,0,0,.14)}
+.create-form .gen-btn .coin{background:var(--zink);color:var(--z)}
+.create-form .cnt.active{background:var(--z);border-color:var(--z);color:var(--zink);box-shadow:0 4px 12px -2px var(--z)}
+.create-form .pill.active{background:var(--z);border-color:var(--z);color:var(--zink);box-shadow:0 4px 12px -2px var(--z)}
+.create-form .model-ico{background:var(--zdim);border-color:var(--zbrd);color:var(--z)}
+.create-form .dd-item:hover,.create-form .dd-item.active{background:var(--zdim);color:var(--z)}
+.create-form .ref-insert{border-color:var(--zbrd);background:var(--zdim);color:var(--z)}
+.create-form .ref-insert:active{filter:brightness(1.15)}
+.create-form .up-btn{border-color:var(--zbrd);background:var(--zdim);color:var(--z)}
+.create-form .field-area:focus+.field-label,.create-form .field-input:focus+.field-label{color:var(--z)}
+.type-toggle.seg-video .seg-ind{background:var(--video);box-shadow:0 4px 16px rgba(255,178,62,.42)}
+.type-toggle.seg3.seg-audio .seg-ind{background:var(--audio);box-shadow:0 4px 16px rgba(61,214,140,.42)}
 
 /* Result skeleton (used by trend templates) */
 .result{margin-top:16px}
