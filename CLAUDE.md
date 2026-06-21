@@ -41,10 +41,10 @@ webapp/static/tpl/           — template media (photos/videos)
 - **SSL:** Let's Encrypt via certbot (auto-renew)
 - **Reverse proxy:** nginx → localhost:8081
 
-Deploy files:
+Deploy (git-only, never rsync/scp):
 ```bash
-rsync -avz --exclude='.git' --exclude='__pycache__' --exclude='.env' --exclude='media/' -e ssh ./ root@45.147.177.237:/opt/tg-image-ai-bot/
-ssh root@45.147.177.237 "systemctl restart promptw"
+git push origin main
+ssh root@45.147.177.237 "/opt/tg-image-ai-bot/deploy.sh"
 ```
 
 ## Key conventions
