@@ -1626,7 +1626,9 @@ function updateHistory(){
             ? '<img src="'+escHtml(item.url)+'" alt="g">'
             : item.type==="audio"
             ? '<div class="gal-audio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>'
-            : '<video src="'+escHtml(item.url)+'" preload="metadata"></video><div class="gal-play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>';
+            // iOS WebView won't paint a <video>'s first frame without playsinline+muted,
+            // and needs a #t= media fragment to seek to a frame to use as the poster.
+            : '<video src="'+escHtml(item.url)+'#t=0.1" preload="metadata" muted playsinline></video><div class="gal-play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>';
         var cost = item.cost ? '<span class="gal-cost">'+item.cost+' W</span>' : '';
         var meta = '<div class="gal-meta"><span class="gal-model">'+escHtml(item.model||"")+'</span>'+cost+'</div>';
         var tagKey = item.type==="photo"?"photo":(item.type==="audio"?"audio":"video");
@@ -1699,7 +1701,7 @@ function showGenDetail(item){
     } else if(item.type==="audio"){
         html+='<div class="detail-media detail-audio"><audio src="'+escHtml(item.url)+'" controls></audio></div>';
     } else {
-        html+='<div class="detail-media"><video src="'+escHtml(item.url)+'" controls></video></div>';
+        html+='<div class="detail-media"><video src="'+escHtml(item.url)+'#t=0.1" controls preload="metadata" playsinline></video></div>';
     }
 
     // Compact action row right under the media (no scrolling to the bottom).
@@ -1740,7 +1742,7 @@ function showGenDetail(item){
                 if(url.match(/\.(png|jpg|jpeg|gif|webp)/i)){
                     refsHtml+='<img src="'+escHtml(url)+'" class="detail-ref-img" alt="ref">';
                 } else if(url.match(/\.(mp4|mov|webm)/i)){
-                    refsHtml+='<video src="'+escHtml(url)+'" class="detail-ref-img"></video>';
+                    refsHtml+='<video src="'+escHtml(url)+'#t=0.1" class="detail-ref-img" preload="metadata" muted playsinline></video>';
                 } else {
                     refsHtml+='<div class="detail-ref-file">'+escHtml(url.split("/").pop())+'</div>';
                 }
