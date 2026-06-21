@@ -549,6 +549,12 @@ body.noscroll{overflow:hidden}
 .tpl-minmax{color:var(--tx2);font-size:13px;margin:12px 0 0}
 .tpl-select{display:flex;align-items:center;justify-content:space-between;padding:14px;border:1px solid var(--brd);border-radius:12px;background:var(--card2);color:var(--tx);font-size:15px;font-weight:600}
 .tpl-select svg{color:var(--tx2)}
+.tplp-sheet{cursor:pointer}.tplp-sheet:active{border-color:var(--vbrd)}
+.tplp-age{max-width:140px}
+.tpl-prompt-toggle{margin-top:10px;background:none;border:none;color:var(--tx3);font-family:var(--font-mono);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;display:inline-flex;align-items:center;gap:5px;padding:6px 0}
+.tpl-prompt-toggle svg{width:13px;height:13px;transition:transform .2s}
+.tpl-prompt-toggle.open svg{transform:rotate(180deg)}
+.tpl-prompt-preview{white-space:pre-wrap;word-break:break-word;background:var(--card2);border:1px solid var(--brd);border-radius:var(--rs);padding:12px;margin-top:6px;font-family:var(--font-mono);font-size:11px;line-height:1.55;color:var(--tx2);max-height:240px;overflow-y:auto}
 #page-tpl-detail .gen-btn{margin-top:20px}
 #page-tpl-detail{padding-bottom:28px}
 .tpl-price .coin{width:16px;height:16px;font-size:9px}
