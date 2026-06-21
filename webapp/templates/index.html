@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=Unbounded:wght@500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css?v=97">
+    <link rel="stylesheet" href="/static/css/style.css?v=98">
 </head>
 <body>
 <div id="app">
@@ -101,7 +101,6 @@
             </div>
             <div class="ccard">
                 <span class="up-title" data-i18n="uploadPhoto">Загрузить фото</span><span class="up-hint" data-i18n="uploadHint">До 8 фото</span>
-                <button class="ref-insert" id="ref-insert-btn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span data-i18n="useMyRef">Вставить мой референс</span></button>
                 <div class="up-area"><div class="up-btn"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div></div>
                 <span class="gold small" data-i18n="refHint">Как подобрать фото-референс?</span>
             </div>
@@ -416,6 +415,15 @@
         </div>
     </div>
 
+    <!-- IMAGE SOURCE CHOOSER (phone / history / my reference) -->
+    <div id="imgsrc-overlay" class="sheet-overlay hidden">
+        <div class="sheet imgsrc-sheet">
+            <div class="sheet-handle"></div>
+            <div class="imgsrc-top"><button class="imgsrc-back hidden" id="imgsrc-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button><div class="sheet-title" id="imgsrc-title" data-i18n="imgSrcTitle">Откуда взять фото?</div></div>
+            <div id="imgsrc-body"></div>
+        </div>
+    </div>
+
     <div id="gen-overlay" class="gen-ov hidden">
         <div class="gen-ov-card">
             <div class="gen-ov-head">
@@ -428,7 +436,7 @@
     </div>
 
 </div>
-<script src="/static/js/i18n.js?v=87"></script>
-<script src="/static/js/app.js?v=105"></script>
+<script src="/static/js/i18n.js?v=88"></script>
+<script src="/static/js/app.js?v=106"></script>
 </body>
 </html>

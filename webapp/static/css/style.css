@@ -684,6 +684,23 @@ body.noscroll{overflow:hidden}
 .sheet-handle{width:40px;height:4px;border-radius:2px;background:var(--line,var(--brd));margin:8px auto 14px}
 .sheet-title{font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--tx2);margin-bottom:10px;padding:0 2px}
 .sheet-list{display:flex;flex-direction:column;gap:4px}
+.imgsrc-top{display:flex;align-items:center;gap:6px;margin-bottom:12px}
+.imgsrc-top .sheet-title{margin-bottom:0}
+.imgsrc-back{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border:none;background:none;color:var(--tx2);cursor:pointer;border-radius:8px;flex-shrink:0}
+.imgsrc-back svg{width:20px;height:20px}
+.imgsrc-menu{display:flex;flex-direction:column;gap:8px}
+.imgsrc-opt{display:flex;align-items:center;gap:13px;width:100%;padding:13px 14px;background:var(--card);border:1px solid var(--brd);border-radius:var(--rs);color:var(--tx);font-family:var(--font);text-align:left;cursor:pointer;transition:background .15s,border-color .15s}
+.imgsrc-opt:active{background:var(--bg);border-color:var(--vbrd)}
+.imgsrc-opt-ic{display:flex;align-items:center;justify-content:center;width:42px;height:42px;flex-shrink:0;border-radius:12px;background:var(--vdim);color:var(--photo)}
+.imgsrc-opt-ic svg{width:21px;height:21px}
+.imgsrc-opt-tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+.imgsrc-opt-title{font-size:15px;font-weight:700}
+.imgsrc-opt-sub{font-size:12px;font-weight:500;color:var(--tx3)}
+.imgsrc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;max-height:52vh;overflow-y:auto;padding:1px}
+.imgsrc-cell{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;cursor:pointer;background:var(--card)}
+.imgsrc-cell img{width:100%;height:100%;object-fit:cover;display:block}
+.imgsrc-cell:active{opacity:.75}
+.imgsrc-empty{padding:34px 12px;text-align:center;color:var(--tx3);font-size:14px;line-height:1.5;white-space:pre-line}
 .sheet-item{display:flex;align-items:center;justify-content:space-between;width:100%;padding:15px 14px;background:transparent;border:1px solid transparent;border-radius:12px;color:var(--tx);font-size:15px;font-weight:500;font-family:inherit;cursor:pointer;text-align:left}
 .sheet-item:active{background:var(--card)}
 .sheet-item.active{background:var(--vdim);border-color:var(--vbrd);color:var(--violet);font-weight:600}
