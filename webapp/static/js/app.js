@@ -369,6 +369,8 @@ var createRefHint = document.querySelector("#form-image [data-i18n='refHint']");
 if (createRefHint) createRefHint.addEventListener("click", function(){ openRefguide("create"); });
 // action cards
 document.querySelectorAll("[data-nav]").forEach(function(el){el.addEventListener("click",function(){showPage(el.dataset.nav)})});
+// "По шаблону" → scroll to the templates showcase on the home page
+(function(){ var b=document.getElementById("hook-tpl-btn"); if(b) b.addEventListener("click",function(){ var t=document.getElementById("home-tpl"); if(t) t.scrollIntoView({behavior:"smooth",block:"start"}); }); })();
 // stats period tabs
 document.querySelectorAll("#period-tabs .period-tab").forEach(function(b){b.addEventListener("click",function(){setStatsPeriod(b.dataset.period)})});
 // topup buttons

@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=Unbounded:wght@500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css?v=83">
+    <link rel="stylesheet" href="/static/css/style.css?v=84">
 </head>
 <body>
 <div id="app">
@@ -32,17 +32,17 @@
         <div class="home-hook">
             <h2 class="hook-title"><span data-i18n="hookTitle">Загрузи фото — получи</span> <span class="grad-tx" data-i18n="hookAccent">вау-результат</span></h2>
             <div class="hook-actions">
-                <button class="hook-btn hook-primary" data-nav="create">
+                <button class="hook-btn hook-primary" id="hook-tpl-btn">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                     <span data-i18n="byTemplate">По шаблону</span>
                 </button>
                 <button class="hook-btn hook-secondary" data-nav="create">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     <span data-i18n="fromScratch">С нуля</span>
                 </button>
             </div>
         </div>
-        <div class="sec">
+        <div class="sec" id="home-tpl" style="scroll-margin-top:64px">
             <h3 class="sec-title"><i class="bar"></i><span data-i18n="trends">Тренды</span></h3>
             <div class="trends-grid">
                 <div class="trend-t has-media" data-tpl="birthday-photo"><img class="trend-media" src="/static/tpl/birthday-photo.jpg" alt=""><span class="trend-badge trend-badge-ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span><span class="trend-cap" data-i18n="trendBdayPhoto">С ДНЁМ РОЖДЕНИЯ ФОТО</span></div>
@@ -429,6 +429,6 @@
 
 </div>
 <script src="/static/js/i18n.js?v=83"></script>
-<script src="/static/js/app.js?v=77"></script>
+<script src="/static/js/app.js?v=84"></script>
 </body>
 </html>
