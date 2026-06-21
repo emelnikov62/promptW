@@ -343,15 +343,17 @@ class KieGenerator(BaseGenerator):
         # Each KIE model has its OWN input schema — sending the wrong key silently drops
         # the reference image (model falls back to text-to-video and invents a face).
         if model_name == "Seedance 2.0":
-            # first_frame_url (str) anchors the opening frame; reference_image_urls (array)
-            # resolves the @ImageN mentions in the prompt. duration is an integer (4-15).
-            if first_url:
-                input_data["first_frame_url"] = first_url
-            if last_url:
-                input_data["last_frame_url"] = last_url
-            refs = [self._file_to_url(p) for p in ref_images] if ref_images else ([first_url] if first_url else [])
-            if refs:
-                input_data["reference_image_urls"] = refs[:9]
+            # KIE rejects first/last frames together WITH reference images (422: mutually
+            # exclusive — "only one scene can be selected"). Pick ONE: explicit start/end
+            # frames, OR reference images (the latter resolves the @ImageN identity
+            # mentions in the prompt — what the trend templates rely on). duration int (4-15).
+            if first_url or last_url:
+                if first_url:
+                    input_data["first_frame_url"] = first_url
+                if last_url:
+                    input_data["last_frame_url"] = last_url
+            elif ref_images:
+                input_data["reference_image_urls"] = [self._file_to_url(p) for p in ref_images][:9]
             if duration:
                 try:
                     input_data["duration"] = int(duration)

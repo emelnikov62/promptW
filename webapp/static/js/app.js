@@ -1931,7 +1931,7 @@ var TRENDS = {
         desc: { ru: "Загрузите своё фото — лицо сохранится с референса. Ниже выберите пол, возраст, одежду и причёску, остальное соберётся автоматически. Смена пола меняет образ, но лицо остаётся максимально похожим.", en: "Upload your photo — the face is kept from the reference. Choose gender, age, clothing and hairstyle below; the rest is assembled automatically. Switching gender changes the look while keeping the face as close as possible.", es: "Sube tu foto — la cara se mantiene de la referencia. Elige género, edad, ropa y peinado abajo; el resto se arma automáticamente. Cambiar de género cambia el look manteniendo la cara lo más parecida posible." }
     },
     "birthday-video": {
-        type: "video", cost: 420, model: "Seedance 2.0", mode: "fast", quality: "720p", duration: 10, needPhoto: true,
+        type: "video", cost: 420, model: "Seedance 2.0", mode: "fast", quality: "720p", duration: 10, refField: "ref-images", needPhoto: true,
         preview: "/static/tpl/birthday-video.mp4?v=2", full: "/static/tpl/birthday-video.mp4",
         ratio: "9:16", minPhotos: 1, maxPhotos: 1, prompt: BDAY_VIDEO_PROMPT, hidePrompt: true,
         title: { ru: "С днём рождения видео", en: "Birthday video", es: "Video de cumpleaños" },
@@ -2217,9 +2217,10 @@ async function tplGenerate(tpl, btn, id) {
         if (tpl.params) settings.tplParams = readTplParams(tpl);
         fd.append("settings", JSON.stringify(settings));
         // Send the reference photo under the field name the generator reads. Photo ->
-        // "photo-refs" (kie.generate_image). Video -> "v-first-frame"; kie.generate_video
-        // routes it to the right per-model key (Seedance first_frame_url, Grok image_urls…).
-        var refField = tpl.type === "photo" ? "photo-refs" : "v-first-frame";
+        // "photo-refs" (kie.generate_image). Video -> "v-first-frame" by default; a template
+        // may override via tpl.refField (e.g. Seedance uses "ref-images" so the photo becomes
+        // an @Image1 reference, not a literal first frame — those are mutually exclusive).
+        var refField = tpl.refField || (tpl.type === "photo" ? "photo-refs" : "v-first-frame");
         tplFiles.forEach(function(f) { fd.append(refField, f); });
 
         var endpoint = "/api/generate/" + (tpl.type === "photo" ? "image" : "video");
