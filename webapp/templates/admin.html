@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PromptW Admin</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/admin.css?v=1">
+</head>
+<body>
+<div id="admin-app">
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">Prompt<span class="brand-accent">W</span> <span class="brand-tag">admin</span></div>
+        <nav class="sidebar-nav">
+            <button class="nav-item active" data-section="dashboard">Dashboard</button>
+            <button class="nav-item" data-section="users">Пользователи</button>
+            <button class="nav-item" data-section="generations">Генерации</button>
+            <button class="nav-item" data-section="payments">Платежи</button>
+            <button class="nav-item" data-section="withdrawals">Выводы</button>
+            <button class="nav-item" data-section="audit">Аудит-лог</button>
+        </nav>
+    </aside>
+    <main class="main">
+        <header class="topbar">
+            <button class="menu-toggle" id="menu-toggle">&#9776;</button>
+            <span class="topbar-title" id="topbar-title">Dashboard</span>
+        </header>
+        <div class="main-content" id="main-content"></div>
+    </main>
+</div>
+<!-- User detail modal -->
+<div class="modal-overlay hidden" id="modal-overlay">
+    <div class="modal" id="modal-content"></div>
+</div>
+<script src="/static/js/admin.js?v=1"></script>
+</body>
+</html>

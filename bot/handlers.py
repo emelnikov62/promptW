@@ -18,6 +18,7 @@ generator: Optional[BaseGenerator] = None
 
 WEBAPP_URL = os.getenv("WEBAPP_URL", "")
 WELCOME_BONUS = int(os.getenv("WELCOME_BONUS", "0"))
+ADMIN_IDS = {int(x) for x in os.getenv("ADMIN_IDS", "").replace(" ", "").split(",") if x}
 
 
 def setup(gen: BaseGenerator):
@@ -160,3 +161,19 @@ async def cmd_audio(message: Message):
         await message.answer("Генерация аудио пока не подключена.")
     except Exception as e:
         await message.answer(f"Ошибка генерации: {e}")
+
+
+@router.message(Command("admin"))
+async def cmd_admin(message: Message):
+    if message.from_user.id not in ADMIN_IDS:
+        return
+    if not WEBAPP_URL:
+        await message.answer("WEBAPP_URL не настроен")
+        return
+    token = make_auth_token(message.from_user.id, BOT_TOKEN)
+    admin_url = WEBAPP_URL.rstrip("/") + "/admin?tgauth=" + token
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Открыть админку", web_app=WebAppInfo(url=admin_url))]
+    ])
+    await message.answer("Админ-панель PromptW:", reply_markup=kb)

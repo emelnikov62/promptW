@@ -143,4 +143,23 @@ async def _create_tables():
                 created_at TIMESTAMPTZ DEFAULT NOW()
             );
             CREATE INDEX IF NOT EXISTS idx_user_references_user ON user_references(user_tg_id, created_at DESC);
+
+            -- Admin audit log
+            CREATE TABLE IF NOT EXISTS admin_audit_log (
+                id BIGSERIAL PRIMARY KEY,
+                admin_tg_id BIGINT NOT NULL,
+                action VARCHAR(60) NOT NULL,
+                target_type VARCHAR(40),
+                target_id VARCHAR(80),
+                before JSONB,
+                after JSONB,
+                reason TEXT,
+                ip VARCHAR(45),
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS idx_audit_log_created ON admin_audit_log(created_at DESC);
+
+            -- User ban/note fields
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS banned BOOLEAN DEFAULT FALSE;
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_note TEXT;
         """)

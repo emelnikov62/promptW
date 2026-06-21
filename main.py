@@ -9,6 +9,7 @@ from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_applicati
 from bot.config import BOT_TOKEN
 from bot.handlers import router, setup as setup_bot
 from api.routes import routes, setup as setup_api, auth_middleware
+from api.admin_routes import admin_routes
 from db.database import init_db, close_db
 
 logging.basicConfig(level=logging.INFO)
@@ -36,6 +37,12 @@ async def index(request: web.Request):
     return web.FileResponse(os.path.join(BASE_DIR, "webapp", "templates", "index.html"))
 
 
+async def admin_index(request: web.Request):
+    resp = web.FileResponse(os.path.join(BASE_DIR, "webapp", "templates", "admin.html"))
+    resp.headers["X-Robots-Tag"] = "noindex"
+    return resp
+
+
 @web.middleware
 async def security_headers(request: web.Request, handler):
     resp = await handler(request)
@@ -53,9 +60,12 @@ def create_app() -> web.Application:
     setup_api(gen)
 
     app.router.add_get("/", index)
+    app.router.add_get("/admin", admin_index)
+    app.router.add_get("/admin/", admin_index)
     app.router.add_static("/static", os.path.join(BASE_DIR, "webapp", "static"))
     app.router.add_static("/media", MEDIA_DIR)
     app.router.add_routes(routes)
+    app.router.add_routes(admin_routes)
 
     return app
 
