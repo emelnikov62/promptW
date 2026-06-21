@@ -985,6 +985,48 @@ async def api_chat_delete(request: web.Request):
     return web.json_response({"ok": ok})
 
 
+# Appended (server-side, hidden from users) to every TEMPLATE photo generation that
+# carries a face reference. Two proven levers against the "wrong person" drift:
+#  1) image-first identity lock (the face is THIS person, 1:1, not idealised), and
+#  2) face-prominent framing — in full-body/wide shots the face occupies too few
+#     pixels and NanoBanana fills the gaps from the prompt prior (→ a generic
+#     handsome man). A/B on prod: supercar full-body 3/4 ok → waist-up framing 4/4.
+# Placed at the END of the prompt for recency. Kept out of the stored/returned
+# prompt so history/repeat stay clean (the suffix is re-applied each run).
+_TPL_IDENTITY_SUFFIX = (
+    "\n\nГЛАВНОЕ ПО ЛИЦУ: на результате — ТОТ ЖЕ человек, что на загруженном фото-референсе. "
+    "Перенеси лицо 1:1: форма и ШИРИНА лица, полнота щёк, линия челюсти, форма и пропорции носа, "
+    "разрез и ЦВЕТ глаз, брови, форма губ, скулы, текстура кожи, родинки, усы/щетина/борода, "
+    "цвет и причёска волос — строго как на фото. НЕ идеализируй, не омолаживай, не сужай лицо, "
+    "не делай его симметричнее или «модельным» — это обычный человек, узнаваемый мгновенно. "
+    "КОМПОЗИЦИЯ: построй кадр так, чтобы человек был КРУПНО, а ЛИЦО — в центре внимания, в фокусе и "
+    "максимально чётким (поясной или средний план). НЕ делай мелкую фигуру в полный рост с маленьким лицом."
+)
+
+
+# A few legacy template skeletons ask for "в полный рост" (full-body), which is the
+# very framing that shrinks the face and triggers identity drift. Rewrite those cues
+# to a waist-up/medium shot at generation time so they don't contradict the suffix
+# below (done in code rather than mutating the shared prod templates table).
+_FULLBODY_REPL = (
+    ("кадр в полный рост по грудь", "поясной портрет, крупный план по грудь"),
+    ("кадр в полный рост,", "поясной/средний план,"),
+    ("в полный рост", "поясной/средний план"),
+)
+
+
+def _augment_template_prompt(prompt: str, settings: dict, files: dict) -> str:
+    """For template gens that carry a face ref: drop full-body framing cues and
+    append the identity/face-prominence directive (the proven anti-drift levers)."""
+    if not (settings or {}).get("tplId"):
+        return prompt
+    if not (files or {}).get("photo-refs"):
+        return prompt
+    for a, b in _FULLBODY_REPL:
+        prompt = prompt.replace(a, b)
+    return prompt + _TPL_IDENTITY_SUFFIX
+
+
 @routes.post("/api/generate/image")
 async def generate_image(request: web.Request):
     data, files = await _parse_request(request)
@@ -1000,6 +1042,7 @@ async def generate_image(request: web.Request):
 
     if files:
         settings["references"] = await _publish_refs(files)
+    effective_prompt = _augment_template_prompt(prompt, settings, files)
 
     cost = compute_cost("photo", model, settings)
     ok, balance = await _charge(tg_id, cost, f"photo:{model}")
@@ -1012,7 +1055,7 @@ async def generate_image(request: web.Request):
 
     async def _build():
         result = await generator.generate_image(
-            prompt,
+            effective_prompt,
             model=model,
             aspect_ratio=settings.get("ratio"),
             resolution=settings.get("quality"),
@@ -1029,7 +1072,7 @@ async def generate_image(request: web.Request):
             "file_url": file_url,
             "file_urls": file_urls,
             "media_type": result.media_type,
-            "prompt": result.prompt,
+            "prompt": prompt,   # clean prompt (the identity/framing suffix stays internal)
             "task_id": result.task_id,
             "urls": result.urls,
             "cost": cost,
