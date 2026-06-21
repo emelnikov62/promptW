@@ -111,7 +111,23 @@ textarea.tf-area{font-family:var(--font-mono);font-size:12px;line-height:1.5;res
 .tf-status.ok{color:var(--success)}
 .tf-status.err{color:var(--error)}
 .tf-actions{display:flex;gap:8px;margin-top:22px;padding-top:16px;border-top:1px solid var(--brd);position:sticky;bottom:-24px;background:var(--card);padding-bottom:2px}
-@media(max-width:560px){.tf-grid,.tf-grid3{grid-template-columns:1fr}}
+/* Params visual editor */
+.tf-params{display:flex;flex-direction:column;gap:12px}
+.tf-param{border:1px solid var(--brd);border-radius:var(--r);padding:12px;background:var(--card2)}
+.tf-param-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.tf-ptag{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--violet);background:rgba(255,107,92,.12);padding:3px 8px;border-radius:999px;white-space:nowrap}
+.tf-x{margin-left:auto;border:none;background:none;color:var(--tx3);font-size:18px;line-height:1;cursor:pointer;padding:0 4px}
+.tf-x:hover{color:var(--error)}
+.tf-sub{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--tx3);margin:10px 0 6px}
+.tf-opt{border:1px solid var(--brd);border-radius:var(--rs);padding:9px;margin-bottom:8px;background:var(--card)}
+.tf-optrow{display:flex;gap:6px;align-items:center}
+.tf-opt-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px}
+.tf-mini{width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid var(--brd);border-radius:6px;background:var(--card2);color:var(--tx);font-size:12px;font-family:var(--font)}
+.tf-mini:focus{outline:none;border-color:var(--violet)}
+.tf-addrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.tf-add{font-size:12px;padding:6px 11px;border:1px dashed var(--brd);border-radius:var(--rs);background:none;color:var(--tx2);cursor:pointer;font-family:var(--font)}
+.tf-add:hover{border-color:var(--violet);color:var(--violet)}
+@media(max-width:560px){.tf-grid,.tf-grid3,.tf-opt-grid{grid-template-columns:1fr}}
 
 /* Login screen */
 #login-screen{display:none;position:fixed;inset:0;background:var(--bg);z-index:200;align-items:center;justify-content:center}

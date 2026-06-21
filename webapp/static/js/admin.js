@@ -358,6 +358,112 @@ var TF_MODELS = ["NanoBanana PRO", "Seedance 2.0", "Grok Imagine 1.5", "Kling 3.
 var TF_RATIOS = ["9:16", "3:4", "1:1", "4:3", "16:9"];
 var TF_QUALS = ["480p", "720p", "1080p", "1K", "2K", "4K"];
 var _tfOrigDef = {};   // original definition, so unknown keys survive a save
+var _tfParams = [];    // working params model for the visual editor
+
+// ── Params visual editor ──
+// Edits mutate the cloned model in place (extra keys on existing options survive);
+// add/remove re-render. Text inputs write to the model on input WITHOUT re-rendering,
+// so focus isn't lost mid-typing.
+function _setPath(o, path, val) {
+    var ps = path.split(".");
+    while (ps.length > 1) { var k = ps.shift(); if (!o[k]) o[k] = {}; o = o[k]; }
+    o[ps[0]] = val;
+}
+function escA(s) { return esc(s == null ? "" : String(s)).replace(/"/g, "&quot;"); }
+
+function tfAddParam(kind) {
+    if (kind === "gender") _tfParams.push({ id:"gender", control:"pills", "default":"female", label:{ru:"Пол",en:"Gender",es:"Género"}, options:[
+        {value:"female", label:{ru:"Женщина",en:"Woman",es:"Mujer"}, grammar:{noun:"женщина",adjE:"ая"}},
+        {value:"male", label:{ru:"Мужчина",en:"Man",es:"Hombre"}, grammar:{noun:"мужчина",adjE:"ый"}} ]});
+    else if (kind === "age") _tfParams.push({ id:"age", control:"age", "default":27, min:1, max:99, label:{ru:"Возраст",en:"Age",es:"Edad"} });
+    else if (kind === "sheet") _tfParams.push({ id:"", control:"sheet", label:{ru:"",en:"",es:""}, options:[] });
+    else if (kind === "sheetg") _tfParams.push({ id:"", control:"sheet", dependsOn:"gender", label:{ru:"",en:"",es:""}, options:{female:[],male:[]} });
+    renderParams();
+}
+function tfDelParam(pi) { _tfParams.splice(pi, 1); renderParams(); }
+function tfAddOpt(pi, g) {
+    var p = _tfParams[pi];
+    var opt = p.control === "pills"
+        ? {value:"", label:{ru:"",en:"",es:""}, grammar:{noun:"",adjE:""}}
+        : {value:"", label:{ru:"",en:"",es:""}, frag:""};
+    if (g) p.options[g].push(opt); else p.options.push(opt);
+    renderParams();
+}
+function tfDelOpt(pi, g, oi) {
+    var p = _tfParams[pi];
+    if (g) p.options[g].splice(oi, 1); else p.options.splice(oi, 1);
+    renderParams();
+}
+function tfPEdit(el) {
+    var pi = +el.dataset.pi, p = _tfParams[pi];
+    var num = el.dataset.num === "1";
+    var val = num ? (parseInt(el.value, 10) || 0) : el.value;
+    if (el.dataset.oi !== undefined) {
+        var oi = +el.dataset.oi, g = el.dataset.gender || "";
+        var arr = g ? p.options[g] : p.options;
+        _setPath(arr[oi], el.dataset.ofld, val);
+    } else {
+        _setPath(p, el.dataset.fld, val);
+    }
+}
+
+function _optHtml(p, pi, opt, g, oi) {
+    var gAttr = g ? ' data-gender="' + g + '"' : "";
+    var base = ' data-pi="' + pi + '" data-oi="' + oi + '"' + gAttr;
+    var labels =
+        '<input class="tf-mini" placeholder="RU" value="' + escA(opt.label && opt.label.ru) + '"' + base + ' data-ofld="label.ru" oninput="tfPEdit(this)">' +
+        '<input class="tf-mini" placeholder="EN" value="' + escA(opt.label && opt.label.en) + '"' + base + ' data-ofld="label.en" oninput="tfPEdit(this)">' +
+        '<input class="tf-mini" placeholder="ES" value="' + escA(opt.label && opt.label.es) + '"' + base + ' data-ofld="label.es" oninput="tfPEdit(this)">';
+    var extra;
+    if (p.control === "pills") {
+        extra = '<div class="tf-opt-grid" style="grid-template-columns:1fr 1fr">' +
+            '<input class="tf-mini" placeholder="сущ. (женщина)" value="' + escA(opt.grammar && opt.grammar.noun) + '"' + base + ' data-ofld="grammar.noun" oninput="tfPEdit(this)">' +
+            '<input class="tf-mini" placeholder="оконч. (ая)" value="' + escA(opt.grammar && opt.grammar.adjE) + '"' + base + ' data-ofld="grammar.adjE" oninput="tfPEdit(this)"></div>';
+    } else {
+        extra = '<div style="margin-top:6px"><input class="tf-mini" placeholder="фрагмент промта (RU)" value="' + escA(opt.frag) + '"' + base + ' data-ofld="frag" oninput="tfPEdit(this)"></div>';
+    }
+    return '<div class="tf-opt">' +
+        '<div class="tf-optrow"><input class="tf-mini" placeholder="значение (value)" value="' + escA(opt.value) + '"' + base + ' data-ofld="value" oninput="tfPEdit(this)">' +
+        '<button class="tf-x" type="button" onclick="tfDelOpt(' + pi + ',\'' + g + '\',' + oi + ')">×</button></div>' +
+        '<div class="tf-opt-grid">' + labels + '</div>' + extra + '</div>';
+}
+
+function _optsBlock(p, pi, arr, g) {
+    return arr.map(function(opt, oi){ return _optHtml(p, pi, opt, g, oi); }).join("") +
+        '<div class="tf-addrow"><button class="tf-add" type="button" onclick="tfAddOpt(' + pi + ',\'' + g + '\')">+ вариант</button></div>';
+}
+
+function _paramCard(p, pi) {
+    var tag = p.control === "pills" ? "Пилюли" : (p.control === "age" ? "Возраст" : (p.dependsOn ? "Список · по полу" : "Список"));
+    var head = '<div class="tf-param-head">' +
+        '<input class="tf-mini" style="max-width:150px" placeholder="id" value="' + escA(p.id) + '" data-pi="' + pi + '" data-fld="id" oninput="tfPEdit(this)">' +
+        '<span class="tf-ptag">' + tag + '</span>' +
+        '<button class="tf-x" type="button" onclick="tfDelParam(' + pi + ')">×</button></div>';
+    var lbl = (p.label || {});
+    var labelRow = '<div class="tf-opt-grid">' +
+        '<input class="tf-mini" placeholder="Назв. RU" value="' + escA(lbl.ru) + '" data-pi="' + pi + '" data-fld="label.ru" oninput="tfPEdit(this)">' +
+        '<input class="tf-mini" placeholder="Назв. EN" value="' + escA(lbl.en) + '" data-pi="' + pi + '" data-fld="label.en" oninput="tfPEdit(this)">' +
+        '<input class="tf-mini" placeholder="Назв. ES" value="' + escA(lbl.es) + '" data-pi="' + pi + '" data-fld="label.es" oninput="tfPEdit(this)"></div>';
+    var body;
+    if (p.control === "age") {
+        body = '<div class="tf-opt-grid" style="margin-top:8px">' +
+            '<input class="tf-mini" placeholder="мин" type="number" value="' + (p.min == null ? "" : p.min) + '" data-pi="' + pi + '" data-fld="min" data-num="1" oninput="tfPEdit(this)">' +
+            '<input class="tf-mini" placeholder="по умолч." type="number" value="' + (p["default"] == null ? "" : p["default"]) + '" data-pi="' + pi + '" data-fld="default" data-num="1" oninput="tfPEdit(this)">' +
+            '<input class="tf-mini" placeholder="макс" type="number" value="' + (p.max == null ? "" : p.max) + '" data-pi="' + pi + '" data-fld="max" data-num="1" oninput="tfPEdit(this)"></div>';
+    } else if (p.dependsOn) {
+        var o = p.options || {female:[],male:[]};
+        body = '<div class="tf-sub">Женщины</div>' + _optsBlock(p, pi, o.female || [], "female") +
+               '<div class="tf-sub">Мужчины</div>' + _optsBlock(p, pi, o.male || [], "male");
+    } else {
+        body = '<div style="margin-top:8px"></div>' + _optsBlock(p, pi, p.options || [], "");
+    }
+    return '<div class="tf-param">' + head + labelRow + body + '</div>';
+}
+
+function renderParams() {
+    var host = document.getElementById("tf-params-ed");
+    if (host) host.innerHTML = _tfParams.map(_paramCard).join("");
+}
 
 function _dl(id, opts) { return '<datalist id="' + id + '">' + opts.map(function(o){ return '<option value="' + esc(o) + '">'; }).join("") + '</datalist>'; }
 
@@ -372,6 +478,7 @@ function _tplForm(t, isNew) {
     var ttl = t.title || {}, pv = t.preview || {};
     var d = t.definition || {};
     _tfOrigDef = d;
+    _tfParams = d.params ? JSON.parse(JSON.stringify(d.params)) : [];   // editable clone
     var dsc = d.desc || {};
     var typeOpts = ['photo','video','audio'].map(function(x){ return '<option' + (t.type===x?' selected':'') + '>' + x + '</option>'; }).join("");
     return '<h3>' + (isNew ? "Новый шаблон" : "Шаблон: " + esc(t.id)) + '</h3>' +
@@ -443,9 +550,15 @@ function _tplForm(t, isNew) {
                 tfField("ES", '<textarea class="tf-in tf-area" id="tf-desc-es" rows="3" style="min-height:64px">' + esc(dsc.es||"") + '</textarea>') +
             '</div></div>' +
 
-            '<div class="tf-sec"><div class="tf-sec-h">Параметры (для продвинутых)</div>' +
-                '<textarea class="tf-in tf-area" id="tf-params" rows="8">' + esc(d.params ? JSON.stringify(d.params, null, 2) : "") + '</textarea>' +
-                '<p class="tf-hint">JSON-массив параметров движка (пол/возраст/одежда/причёска). Пусто — без параметров.</p>' +
+            '<div class="tf-sec"><div class="tf-sec-h">Параметры выбора</div>' +
+                '<div id="tf-params-ed" class="tf-params"></div>' +
+                '<div class="tf-addrow">' +
+                    '<button class="tf-add" type="button" onclick="tfAddParam(\'gender\')">+ Пол</button>' +
+                    '<button class="tf-add" type="button" onclick="tfAddParam(\'age\')">+ Возраст</button>' +
+                    '<button class="tf-add" type="button" onclick="tfAddParam(\'sheet\')">+ Список</button>' +
+                    '<button class="tf-add" type="button" onclick="tfAddParam(\'sheetg\')">+ Список по полу</button>' +
+                '</div>' +
+                '<p class="tf-hint">Поля, которые пользователь выбирает (пол, возраст, одежда, причёска…). Пусто — без параметров, показывается готовый промпт.</p>' +
             '</div>' +
 
             '<div class="tf-actions">' +
@@ -457,6 +570,7 @@ function _tplForm(t, isNew) {
 
 function newTemplate() {
     openModal(_tplForm({enabled:true, type:"photo"}, true));
+    renderParams();
 }
 
 function editTemplate(id) {
@@ -464,6 +578,7 @@ function editTemplate(id) {
         if (t.error) { alert("Ошибка: " + t.error); return; }
         _tplCache[id] = t;
         openModal(_tplForm(t, false));
+        renderParams();
     });
 }
 
@@ -503,14 +618,7 @@ function saveTemplate(isNew) {
     var desc = {}, dru = _tfVal("tf-desc-ru"), den = _tfVal("tf-desc-en"), des = _tfVal("tf-desc-es");
     if (dru) desc.ru = dru; if (den) desc.en = den; if (des) desc.es = des;
     if (Object.keys(desc).length) def.desc = desc; else delete def.desc;
-    var praw = _tfVal("tf-params");
-    if (praw) {
-        var parsed;
-        try { parsed = JSON.parse(praw); }
-        catch (e) { alert("Ошибка в JSON параметров: " + e.message); return; }
-        if (!Array.isArray(parsed)) { alert("Параметры должны быть JSON-массивом"); return; }
-        if (parsed.length) def.params = parsed; else delete def.params;
-    } else { delete def.params; }
+    if (_tfParams && _tfParams.length) def.params = _tfParams; else delete def.params;
     var definition = def;
 
     var payload = {
