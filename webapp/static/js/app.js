@@ -1839,7 +1839,10 @@ function showGenDetail(item){
         '<button class="dact dact-danger" id="d-delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg><span>'+t("detailDelete")+'</span></button>'+
     '</div>';
 
-    if(item.prompt){
+    // Template generations: keep the underlying prompt hidden (product secret).
+    // Users' own create-page prompts are still shown.
+    var fromTemplate = !!(item.settings && item.settings.tplId);
+    if(item.prompt && !fromTemplate){
         var longPrompt=item.prompt.length>240;
         html+='<div class="ccard detail-prompt-card">'+
               '<div class="detail-prompt-head"><span class="clabel">'+t("prompt")+'</span>'+
@@ -2283,12 +2286,11 @@ function showTplDetail(id) {
             '</div>';
     }
 
-    // Param mode (hide raw prompt, show key params) vs legacy textarea mode.
+    // Param mode shows only the key params — the underlying prompt is a product
+    // secret and stays hidden from users (no reveal toggle).
     var promptBlock;
     if (tpl.params) {
-        promptBlock = '<div id="tpl-params"></div>' +
-            '<button class="tpl-prompt-toggle" id="tpl-prompt-toggle"><span id="tpl-prompt-toggle-t">' + t("tplShowPrompt") + '</span>' + chevSvg + '</button>' +
-            '<pre class="tpl-prompt-preview hidden" id="tpl-prompt-preview"></pre>';
+        promptBlock = '<div id="tpl-params"></div>';
     } else if (tpl.hidePrompt) {
         promptBlock = '<p class="tpl-auto-note">' + t("tplPromptAuto") + '</p>';
     } else {
