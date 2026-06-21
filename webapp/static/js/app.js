@@ -2228,6 +2228,70 @@ var GIRL_PORSCHE_PARAMS = [
       ]}
 ];
 
+// ── VOGUE cover: female-only B&W editorial param template (NanoBanana PRO). ──
+var GIRL_VOGUE_SKELETON = `КЛЮЧЕВОЕ ТРЕБОВАНИЕ: точно перенести лицо девушки с загруженного фото-референса, это портрет КОНКРЕТНОГО человека, а не собирательный образ. Лицо на результате должно быть таким, чтобы её мгновенно узнали родные. Скопируй лицо 1:1: сохрани без единого изменения форму и ШИРИНУ лица и полноту щёк (НЕ сужай, не утончай, не вытягивай овал), овал и линию челюсти, форму и пропорции носа, форму и разрез глаз, расстояние между глазами, брови, форму и полноту губ, скулы, структуру и текстуру кожи, родинки, веснушки — 100% узнаваемость. ЦВЕТ ГЛАЗ — строго как на референсе (светлые глаза НЕ делай тёмными). БЕЗ сглаживания кожи, БЕЗ AI-эффекта, не идеализируй, не омолаживай, не делай лицо тоньше, симметричнее, красивее или «модельным», не меняй форму носа и пропорции лица. Если сомневаешься — копируй черты точно с референса. Волосы — цвет и длина строго как на загруженном фото референса; {hair}. Чёрно-белый журнальный editorial-портрет уровня обложки VOGUE, крупный план по плечи. {light}. Уверенный выразительный взгляд прямо в камеру. {outfit}. {earrings}. Тёмный однотонный фон. Высокая мода, профессиональная съёмка на среднеформатную камеру, чёткая детализация кожи. Глубокий монохром, лёгкое плёночное зерно. Без текста, букв, логотипов и водяных знаков.`;
+
+var GIRL_VOGUE_PARAMS = [
+    { id:"outfit", control:"sheet", label:{ru:"Одежда",en:"Clothing",es:"Ropa"},
+      options:[
+        {value:"silk-black", label:{ru:"Шёлковый топ",en:"Silk top",es:"Top de seda"}, frag:"чёрный шёлковый топ на тонких бретелях"},
+        {value:"blazer", label:{ru:"Блейзер",en:"Blazer",es:"Blazer"}, frag:"чёрный блейзер на голое тело, глубокий V-вырез"},
+        {value:"turtleneck", label:{ru:"Водолазка",en:"Turtleneck",es:"Cuello alto"}, frag:"чёрная облегающая водолазка"},
+        {value:"off-shoulder", label:{ru:"Открытые плечи",en:"Off-shoulder",es:"Hombros descubiertos"}, frag:"атласное платье с открытыми плечами"}
+      ]},
+    { id:"hair", control:"sheet", label:{ru:"Причёска",en:"Hair",es:"Peinado"},
+      options:[
+        {value:"wind", label:{ru:"Ветер в волосах",en:"Windswept",es:"Al viento"}, frag:"распущенные волосы, лёгкий ветер красиво развевает пряди"},
+        {value:"slick", label:{ru:"Гладко назад",en:"Slicked back",es:"Hacia atrás"}, frag:"волосы гладко зачёсаны назад"},
+        {value:"bun", label:{ru:"Пучок",en:"Bun",es:"Moño"}, frag:"высокий аккуратный пучок, открытая шея"},
+        {value:"wet", label:{ru:"Мокрый эффект",en:"Wet look",es:"Efecto mojado"}, frag:"эффект мокрых волос, зачёсанных назад"}
+      ]},
+    { id:"light", control:"sheet", label:{ru:"Свет",en:"Light",es:"Luz"},
+      options:[
+        {value:"hard", label:{ru:"Жёсткий контраст",en:"Hard contrast",es:"Contraste duro"}, frag:"Драматичный жёсткий студийный свет сбоку, глубокие выразительные тени и мягкие блики на коже"},
+        {value:"soft", label:{ru:"Мягкий бьюти",en:"Soft beauty",es:"Belleza suave"}, frag:"Мягкий бьюти-свет спереди, ровное свечение кожи, деликатные тени"},
+        {value:"rim", label:{ru:"Контровой",en:"Rim light",es:"Contraluz"}, frag:"Контровой свет сзади, выразительный силуэт и светящийся контур по краю"}
+      ]},
+    { id:"earrings", control:"sheet", label:{ru:"Серьги",en:"Earrings",es:"Pendientes"},
+      options:[
+        {value:"big", label:{ru:"Крупные",en:"Statement",es:"Grandes"}, frag:"крупные минималистичные серебряные серьги"},
+        {value:"hoops", label:{ru:"Кольца",en:"Hoops",es:"Aros"}, frag:"серьги-кольца среднего размера"},
+        {value:"studs", label:{ru:"Гвоздики",en:"Studs",es:"Mini"}, frag:"маленькие аккуратные серьги-гвоздики"},
+        {value:"none", label:{ru:"Без серёг",en:"No earrings",es:"Sin pendientes"}, frag:"без серёг"}
+      ]}
+];
+
+// ── Neon night: female-only cyberpunk-selfie param template (NanoBanana PRO). ──
+var GIRL_NEON_SKELETON = `КЛЮЧЕВОЕ ТРЕБОВАНИЕ: точно перенести лицо девушки с загруженного фото-референса, это портрет КОНКРЕТНОГО человека, а не собирательный образ. Лицо на результате должно быть таким, чтобы её мгновенно узнали родные. Скопируй лицо 1:1: сохрани без единого изменения форму и ШИРИНУ лица и полноту щёк (НЕ сужай, не утончай, не вытягивай овал), овал и линию челюсти, форму и пропорции носа, форму и разрез глаз, расстояние между глазами, брови, форму и полноту губ, скулы, структуру и текстуру кожи, родинки, веснушки — 100% узнаваемость. ЦВЕТ ГЛАЗ — строго как на референсе (светлые глаза НЕ делай тёмными). БЕЗ сглаживания кожи, БЕЗ AI-эффекта, не идеализируй, не омолаживай, не делай лицо тоньше, симметричнее, красивее или «модельным», не меняй форму носа и пропорции лица. Если сомневаешься — копируй черты точно с референса. Волосы — цвет, длина и причёска строго как на загруженном фото референса. Селфи крупным планом ночью на городской улице в неоновых огнях: {neon}, лёгкий дождь, мокрый асфальт с цветными отражениями, кинематографичный боке из огней на фоне. ВАЖНО: лицо освещено мягким нейтральным светом, реальный тон кожи сохранён — НЕ перекрашивай кожу в неон; цветные неоновые блики ложатся только по контуру волос, плеч и на фоне. {outfit}. {umbrella}. {accessory}. Уверенный взгляд в камеру. Стиль киберпанк, cinematic, лёгкое плёночное зерно, глубокие тени, эффектная глубина резкости. Без посторонних людей, без текста, букв и водяных знаков.`;
+
+var GIRL_NEON_PARAMS = [
+    { id:"outfit", control:"sheet", label:{ru:"Одежда",en:"Clothing",es:"Ropa"},
+      options:[
+        {value:"leather", label:{ru:"Кожаная куртка",en:"Leather jacket",es:"Cazadora de cuero"}, frag:"чёрная кожаная куртка-косуха"},
+        {value:"trench", label:{ru:"Виниловый плащ",en:"Vinyl coat",es:"Abrigo de vinilo"}, frag:"блестящий виниловый плащ, отражающий неон"},
+        {value:"crop", label:{ru:"Кроп-топ",en:"Crop top",es:"Top corto"}, frag:"облегающий чёрный кроп-топ"},
+        {value:"hoodie", label:{ru:"Худи",en:"Hoodie",es:"Sudadera"}, frag:"оверсайз худи с капюшоном"}
+      ]},
+    { id:"neon", control:"sheet", label:{ru:"Цвет неона",en:"Neon color",es:"Color neón"},
+      options:[
+        {value:"pinkblue", label:{ru:"Розово-голубой",en:"Pink & blue",es:"Rosa y azul"}, frag:"розовые и голубые неоновые вывески"},
+        {value:"purple", label:{ru:"Фиолетовый",en:"Purple",es:"Púrpura"}, frag:"фиолетовые и пурпурные неоновые огни"},
+        {value:"emerald", label:{ru:"Изумрудный",en:"Emerald",es:"Esmeralda"}, frag:"изумрудно-зелёные и бирюзовые неоновые огни"},
+        {value:"redblue", label:{ru:"Красно-синий",en:"Red & blue",es:"Rojo y azul"}, frag:"контрастные красные и синие неоновые огни"}
+      ]},
+    { id:"umbrella", control:"sheet", label:{ru:"Зонт",en:"Umbrella",es:"Paraguas"},
+      options:[
+        {value:"none", label:{ru:"Без зонта",en:"No umbrella",es:"Sin paraguas"}, frag:"без зонта, капли дождя поблёскивают на волосах и куртке"},
+        {value:"clear", label:{ru:"Прозрачный",en:"Clear",es:"Transparente"}, frag:"держит прозрачный зонт, по которому стекают капли дождя с неоновыми бликами"}
+      ]},
+    { id:"accessory", control:"sheet", label:{ru:"Аксессуар",en:"Accessory",es:"Accesorio"},
+      options:[
+        {value:"none", label:{ru:"Без аксессуаров",en:"None",es:"Ninguno"}, frag:"без аксессуаров на лице, выразительный взгляд хорошо виден"},
+        {value:"headphones", label:{ru:"Наушники",en:"Headphones",es:"Auriculares"}, frag:"большие наушники на шее"},
+        {value:"glasses", label:{ru:"Очки на лбу",en:"Glasses up",es:"Gafas en la frente"}, frag:"узкие тонированные очки сдвинуты на лоб"}
+      ]}
+];
+
 var BDAY_VIDEO_PROMPT = `ИДЕНТИЧНОСТЬ (главное правило): человек в кадре — тот же самый человек, что на загруженном фото (@Image1). В КАЖДОМ кадре без изменений сохраняй его лицо и черты лица, причёску, цвет и длину волос, телосложение, оттенок и текстуру кожи и его одежду строго как на референсе — 100% сходство, это тот же человек, не подменяй, не идеализируй и не омолаживай лицо.
 Аутентичное вертикальное видео со смартфона, 9:16, 1080x1920, ручная съёмка ночью. Мобильная документалка: тряска, лёгкий смаз, низкосветовой шум и зерно. Макс. фотореализм — как видео от друга, НЕ кино, НЕ стилизация. Свет только от фонарей.
 【Длит.】10 сек
@@ -2297,6 +2361,22 @@ var TRENDS = {
         skeleton: GIRL_PORSCHE_SKELETON, params: GIRL_PORSCHE_PARAMS,
         title: { ru: "В кабриолете", en: "In the cabrio", es: "En el cabrio" },
         desc: { ru: "Загрузите фото, где хорошо видно лицо — оно сохранится с референса (без сглаживания и AI-эффекта). Ниже выберите букет, одежду, очки, часы и цвет салона, остальное соберётся автоматически.", en: "Upload a photo with a clearly visible face — it's kept from the reference (no skin smoothing, no AI look). Choose bouquet, clothing, glasses, watch and interior color below; the rest is assembled automatically.", es: "Sube una foto con la cara bien visible — se mantiene de la referencia (sin suavizado ni efecto AI). Elige ramo, ropa, gafas, reloj y color del interior abajo; el resto se arma automáticamente." }
+    },
+    "girl-vogue-photo": {
+        type: "photo", cost: 30, model: "NanoBanana PRO",
+        preview: "/static/tpl/girl-vogue-photo.jpg", full: "/static/tpl/girl-vogue-photo.jpg",
+        ratio: "9:16", ratios: ["9:16", "3:4"], minPhotos: 1, maxPhotos: 8, prompt: GIRL_VOGUE_SKELETON,
+        skeleton: GIRL_VOGUE_SKELETON, params: GIRL_VOGUE_PARAMS,
+        title: { ru: "Обложка VOGUE", en: "VOGUE cover", es: "Portada VOGUE" },
+        desc: { ru: "Загрузите фото, где хорошо видно лицо — оно сохранится с референса (без сглаживания и AI-эффекта). Чёрно-белый editorial-портрет уровня обложки. Ниже выберите одежду, причёску, свет и серьги.", en: "Upload a photo with a clearly visible face — it's kept from the reference (no skin smoothing, no AI look). A black-and-white cover-level editorial portrait. Choose clothing, hair, light and earrings below.", es: "Sube una foto con la cara bien visible — se mantiene de la referencia (sin suavizado ni efecto AI). Un retrato editorial en blanco y negro nivel portada. Elige ropa, peinado, luz y pendientes abajo." }
+    },
+    "girl-neon-photo": {
+        type: "photo", cost: 30, model: "NanoBanana PRO",
+        preview: "/static/tpl/girl-neon-photo.jpg", full: "/static/tpl/girl-neon-photo.jpg",
+        ratio: "9:16", ratios: ["9:16", "3:4"], minPhotos: 1, maxPhotos: 8, prompt: GIRL_NEON_SKELETON,
+        skeleton: GIRL_NEON_SKELETON, params: GIRL_NEON_PARAMS,
+        title: { ru: "Неон", en: "Neon", es: "Neón" },
+        desc: { ru: "Загрузите фото, где хорошо видно лицо — оно сохранится с референса (без сглаживания и AI-эффекта). Кинематографичное селфи ночью в неоновых огнях под дождём. Ниже выберите одежду, цвет неона, зонт и аксессуар.", en: "Upload a photo with a clearly visible face — it's kept from the reference (no skin smoothing, no AI look). A cinematic neon-lit selfie in the rain at night. Choose clothing, neon color, umbrella and accessory below.", es: "Sube una foto con la cara bien visible — se mantiene de la referencia (sin suavizado ni efecto AI). Un selfie cinematográfico con neón bajo la lluvia de noche. Elige ropa, color de neón, paraguas y accesorio abajo." }
     }
 };
 

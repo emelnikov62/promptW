@@ -22,6 +22,8 @@ TEMPLATE_COST = {
     "girl-roses-photo": 30,
     "girl-sunset-photo": 30,
     "girl-porsche-photo": 30,
+    "girl-vogue-photo": 30,
+    "girl-neon-photo": 30,
 }
 
 # Per-model video pricing (KIE credits, 1 credit = $0.005). Mirrors VIDEO_MODELS.
