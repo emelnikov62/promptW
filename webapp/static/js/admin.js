@@ -350,6 +350,7 @@ function _tplForm(t, isNew) {
         '<div class="modal-section"><h4>Порядок</h4><input id="tf-sort_order" type="number" value="' + (t.sort_order||0) + '" style="width:100%"></div>' +
         '<div class="modal-section"><h4>Категория</h4><input id="tf-category" value="' + esc(t.category||"") + '" style="width:100%"></div>' +
         '<div class="modal-section"><label><input id="tf-enabled" type="checkbox"' + (t.enabled!==false?' checked':'') + '> Включён</label></div>' +
+        '<div class="modal-section"><label><input id="tf-featured" type="checkbox"' + (t.featured?' checked':'') + '> В «Тренды» (главный экран)</label></div>' +
         ta("Название (JSON {ru,en,es})", "title", JSON.stringify(t.title||{}, null, 1)) +
         ta("Превью (JSON {img,full})", "preview", JSON.stringify(t.preview||{}, null, 1)) +
         ta("Definition (JSON)", "definition", JSON.stringify(t.definition||{}, null, 2)) +
@@ -381,6 +382,7 @@ function saveTemplate(isNew) {
             sort_order: parseInt(document.getElementById("tf-sort_order").value, 10) || 0,
             category: document.getElementById("tf-category").value.trim() || null,
             enabled: document.getElementById("tf-enabled").checked,
+            featured: document.getElementById("tf-featured").checked,
             title: JSON.parse(document.getElementById("tf-title").value || "{}"),
             preview: JSON.parse(document.getElementById("tf-preview").value || "{}"),
             definition: JSON.parse(document.getElementById("tf-definition").value || "{}")

@@ -323,6 +323,7 @@ function applyLang(lang) {
     });
     document.getElementById("lang-btn").textContent = langFlags[lang] || langFlags.ru;
     renderVideoSettings(currentVideoModel);
+    if (typeof renderTemplatesHome === "function") renderTemplatesHome();   // re-caption gallery
 
     var tgId = getTgId();
     if (tgId) {
@@ -2387,24 +2388,96 @@ async function tplGenerate(tpl, btn, id) {
     }
 }
 
-// open detail when a trend card with data-tpl is clicked
-document.querySelectorAll("[data-tpl]").forEach(function(el) {
-    el.addEventListener("click", function() { showTplDetail(el.dataset.tpl); });
-});
+// ── Home template gallery (rendered from GET /api/templates) ──
+// The home cards are now data-driven so admin-added templates appear without a deploy.
+// Markup/classes mirror the former static layout 1:1 so the look is unchanged.
+var templatesList = null;     // cached light list
+var _tplListFetching = false;
+var TPL_CAT_ORDER = ["girls", "kids", "men"];   // curated sections; others appended after
+var TPL_PEOPLE_ICO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
+var TPL_CAMERA_ICO = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>';
+var TPL_ARROW_ICO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7M19 12H5"/></svg>';
 
-// "все →" expands a template category into a full 2-column grid (and back).
-document.querySelectorAll(".tpl-hdr .gold").forEach(function(link) {
-    link.addEventListener("click", function() {
+function tplCap(tt) { return escHtml((tt.title && (tt.title[currentLang] || tt.title.ru)) || ""); }
+
+function tplTrendBadge(tt) {
+    if (tt.need_photo) return '<span class="trend-badge trend-badge-pill"><span class="pill-ico">' + TPL_ARROW_ICO + '</span><span>' + t("trendNeedPhoto") + '</span></span>';
+    if (tt.type === "photo") return '<span class="trend-badge trend-badge-ico">' + TPL_CAMERA_ICO + '</span>';
+    return '';
+}
+
+function tplTrendCard(tt) {
+    var media = tt.type === "video"
+        ? '<video class="trend-media" src="' + escHtml(tt.preview) + '" autoplay muted loop playsinline preload="metadata"></video>'
+        : '<img class="trend-media" src="' + escHtml(tt.preview) + '" alt="">';
+    return '<div class="trend-t has-media" data-tpl="' + escHtml(tt.id) + '">' + media + tplTrendBadge(tt) + '<span class="trend-cap">' + tplCap(tt) + '</span></div>';
+}
+
+function tplThumbCard(tt) {
+    return '<div class="tpl-thumb has-media" data-tpl="' + escHtml(tt.id) + '"><img src="' + escHtml(tt.preview) + '" alt=""><span class="tpl-thumb-cap">' + tplCap(tt) + '</span></div>';
+}
+
+function renderTrendsGrid() {
+    var grid = document.getElementById("trends-grid");
+    if (!grid || !templatesList) return;
+    var feat = templatesList.filter(function(x){ return x.featured; });
+    // Keep the two non-functional "coming soon" teasers exactly as before.
+    var teasers = '<div class="trend-t"><span>' + t("trendDance") + '</span></div>' +
+                  '<div class="trend-t"><span>' + t("trendMakePhoto") + '</span></div>';
+    grid.innerHTML = feat.map(tplTrendCard).join("") + teasers;
+}
+
+function renderTplCats() {
+    var host = document.getElementById("tpl-cats");
+    if (!host || !templatesList) return;
+    var byCat = {};
+    templatesList.forEach(function(x){
+        if (!x.featured && x.category) (byCat[x.category] = byCat[x.category] || []).push(x);
+    });
+    var cats = TPL_CAT_ORDER.slice();
+    Object.keys(byCat).forEach(function(c){ if (cats.indexOf(c) < 0) cats.push(c); });
+    host.innerHTML = cats.map(function(c){
+        var items = byCat[c] || [];
+        // Curated empties (e.g. "Дети") show 4 placeholder thumbs; unknown empty cats are skipped.
+        if (!items.length && TPL_CAT_ORDER.indexOf(c) < 0) return "";
+        var thumbs = items.length
+            ? items.map(tplThumbCard).join("")
+            : '<div class="tpl-thumb"></div><div class="tpl-thumb"></div><div class="tpl-thumb"></div><div class="tpl-thumb"></div>';
+        return '<div class="tpl-cat"><div class="tpl-hdr"><span class="tpl-hdr-ico">' + TPL_PEOPLE_ICO + '</span>' +
+            '<b>' + escHtml(t(c)) + '</b><span class="muted">' + t("tplCount") + '</span>' +
+            '<span class="gold ml-auto">' + t("tplAll") + '</span></div>' +
+            '<div class="tpl-scroll">' + thumbs + '</div></div>';
+    }).join("");
+}
+
+function renderTemplatesHome(force) {
+    if (templatesList && !force) { renderTrendsGrid(); renderTplCats(); return; }
+    if (_tplListFetching) return;
+    _tplListFetching = true;
+    fetch("/api/templates", { headers: authHeaders() })
+        .then(function(r){ return r.ok ? r.json() : []; })
+        .then(function(list){ templatesList = list; renderTrendsGrid(); renderTplCats(); })
+        .catch(function(){})
+        .then(function(){ _tplListFetching = false; });
+}
+
+// Delegated so dynamically-rendered cards work. Open detail on a [data-tpl] card;
+// toggle a category's full grid via its "все →" link.
+document.addEventListener("click", function(e) {
+    var card = e.target.closest("[data-tpl]");
+    if (card) { showTplDetail(card.dataset.tpl); return; }
+    var link = e.target.closest(".tpl-hdr .gold");
+    if (link) {
         var cat = link.closest(".tpl-cat");
         if (!cat) return;
-        // empty categories (no real templates yet) just say "coming soon".
         if (!cat.querySelector(".tpl-thumb.has-media")) { toast(t("tplSoon")); return; }
         var open = cat.classList.toggle("expanded");
-        link.dataset.i18n = open ? "tplCollapse" : "tplAll";
         link.textContent = t(open ? "tplCollapse" : "tplAll");
         haptic.impact("light");
-    });
+    }
 });
+
+renderTemplatesHome();   // initial fill on load
 
 // ── Rewards (dot over the gift pulses while there are unclaimed tasks) ──
 function rwdKey(){ return "promptw_rwd_" + (getTgId() || "anon"); }

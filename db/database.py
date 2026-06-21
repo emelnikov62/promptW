@@ -189,6 +189,7 @@ async def _create_tables():
                 created_at TIMESTAMPTZ DEFAULT NOW(),
                 updated_at TIMESTAMPTZ DEFAULT NOW()
             );
+            ALTER TABLE templates ADD COLUMN IF NOT EXISTS featured BOOLEAN DEFAULT FALSE;
             CREATE INDEX IF NOT EXISTS idx_templates_enabled ON templates(enabled, sort_order);
         """)
 
@@ -208,16 +209,24 @@ async def _seed_templates():
         async with _pool.acquire() as conn:
             for r in rows:
                 res = await conn.execute("""
-                    INSERT INTO templates (id, type, enabled, sort_order, category, cost, title, preview, definition)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                    INSERT INTO templates (id, type, enabled, sort_order, category, cost, title, preview, definition, featured)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                     ON CONFLICT (id) DO NOTHING
                 """, r["id"], r["type"], r.get("enabled", True), r.get("sort_order", 0),
                     r.get("category"), r.get("cost", 0),
                     json.dumps(r.get("title") or {}, ensure_ascii=False),
                     json.dumps(r.get("preview") or {}, ensure_ascii=False),
-                    json.dumps(r.get("definition") or {}, ensure_ascii=False))
+                    json.dumps(r.get("definition") or {}, ensure_ascii=False),
+                    r.get("featured", False))
                 if res.endswith("1"):
                     inserted += 1
+                # One-time backfill of featured/category for rows inserted BEFORE those
+                # fields existed (still in the pristine default state). Runs once per row;
+                # never clobbers admin choices (skips as soon as either field is set).
+                await conn.execute("""
+                    UPDATE templates SET featured = $2, category = $3
+                    WHERE id = $1 AND featured = FALSE AND category IS NULL
+                """, r["id"], r.get("featured", False), r.get("category"))
         if inserted:
             logger.info("Seeded %d new template(s)", inserted)
     except Exception:

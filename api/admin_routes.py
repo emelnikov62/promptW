@@ -391,6 +391,7 @@ def _tpl_payload(data: dict) -> dict:
         "id": (data.get("id") or "").strip(),
         "type": (data.get("type") or "").strip(),
         "enabled": bool(data.get("enabled", True)),
+        "featured": bool(data.get("featured", False)),
         "sort_order": int(data.get("sort_order", 0) or 0),
         "category": (data.get("category") or None),
         "cost": int(data.get("cost", 0) or 0),
