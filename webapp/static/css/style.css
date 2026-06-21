@@ -307,7 +307,18 @@ textarea::placeholder{color:var(--tx3)}
 body.noscroll{overflow:hidden}
 
 /* Gallery */
+.hist-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.hist-head .pg-title{margin-bottom:0}
+.grid-toggle{display:inline-flex;flex-shrink:0;background:var(--card);border:1px solid var(--brd);border-radius:999px;padding:3px;gap:2px}
+.gt-btn{display:flex;align-items:center;justify-content:center;width:36px;height:30px;border:none;background:none;border-radius:999px;color:var(--tx3);cursor:pointer;transition:background .15s,color .15s}
+.gt-btn svg{width:17px;height:17px}
+.gt-btn.active{background:var(--card2);color:var(--tx)}
 .gal-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.gal-grid.cols-4{grid-template-columns:repeat(4,1fr);gap:6px}
+.gal-grid.cols-4 .gal-tag{font-size:8px;padding:2px 5px;top:5px;left:5px}
+.gal-grid.cols-4 .gal-meta{padding:12px 6px 6px}
+.gal-grid.cols-4 .gal-model{font-size:9px}.gal-grid.cols-4 .gal-cost{font-size:8px}
+.gal-grid.cols-4 .gal-gen-t{display:none}.gal-grid.cols-4 .gal-gen-spin{width:26px;height:26px}
 .gal-grid img,.gal-grid video{width:100%;aspect-ratio:1;object-fit:cover;border-radius:var(--rs)}
 .gal-item{position:relative;cursor:pointer;border-radius:var(--rs);overflow:hidden}
 .gal-item:active{opacity:.8}
@@ -340,9 +351,11 @@ body.noscroll{overflow:hidden}
 .detail-media.detail-audio{padding:18px}
 .detail-audio audio{width:100%;display:block}
 .detail-actions{display:flex;gap:8px;margin-bottom:14px}
-.dact{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;padding:11px 6px;background:var(--card2);border:1px solid var(--brd);border-radius:var(--rs);color:var(--tx);font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;transition:background .15s,border-color .15s}
+.dact{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:5px;padding:11px 4px;background:var(--card2);border:1px solid var(--brd);border-radius:var(--rs);color:var(--tx);font-family:var(--font);font-size:11px;font-weight:600;white-space:nowrap;cursor:pointer;transition:background .15s,border-color .15s}
 .dact svg{width:20px;height:20px}
 .dact:active{background:var(--card);border-color:var(--vbrd)}
+.dact.dact-danger{color:var(--error)}
+.dact.dact-danger:active{background:rgba(251,113,133,.1);border-color:rgba(251,113,133,.4)}
 .detail-info{margin-bottom:10px}
 .detail-prompt-card{margin-bottom:10px}
 .detail-prompt-head{display:flex;align-items:center;justify-content:space-between;gap:8px}

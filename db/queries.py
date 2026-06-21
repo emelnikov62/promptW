@@ -117,6 +117,18 @@ async def update_generation(gen_id: int, status: str,
         """, status, result_url, gen_id)
 
 
+async def delete_generation(gen_id: int, tg_id: int) -> Optional[str]:
+    """Delete a generation owned by tg_id. Returns its result_url (to clean up the
+    media file), or None if it didn't exist / wasn't owned by this user."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("""
+            DELETE FROM generations WHERE id = $1 AND user_tg_id = $2
+            RETURNING result_url
+        """, gen_id, tg_id)
+        return row["result_url"] if row else None
+
+
 async def get_user_generations(tg_id: int, limit: int = 20,
                                offset: int = 0) -> List[dict]:
     pool = await get_pool()
