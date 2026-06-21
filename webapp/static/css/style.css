@@ -114,10 +114,20 @@ body.scrolled .header{border-bottom-color:var(--brd)}
 .chat-input:focus{outline:none;border-color:var(--violet)}
 .chat-send{width:42px;height:42px;border-radius:50%;border:none;background:var(--grad);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;box-shadow:0 4px 16px rgba(255,107,92,.4)}
 .chat-send:disabled{opacity:.45}.chat-send svg{width:19px;height:19px}
-.dlg-new{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;border:1px dashed var(--vbrd);background:var(--vdim);color:var(--violet);border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;margin-bottom:12px;font-family:inherit}
+/* Chat — periwinkle accent */
+#page-text{--z:var(--chat);--zdim:rgba(140,155,255,.13);--zbrd:rgba(140,155,255,.34);--zink:#10142E}
+#page-text .chat-model{border-color:var(--zbrd);background:var(--zdim)}
+#page-text .chat-model svg{color:var(--z)}
+#page-text .chat-empty-ico{color:var(--z)}
+#page-text .msg.user{background:var(--z);color:var(--zink);box-shadow:0 2px 12px -2px var(--z)}
+#page-text .msg.user .msg-t{color:rgba(16,20,46,.6)}
+#page-text .msg.user code{background:rgba(16,20,46,.12)}
+#page-text .chat-input:focus{border-color:var(--z)}
+#page-text .chat-send{background:var(--z);color:var(--zink);box-shadow:0 4px 16px -3px var(--z)}
+.dlg-new{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;border:1px dashed rgba(140,155,255,.34);background:rgba(140,155,255,.13);color:var(--chat);border-radius:12px;font-weight:700;font-size:14px;cursor:pointer;margin-bottom:12px;font-family:inherit}
 .dlg-new svg{width:16px;height:16px}
 .dlg-item{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:12px;background:var(--card2);border:1px solid transparent;margin-bottom:8px;cursor:pointer}
-.dlg-item.active{border-color:var(--vbrd)}
+.dlg-item.active{border-color:rgba(140,155,255,.34)}
 .dlg-main{flex:1;min-width:0;text-align:left}
 .dlg-title{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dlg-sub{font-size:12px;color:var(--tx3)}
