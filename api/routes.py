@@ -17,7 +17,7 @@ from bot.auth import validate_init_data, verify_auth_token
 from pricing import compute_cost, CHAT_COST
 from db.queries import (
     get_user, upsert_user, update_user_lang, update_balance, try_charge,
-    create_generation, update_generation, get_user_generations,
+    create_generation, update_generation, delete_generation, get_user_generations,
     get_user_transactions, get_referral_stats, get_partner_overview,
     create_payment, set_payment_external, settle_payment, get_payment,
     get_latest_pending_payment,
@@ -291,6 +291,26 @@ async def api_get_history(request: web.Request):
                 item["settings"] = {}
         result.append(item)
     return web.json_response(result)
+
+
+@routes.post("/api/generation/delete")
+async def api_delete_generation(request: web.Request):
+    data, _ = await _parse_request(request)
+    tg_id = _authed_id(request, data.get("tg_id"))
+    gen_id = _int_or_none(data.get("id"))
+    if not tg_id or gen_id is None:
+        return web.json_response({"error": "tg_id and id required"}, status=400)
+    result_url = await delete_generation(gen_id, tg_id)
+    if result_url is None:
+        return web.json_response({"error": "not_found"}, status=404)
+    # Best-effort cleanup of the stored media file (kept inside MEDIA_DIR).
+    try:
+        fpath = os.path.join(MEDIA_DIR, os.path.basename(result_url))
+        if os.path.realpath(fpath).startswith(os.path.realpath(MEDIA_DIR) + os.sep) and os.path.isfile(fpath):
+            os.remove(fpath)
+    except OSError:
+        pass
+    return web.json_response({"ok": True})
 
 
 @routes.get("/api/user/{tg_id}/transactions")

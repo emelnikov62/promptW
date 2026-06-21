@@ -1707,6 +1707,7 @@ function showGenDetail(item){
         '<button class="dact" id="d-save"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span>'+t("detailSave")+'</span></button>'+
         '<button class="dact" id="d-repeat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><span>'+t("detailRepeat")+'</span></button>'+
         '<button class="dact" id="d-share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg><span>'+t("share")+'</span></button>'+
+        '<button class="dact dact-danger" id="d-delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg><span>'+t("detailDelete")+'</span></button>'+
     '</div>';
 
     if(item.prompt){
@@ -1777,8 +1778,40 @@ function showGenDetail(item){
     if(rpBtn) rpBtn.addEventListener("click",function(){ repeatGeneration(item); });
     var shBtn=document.getElementById("d-share");
     if(shBtn) shBtn.addEventListener("click",function(){ shareMedia(item, shBtn); });
+    var delBtn=document.getElementById("d-delete");
+    if(delBtn) delBtn.addEventListener("click",function(){ confirmDeleteGeneration(item); });
 
     showPage("gen-detail");
+}
+
+// Ask before deleting — native Telegram confirm when available, else the browser one.
+function confirmDeleteGeneration(item){
+    haptic.impact("light");
+    var msg=t("deleteConfirm");
+    if(tg && tg.showConfirm){
+        tg.showConfirm(msg, function(ok){ if(ok) deleteGeneration(item); });
+    } else if(window.confirm(msg)){
+        deleteGeneration(item);
+    }
+}
+function deleteGeneration(item){
+    function removeLocally(){
+        galleryItems = galleryItems.filter(function(g){ return item.id != null ? g.id !== item.id : g !== item; });
+        updateHistory();
+        haptic.notify("success");
+        toast(t("deleted"),"success");
+        showPage("history");
+    }
+    // Optimistic items may not have a server id yet — just drop them from the UI.
+    if(item.id == null || !getTgId()){ removeLocally(); return; }
+    fetch("/api/generation/delete",{
+        method:"POST",headers:authHeaders({"Content-Type":"application/json"}),
+        body:JSON.stringify({tg_id:getTgId(),id:item.id})
+    }).then(function(r){ return r.json().then(function(d){ return {ok:r.ok,d:d}; }); })
+      .then(function(res){
+          if(res.ok || (res.d && res.d.error==="not_found")){ removeLocally(); }
+          else { haptic.notify("error"); toast(t("genFailed"),"error"); }
+      }).catch(function(){ haptic.notify("error"); toast(t("genFailed"),"error"); });
 }
 
 function selectModel(type,modelName){
@@ -2424,6 +2457,25 @@ checkPendingPayment();
 window.addEventListener("scroll", function(){
     document.body.classList.toggle("scrolled", window.scrollY > 4);
 }, { passive: true });
+
+// History grid density toggle (2 per row default, 4 per row), remembered per device.
+(function initGridToggle(){
+    var toggle=document.getElementById("grid-toggle"), list=document.getElementById("history-list");
+    if(!toggle||!list) return;
+    var saved="2"; try{ saved=localStorage.getItem("promptw_grid_cols")||"2"; }catch(e){}
+    function apply(cols){
+        list.classList.toggle("cols-4", cols==="4");
+        toggle.querySelectorAll(".gt-btn").forEach(function(b){ b.classList.toggle("active", b.dataset.cols===cols); });
+    }
+    apply(saved);
+    toggle.querySelectorAll(".gt-btn").forEach(function(b){
+        b.addEventListener("click",function(){
+            apply(b.dataset.cols);
+            try{ localStorage.setItem("promptw_grid_cols", b.dataset.cols); }catch(e){}
+            haptic.select();
+        });
+    });
+})();
 
 // ── Init ──
 renderVideoSettings(currentVideoModel);
