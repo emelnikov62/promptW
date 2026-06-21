@@ -43,7 +43,7 @@ function showLogin() {
         el.id = "login-screen";
         el.innerHTML = '<div class="login-box"><div class="sidebar-brand">Prompt<span class="brand-accent">W</span> <span class="brand-tag">admin</span></div>' +
             '<div id="login-error" style="color:var(--error);font-size:13px;margin-bottom:12px;display:none"></div>' +
-            '<input class="form-input" id="login-tgid" placeholder="Telegram ID" autocomplete="username" style="margin-bottom:10px;width:100%">' +
+            '<input class="form-input" id="login-user" placeholder="Логин" autocomplete="username" style="margin-bottom:10px;width:100%">' +
             '<input class="form-input" id="login-pass" type="password" placeholder="Пароль" autocomplete="current-password" style="margin-bottom:14px;width:100%">' +
             '<button class="btn btn-primary" id="login-btn" style="width:100%">Войти</button></div>';
         document.body.appendChild(el);
@@ -54,16 +54,16 @@ function showLogin() {
 }
 
 function doLogin() {
-    var tgId = document.getElementById("login-tgid").value.trim();
+    var login = document.getElementById("login-user").value.trim();
     var pass = document.getElementById("login-pass").value;
     var errEl = document.getElementById("login-error");
-    if (!tgId || !pass) { errEl.textContent = "Заполните оба поля"; errEl.style.display = "block"; return; }
+    if (!login || !pass) { errEl.textContent = "Заполните оба поля"; errEl.style.display = "block"; return; }
     errEl.style.display = "none";
     document.getElementById("login-btn").disabled = true;
     fetch("/api/admin/login", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({tg_id: parseInt(tgId), password: pass})
+        body: JSON.stringify({login: login, password: pass})
     }).then(function(r) { return r.json(); }).then(function(d) {
         document.getElementById("login-btn").disabled = false;
         if (d.ok && d.token) {
