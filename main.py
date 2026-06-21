@@ -8,7 +8,7 @@ from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_applicati
 
 from bot.config import BOT_TOKEN
 from bot.handlers import router, setup as setup_bot
-from api.routes import routes, setup as setup_api, auth_middleware
+from api.routes import routes, setup as setup_api, auth_middleware, start_reconciler
 from api.admin_routes import admin_routes
 from db.database import init_db, close_db
 
@@ -101,6 +101,10 @@ async def main():
             logging.warning("set_chat_menu_button failed: %s", e)
 
     app = create_app()
+
+    # Recover generations whose in-flight task was killed by a previous restart
+    # (re-poll KIE by the persisted task id), then keep sweeping periodically.
+    start_reconciler(interval=60)
 
     if WEBHOOK_URL:
         webhook_path = "/webhook"

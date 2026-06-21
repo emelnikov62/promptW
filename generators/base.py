@@ -27,3 +27,11 @@ class BaseGenerator(ABC):
     @abstractmethod
     async def generate_audio(self, prompt: str, **kwargs) -> GenerationResult:
         ...
+
+    async def recover_task(self, task_id: str, gen_type: str,
+                           model: Optional[str] = None) -> Optional[str]:
+        """Re-check an already-created provider task (used by the reconciliation
+        sweep after a restart). Return the downloaded local file path if the task
+        is done, None if it's still processing, or raise if it failed. Default:
+        no provider-side state to recover (e.g. the local stub)."""
+        return None

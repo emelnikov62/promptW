@@ -4,7 +4,7 @@ import uuid
 import asyncio
 import logging
 from typing import Optional
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from decimal import Decimal
 
 import aiohttp
@@ -19,6 +19,8 @@ from pricing import compute_cost, CHAT_COST
 from db.queries import (
     get_user, upsert_user, update_user_lang, update_balance, try_charge,
     create_generation, update_generation, delete_generation, get_user_generations,
+    set_generation_task, get_pending_generations,
+    finish_generation_if_pending, fail_generation_if_pending,
     get_user_transactions, get_referral_stats, get_partner_overview,
     create_payment, set_payment_external, settle_payment, get_payment,
     get_latest_pending_payment,
@@ -175,6 +177,18 @@ async def _insufficient(tg_id, cost: int):
 _BG_GENS = set()
 
 
+def _task_saver(gen_id):
+    """Callback handed to the generator: persists the provider task id the moment
+    it's created, so a restart-killed generation can be recovered on next boot."""
+    async def _on_task(task_id):
+        if gen_id and task_id:
+            try:
+                await set_generation_task(gen_id, task_id)
+            except Exception:
+                logger.exception("failed to persist task id for gen %s", gen_id)
+    return _on_task
+
+
 async def _run_generation(gen_id, tg_id, cost: int, label: str, build):
     """Run `build()` to completion regardless of whether the HTTP client stays
     connected. `build` returns the JSON-able response dict (and writes the 'done'
@@ -184,9 +198,14 @@ async def _run_generation(gen_id, tg_id, cost: int, label: str, build):
             return await build()
         except Exception:
             logger.exception("Generation failed (%s)", label)
+            # Guarded flip so the refund happens exactly once even if the
+            # reconciliation sweep touches the same row concurrently.
             if gen_id:
-                await update_generation(gen_id, "error")
-            await _refund(tg_id, cost, "refund " + label)
+                info = await fail_generation_if_pending(gen_id)
+                if info is not None:
+                    await _refund(info["user_tg_id"], info["cost"] or 0, "refund " + label)
+            else:
+                await _refund(tg_id, cost, "refund " + label)
             return {"__error__": True}
 
     task = asyncio.ensure_future(_runner())
@@ -195,6 +214,81 @@ async def _run_generation(gen_id, tg_id, cost: int, label: str, build):
     # shield: if the client disconnects, our await is cancelled but `task` keeps
     # running in the background (and _BG_GENS holds a strong ref so it isn't GC'd).
     return await asyncio.shield(task)
+
+
+# ── Reconciliation sweep ───────────────────────────────────────────────────
+# The detached task above survives a client disconnect, but NOT a service restart
+# (deploy) — that kills the process and every in-flight task with it, leaving the
+# row stuck "pending" and the tokens spent. This sweep (run on boot + periodically)
+# re-polls KIE by the persisted task id and either recovers the finished result or
+# refunds + marks "error" for genuinely dead jobs.
+_RECONCILE_MIN_AGE = 60          # let the live in-process task own very recent rows
+_RECONCILE_GIVEUP = 1800         # 30 min still "processing" -> assume dead, refund
+_RECONCILE_NOTASK_GIVEUP = 1200  # 20 min and no task id ever recorded -> refund
+
+
+async def _reconcile_fail(gen_id, model, reason):
+    info = await fail_generation_if_pending(gen_id)
+    if info is not None:   # we won the pending->error flip -> refund exactly once
+        await _refund(info["user_tg_id"], info["cost"] or 0, f"refund {model}: {reason}")
+        logger.info("reconcile: gen %s failed (%s), refunded %s", gen_id, reason, info["cost"])
+
+
+async def _reconcile_once():
+    if generator is None:
+        return
+    try:
+        rows = await get_pending_generations(limit=50)
+    except Exception:
+        logger.exception("reconcile: could not load pending generations")
+        return
+    now = datetime.now(timezone.utc)
+    for row in rows:
+        gen_id = row["id"]
+        model = row["model"]
+        task_id = row["provider_task_id"]
+        created = row["created_at"]
+        age = (now - created).total_seconds() if created else 1e9
+        if age < _RECONCILE_MIN_AGE:
+            continue
+        if not task_id:
+            if age > _RECONCILE_NOTASK_GIVEUP:
+                await _reconcile_fail(gen_id, model, "no task id")
+            continue
+        try:
+            path = await generator.recover_task(task_id, row["gen_type"], model)
+        except Exception as e:
+            logger.warning("reconcile: task %s (gen %s) failed: %s", task_id, gen_id, e)
+            await _reconcile_fail(gen_id, model, "provider task failed")
+            continue
+        if path is None:   # still processing on KIE
+            if age > _RECONCILE_GIVEUP:
+                await _reconcile_fail(gen_id, model, "timeout")
+            continue
+        file_url = f"/media/{os.path.basename(path)}"
+        if await finish_generation_if_pending(gen_id, file_url):
+            logger.info("reconcile: recovered gen %s -> %s", gen_id, file_url)
+        else:
+            # another path already finalized this row — drop the duplicate download
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+
+
+async def _reconcile_loop(interval: int):
+    while True:
+        try:
+            await _reconcile_once()
+        except Exception:
+            logger.exception("reconcile loop iteration failed")
+        await asyncio.sleep(interval)
+
+
+def start_reconciler(interval: int = 60):
+    """Launch the background reconciliation loop (call once after the generator and
+    DB pool are ready). Runs an immediate pass, then every `interval` seconds."""
+    return asyncio.ensure_future(_reconcile_loop(interval))
 
 
 def _get_bot() -> Bot:
@@ -792,6 +886,7 @@ async def generate_image(request: web.Request):
             resolution=settings.get("quality"),
             count=settings.get("count", 1),
             files=files,
+            on_task=_task_saver(gen_id),
         )
         paths = result.file_paths or [result.file_path]
         file_urls = [f"/media/{os.path.basename(p)}" for p in paths]
@@ -857,6 +952,7 @@ async def generate_video(request: web.Request):
             resolution=settings.get("quality"),
             orientation=settings.get("orientation"),
             files=files,
+            on_task=_task_saver(gen_id),
         )
         file_url = f"/media/{os.path.basename(result.file_path)}"
         if gen_id:
@@ -914,6 +1010,7 @@ async def generate_audio(request: web.Request):
             weirdness=settings.get("weirdness"),
             audio_weight=settings.get("audio_weight"),
             files=files,
+            on_task=_task_saver(gen_id),
         )
         file_url = f"/media/{os.path.basename(result.file_path)}"
         if gen_id:
