@@ -20,6 +20,7 @@ TEMPLATE_COST = {
     "birthday-video": 420,
     "yacht-video": 50,
     "girl-roses-photo": 30,
+    "girl-sunset-photo": 30,
 }
 
 # Per-model video pricing (KIE credits, 1 credit = $0.005). Mirrors VIDEO_MODELS.
