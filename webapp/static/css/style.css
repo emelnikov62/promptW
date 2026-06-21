@@ -681,7 +681,7 @@ body.noscroll{overflow:hidden}
 @media (min-width:600px){
     body{background:#000;background-image:linear-gradient(to right,transparent calc(50% - 240px),var(--brd) calc(50% - 240px),var(--brd) calc(50% - 239px),var(--bg) calc(50% - 239px),var(--bg) calc(50% + 239px),var(--brd) calc(50% + 239px),var(--brd) calc(50% + 240px),transparent calc(50% + 240px))}
     #app{max-width:480px;margin:0 auto;min-height:100vh;background:var(--bg);border-left:1px solid var(--brd);border-right:1px solid var(--brd);padding-bottom:80px}
-    .bnav{left:50%;transform:translateX(-50%);width:100%;max-width:480px;border-left:1px solid var(--brd);border-right:1px solid var(--brd)}
+    .bnav{left:50%;transform:translateX(-50%);width:100%;max-width:480px;border-left:1px solid var(--brd);border-right:1px solid var(--brd);box-shadow:none}
     .chat-input-bar{left:50%;right:auto;transform:translateX(-50%);width:100%;max-width:480px;bottom:68px}
     .gen-ov{left:50%;right:auto;transform:translateX(-50%);width:100%;max-width:480px}
     #toast-wrap{left:50%;transform:translateX(-50%)}
