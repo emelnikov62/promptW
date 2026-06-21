@@ -3,6 +3,7 @@ import json
 import uuid
 import asyncio
 import logging
+import mimetypes
 from typing import Optional
 from datetime import datetime, date, timezone
 from decimal import Decimal
@@ -55,7 +56,7 @@ _UPLOAD_MAX_FILES = 16                  # per request
 # escape hatch to fall back to the (insecure) body-supplied tg_id.
 AUTH_ENFORCE = os.getenv("AUTH_ENFORCE", "1") == "1"
 # Public /api/ paths that must work without a Telegram user (health + provider callbacks)
-_AUTH_SKIP = ("/api/health", "/api/callback", "/api/pay/yoomoney", "/api/pay/platega", "/api/admin/login")
+_AUTH_SKIP = ("/api/health", "/api/callback", "/api/pay/yoomoney", "/api/pay/platega", "/api/admin/login", "/api/media-proxy")
 
 WEBAPP_URL = os.getenv("WEBAPP_URL", "")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL", "")
@@ -574,6 +575,31 @@ async def api_list_references(request: web.Request):
             item["file_url"] = _media_url(fu)
         out.append(item)
     return web.json_response(out)
+
+
+@routes.get("/api/media-proxy")
+async def api_media_proxy(request: web.Request):
+    """Same-origin proxy for our own S3 objects.
+
+    When the client re-uses a saved reference / history image as an upload it
+    fetches the image URL and reads the blob. With media on S3 that's a
+    cross-origin fetch, which iOS Telegram's WKWebView fails intermittently
+    (CORS / `Vary: Origin` cache quirks) even though the bucket CORS is correct —
+    the upload silently drops and the UI shows "не получилось". Serving the bytes
+    from our own origin removes the cross-origin dependency entirely. Only objects
+    inside our bucket are served (key_from_url guards against SSRF); they're
+    already public, so no auth is required (this path is in _AUTH_SKIP)."""
+    url = request.query.get("url", "")
+    if not storage.is_remote(url) or not storage.key_from_url(url):
+        return web.json_response({"error": "bad_url"}, status=400)
+    try:
+        data = await storage.aget_bytes(url)
+    except Exception:
+        logger.exception("media-proxy: fetch failed for %s", url)
+        return web.json_response({"error": "not_found"}, status=404)
+    ct = mimetypes.guess_type(url)[0] or "application/octet-stream"
+    return web.Response(body=data, content_type=ct,
+                        headers={"Cache-Control": "private, max-age=3600"})
 
 
 @routes.post("/api/references")

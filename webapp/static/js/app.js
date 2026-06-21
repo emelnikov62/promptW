@@ -731,9 +731,17 @@ function imgSrcClose(){
     setTimeout(function(){ o.classList.add("hidden"); }, 300);
     imgSrcOnFile = null;
 }
-// Fetch a same-origin media URL and hand it back as a File for FormData upload.
+// Our own S3 media is cross-origin; iOS Telegram's webview fails cross-origin
+// blob fetches intermittently (CORS / Vary cache quirks), so route remote URLs
+// through the same-origin /api/media-proxy. Same-origin / relative URLs pass through.
+function mediaBlobUrl(url){
+    if (/^https?:\/\//i.test(url) && url.indexOf(location.origin) !== 0)
+        return "/api/media-proxy?url=" + encodeURIComponent(url);
+    return url;
+}
+// Fetch a media URL and hand it back as a File for FormData upload.
 function urlToFile(url, cb){
-    fetch(url).then(function(r){ return r.blob(); }).then(function(blob){
+    fetch(mediaBlobUrl(url)).then(function(r){ if(!r.ok) throw 0; return r.blob(); }).then(function(blob){
         var m = url.split("?")[0].match(/\.[a-z0-9]+$/i);
         cb(new File([blob], "image"+(m ? m[0] : ".jpg"), { type: blob.type || "image/jpeg" }));
     }).catch(function(){ toast(t("genFailed"), "error"); });
@@ -1953,9 +1961,10 @@ async function loadRefsForRepeat(references){
         var files=[];
         for(var i=0;i<urls.length;i++){
             try{
-                var res=await fetch(urls[i]);
+                var res=await fetch(mediaBlobUrl(urls[i]));
+                if(!res.ok) throw 0;
                 var blob=await res.blob();
-                var filename=urls[i].split("/").pop();
+                var filename=urls[i].split("?")[0].split("/").pop();
                 var file=new File([blob],filename,{type:blob.type});
                 files.push(file);
             }catch(e){console.error("Failed to load ref",urls[i],e);}
