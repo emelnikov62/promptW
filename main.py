@@ -46,6 +46,10 @@ async def privacy_page(request: web.Request):
     return web.FileResponse(os.path.join(BASE_DIR, "webapp", "templates", "privacy.html"))
 
 
+async def offer_page(request: web.Request):
+    return web.FileResponse(os.path.join(BASE_DIR, "webapp", "templates", "offer.html"))
+
+
 async def admin_index(request: web.Request):
     resp = web.FileResponse(os.path.join(BASE_DIR, "webapp", "templates", "admin.html"))
     resp.headers["X-Robots-Tag"] = "noindex"
@@ -77,6 +81,7 @@ def create_app() -> web.Application:
     app.router.add_get("/", index)
     app.router.add_get("/terms", terms_page)
     app.router.add_get("/privacy", privacy_page)
+    app.router.add_get("/offer", offer_page)
     app.router.add_get("/admin", admin_index)
     app.router.add_get("/admin/", admin_index)
     app.router.add_static("/static", os.path.join(BASE_DIR, "webapp", "static"))

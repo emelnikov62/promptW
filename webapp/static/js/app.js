@@ -347,7 +347,7 @@ if (NATIVE_UI) {
     try { tg.MainButton && tg.MainButton.hide(); tg.BackButton && tg.BackButton.hide(); } catch (e) {}
 }
 
-var SUB_PAGES = ["topup","partner","info","gen-detail","tpl-detail","rewards","refguide","stats","terms","privacy"];
+var SUB_PAGES = ["topup","partner","info","gen-detail","tpl-detail","rewards","refguide","stats","terms","privacy","offer"];
 var subOrigin = "home";   // page to return to when leaving a header-opened sub-page
 function showPage(name) {
     if (typeof genViewOpen !== "undefined" && genViewOpen) genOvClose();
