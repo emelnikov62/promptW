@@ -1429,6 +1429,7 @@ function buildFormData(type, prompt) {
 // ── Generation result overlay ──
 var genViewOpen = false;     // is the result overlay currently shown
 var genLastReq = null;       // {type, prompt} for the "again" button
+var genRepeatFn = null;      // unified "Повторить" handler (Create runGenerate OR template tplGenerate)
 
 function genOvOpen(){
     var o=document.getElementById("gen-overlay");
@@ -1485,17 +1486,18 @@ function genOvResult(mtype, data){
           .then(function(r){return r.json()}).then(function(d){ b.disabled=false; b.textContent=d.ok?("✓ "+t("savedToChat")):t("detailSave"); if(d.ok) haptic.notify("success"); })
           .catch(function(){ b.disabled=false; b.textContent=t("detailSave"); });
     });
-    document.getElementById("gen-ov-again").addEventListener("click",function(){ if(genLastReq) runGenerate(genLastReq.type, genLastReq.prompt); });
+    document.getElementById("gen-ov-again").addEventListener("click",function(){ if(genRepeatFn) genRepeatFn(); });
 }
 function genOvError(msg){
     document.getElementById("gen-ov-title").textContent=t("genFailed");
     document.getElementById("gen-ov-body").innerHTML='<div class="gen-load"><div class="gen-err-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><p class="gen-load-t">'+escHtml(msg||t("genFailed"))+'</p></div>';
     document.getElementById("gen-ov-actions").innerHTML='<button class="gen-ov-again" id="gen-ov-again"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>'+t("detailRepeat")+'</button>';
-    document.getElementById("gen-ov-again").addEventListener("click",function(){ if(genLastReq) runGenerate(genLastReq.type, genLastReq.prompt); });
+    document.getElementById("gen-ov-again").addEventListener("click",function(){ if(genRepeatFn) genRepeatFn(); });
 }
 
 async function runGenerate(type, prompt){
     genLastReq={ type:type, prompt:prompt };
+    genRepeatFn=function(){ runGenerate(type, prompt); };
     var model=getActiveModel(type==="image"?"photo":type)||"";
     var settings=getSettings(type);
     genOvOpen(); genOvLoading(type, model);
@@ -1927,8 +1929,7 @@ function showTplDetail(id) {
         '<h4 class="tpl-sec">' + t("prompt") + '</h4>' +
         '<textarea id="tpl-prompt" class="tpl-prompt" rows="5"></textarea>' +
         setting +
-        '<div class="gen-bar"><button class="gen-btn" id="tpl-gen"><span>' + t("generate") + '</span><div class="tok"><span class="coin">W</span>' + tpl.cost + '</div></button></div>' +
-        '<div id="tpl-result" class="result"></div>';
+        '<div class="gen-bar"><button class="gen-btn" id="tpl-gen"><span>' + t("generate") + '</span><div class="tok"><span class="coin">W</span>' + tpl.cost + '</div></button></div>';
 
     document.getElementById("tpl-detail-content").innerHTML = html;
     document.getElementById("tpl-prompt").value = tpl.prompt;
@@ -1947,12 +1948,11 @@ async function tplGenerate(tpl, btn) {
     if (!prompt) { toast(t("alertPrompt"), "error"); return; }
     if (tplFiles.length < (tpl.minPhotos || 1)) { toast(t("trendNeedPhoto"), "error"); return; }
 
+    // Identical flow to Create: full-screen overlay (loading → result), not an inline skeleton.
+    genRepeatFn = function(){ tplGenerate(tpl, btn); };
+    var ovType = tpl.type === "video" ? "video" : "photo";
+    genOvOpen(); genOvLoading(ovType, tpl.model);
     haptic.impact("medium");
-    btn.disabled = true;
-    var saved = btn.innerHTML;
-    btn.innerHTML = '<span>' + t("generating") + '</span>';
-    var resEl = document.getElementById("tpl-result");
-    if (resEl) resEl.innerHTML = '<div class="skel skel-media"></div><div class="skel skel-line w50"></div><p class="skel-cap">' + t("generating") + '</p>';
     try {
         var fd = new FormData();
         fd.append("prompt", prompt);
@@ -1967,26 +1967,23 @@ async function tplGenerate(tpl, btn) {
         var endpoint = "/api/generate/" + (tpl.type === "photo" ? "image" : "video");
         var res = await fetch(endpoint, { method: "POST", headers: authHeaders(), body: fd });
         var data = await res.json();
-        if (res.status === 402) { toast(t("errNoBalance"), "error"); haptic.notify("error"); showPage("topup"); return; }
+        if (res.status === 402) { genOvClose(); toast(t("errNoBalance"), "error"); haptic.notify("error"); showPage("topup"); return; }
         if (!res.ok) throw new Error(data.error || "Generation failed");
         if (data.balance != null) { document.querySelectorAll(".user-balance").forEach(function(el){el.textContent=data.balance;}); if(currentUser) currentUser.balance=data.balance; refreshGenButtons(); }
 
-        var newItem = {
-            url: data.file_url,
-            type: data.media_type === "photo" ? "photo" : "video",
-            prompt: prompt, model: tpl.model, settings: settings,
-            cost: (data.cost != null ? data.cost : tpl.cost), created_at: new Date().toISOString()
-        };
-        galleryItems.unshift(newItem);
+        var mtype = data.media_type === "photo" ? "photo" : (data.media_type === "audio" ? "audio" : "video");
+        function makeItem(url){ return { url:url, type:mtype, prompt:prompt, model:tpl.model, settings:settings, cost:(data.cost != null ? data.cost : tpl.cost), created_at:new Date().toISOString() }; }
+        if (mtype === "photo" && data.file_urls && data.file_urls.length) {
+            data.file_urls.slice().reverse().forEach(function(u){ galleryItems.unshift(makeItem(u)); });
+        } else {
+            galleryItems.unshift(makeItem(data.file_url));
+        }
         updateHistory();
         haptic.notify("success");
-        showGenDetail(newItem);
+        if (genViewOpen) genOvResult(mtype, data); else toast(t("genSavedToHistory"), "success");
     } catch (err) {
-        toast(err.message, "error");
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = saved;
-        if (resEl) resEl.innerHTML = "";
+        haptic.notify("error");
+        if (genViewOpen) genOvError(err.message); else toast(t("genFailed"), "error");
     }
 }
 
