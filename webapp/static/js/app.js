@@ -2159,7 +2159,10 @@ async function tplGenerate(tpl, btn, id) {
         if (tpl.mode) settings.mode = tpl.mode;
         if (tpl.params) { settings.tplId = id; settings.tplParams = readTplParams(tpl); }
         fd.append("settings", JSON.stringify(settings));
-        tplFiles.forEach(function(f) { fd.append("photo", f); });
+        // Send the reference photo under the field name the generator actually reads:
+        // images -> "photo-refs" (kie.generate_image), video -> "v-first-frame" (maps to KIE "image").
+        var refField = tpl.type === "photo" ? "photo-refs" : "v-first-frame";
+        tplFiles.forEach(function(f) { fd.append(refField, f); });
 
         var endpoint = "/api/generate/" + (tpl.type === "photo" ? "image" : "video");
         var res = await fetch(endpoint, { method: "POST", headers: authHeaders(), body: fd });
