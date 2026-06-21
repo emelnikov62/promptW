@@ -51,7 +51,7 @@ _UPLOAD_MAX_FILES = 16                  # per request
 # escape hatch to fall back to the (insecure) body-supplied tg_id.
 AUTH_ENFORCE = os.getenv("AUTH_ENFORCE", "1") == "1"
 # Public /api/ paths that must work without a Telegram user (health + provider callbacks)
-_AUTH_SKIP = ("/api/health", "/api/callback", "/api/pay/yoomoney", "/api/pay/platega")
+_AUTH_SKIP = ("/api/health", "/api/callback", "/api/pay/yoomoney", "/api/pay/platega", "/api/admin/login")
 
 WEBAPP_URL = os.getenv("WEBAPP_URL", "")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL", "")
