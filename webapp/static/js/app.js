@@ -2018,7 +2018,9 @@ function buildTplPrompt(tpl, pv){
         if(!gopt) gopt = opts[0] || {};
         var gr = gopt.grammar || {noun:"человек", adjE:"ый"};
         ctx.age = clampAge(tpl, pv.age);
-        ctx.subject = "эффектн"+gr.adjE+" "+gr.noun+" ~"+ctx.age+" лет";
+        // Anchor the subject to the reference person — no idealizing adjective ("эффектный"
+        // pushed NanoBanana to invent a generic handsome face instead of keeping the real one).
+        ctx.subject = gr.noun+" ~"+ctx.age+" лет, тот же самый человек, что на загруженном фото-референсе, с его реальными чертами лица";
     } else {
         ctx.age = clampAge(tpl, pv.age);
     }
