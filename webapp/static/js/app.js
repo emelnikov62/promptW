@@ -2153,6 +2153,40 @@ var GIRL_ROSES_PARAMS = [
       ]}
 ];
 
+// ── Sunset selfie: female-only param template (NanoBanana PRO). Hardened identity. ──
+var GIRL_SUNSET_SKELETON = `Создай изображение на основе исходного фото девушки — это РЕФЕРЕНС ЛИЦА, скопируй лицо с него максимально точно, 1:1. Сохрани без изменений: форму и ШИРИНУ лица и полноту щёк (НЕ сужай лицо, не делай его тоньше или более вытянутым), овал и линию челюсти, форму и пропорции носа, форму и разрез глаз, расстояние между глазами, брови, форму и полноту губ, скулы, структуру и текстуру кожи, родинки, веснушки и все индивидуальные особенности — это та же самая девушка, 100% узнаваемость. БЕЗ сглаживания кожи, БЕЗ AI-эффекта, не идеализируй, не омолаживай, не делай лицо тоньше, красивее или «модельным», не меняй форму носа и пропорции лица. Если сомневаешься — копируй черты точно с референса, ничего не приукрашивай. Глаза хорошо видны. Ультрареалистичный роскошный селфи-портрет на закате, снятый фронтальной камерой iPhone на открытом воздухе, тёмная кинематографическая вечерняя цветовая гамма, дорогая винтажная эстетика супермодели начала 2000-х в сочетании с откровенной энергией папарацци. Девушка делает селфи на фронтальную камеру: настоящий ракурс селфи с вытянутой руки, кадр немного снизу, плотная вертикальная композиция крупным планом, обрезка от верхней части груди до макушки. Слегка неидеальное откровенное обрамление, взгляд полностью направлен в сторону, мягкое отстранённое уверенное выражение, губы слегка приоткрыты, видна чёткая линия подбородка. Одна рука вытянута вперёд, телефон в основном за пределами кадра (могут быть видны лишь слегка размытые края пальцев). Очень длинные ультрапрямые шелковистые волосы. {headscarf}. {glasses}. Безупречный макияж, губы пудрово-коричневые, лёгкий загар, но сохрани реальный тон кожи девушки. Одежда: {outfit}. {earrings}. Фон — современный роскошный фасад из глянцевого чёрного зеркального стекла, кремовое архитектурное обрамление, отблески заката, пальмы, отражающиеся в стекле, тёплые тона сумерек, низкий угол обзора, мрачная атмосфера кинематографической роскоши. Мрачная цветопередача, пониженная экспозиция, глубокие тени, приглушённые блики, слегка недоэкспонированный редакторский вид, тёплые коричнево-чёрные кинематографические тона, тонкий контраст, тёплое сумеречное освещение, тонкая зернистость, ощущение селфи с фронтальной камеры. Снято на iPhone 17 Pro Max, фронтальная камера. Без посторонних людей, без текста и водяных знаков.`;
+
+var GIRL_SUNSET_PARAMS = [
+    { id:"outfit", control:"sheet", label:{ru:"Одежда",en:"Clothing",es:"Ropa"},
+      options:[
+        {value:"mini-brown", label:{ru:"Коричневое мини",en:"Brown mini",es:"Mini marrón"}, frag:"тёмно-коричневое ультрамини-платье на тонких бретельках-спагетти, открытые плечи и ключицы, приталенный скульптурный силуэт"},
+        {value:"mini-black", label:{ru:"Чёрное мини",en:"Black mini",es:"Mini negro"}, frag:"чёрное ультрамини-платье на тонких бретельках-спагетти, открытые плечи, приталенный силуэт"},
+        {value:"corset", label:{ru:"Корсетный топ",en:"Corset top",es:"Top corsé"}, frag:"облегающий корсетный топ цвета мокко на тонких бретельках, открытые плечи"},
+        {value:"leather", label:{ru:"Кожаное мини",en:"Leather mini",es:"Mini de cuero"}, frag:"чёрный кожаный мини-сарафан на тонких бретельках, открытые плечи"}
+      ]},
+    { id:"headscarf", control:"sheet", label:{ru:"Платок",en:"Headscarf",es:"Pañuelo"},
+      options:[
+        {value:"leopard", label:{ru:"Леопардовый",en:"Leopard",es:"Leopardo"}, frag:"на голове плотный шелковистый платок с винтажным леопардовым принтом, низко надвинутый на лоб, холодный бежевый базовый тон с угольно-коричневыми и выцветшими чёрными узорами, концы платка спадают на плечо"},
+        {value:"silk-black", label:{ru:"Чёрный шёлк",en:"Black silk",es:"Seda negra"}, frag:"на голове гладкий чёрный шёлковый платок, низко надвинутый на лоб, концы спадают на плечо"},
+        {value:"silk-beige", label:{ru:"Бежевый шёлк",en:"Beige silk",es:"Seda beige"}, frag:"на голове гладкий бежевый шёлковый платок, низко надвинутый на лоб, концы спадают на плечо"},
+        {value:"none", label:{ru:"Без платка",en:"No headscarf",es:"Sin pañuelo"}, frag:"без платка, волосы распущены"}
+      ]},
+    { id:"earrings", control:"sheet", label:{ru:"Серёжки",en:"Earrings",es:"Pendientes"},
+      options:[
+        {value:"massive", label:{ru:"Массивные металл",en:"Massive metal",es:"Metal grande"}, frag:"крупные массивные серьги с тёплой отражающей металлической отделкой"},
+        {value:"gold-hoops", label:{ru:"Золотые кольца",en:"Gold hoops",es:"Aros dorados"}, frag:"крупные золотые серьги-кольца"},
+        {value:"silver-drops", label:{ru:"Серебряные капли",en:"Silver drops",es:"Gotas plata"}, frag:"длинные серебристые серьги-капли"},
+        {value:"studs", label:{ru:"Гвоздики",en:"Studs",es:"Broqueles"}, frag:"небольшие аккуратные серьги-гвоздики"}
+      ]},
+    { id:"glasses", control:"sheet", label:{ru:"Очки",en:"Glasses",es:"Gafas"},
+      options:[
+        {value:"rect-silver", label:{ru:"Прямоугольные",en:"Rectangular",es:"Rectangulares"}, frag:"узкие прямоугольные солнцезащитные очки, тонкая серебристая металлическая оправа, тёмные дымчатые линзы, очки расположены низко на носу, над ними хорошо видны глаза и макияж"},
+        {value:"cat-eye", label:{ru:"Кошачий глаз",en:"Cat-eye",es:"Ojo de gato"}, frag:"узкие солнцезащитные очки «кошачий глаз» в чёрной оправе, расположены низко на носу, над ними видны глаза"},
+        {value:"oversized", label:{ru:"Крупные чёрные",en:"Oversized black",es:"Grandes negras"}, frag:"крупные чёрные солнцезащитные очки в стиле начала 2000-х"},
+        {value:"none", label:{ru:"Без очков",en:"No glasses",es:"Sin gafas"}, frag:"без солнцезащитных очков, выразительный макияж глаз хорошо виден"}
+      ]}
+];
+
 var BDAY_VIDEO_PROMPT = `ИДЕНТИЧНОСТЬ (главное правило): человек в кадре — тот же самый человек, что на загруженном фото (@Image1). В КАЖДОМ кадре без изменений сохраняй его лицо и черты лица, причёску, цвет и длину волос, телосложение, оттенок и текстуру кожи и его одежду строго как на референсе — 100% сходство, это тот же человек, не подменяй, не идеализируй и не омолаживай лицо.
 Аутентичное вертикальное видео со смартфона, 9:16, 1080x1920, ручная съёмка ночью. Мобильная документалка: тряска, лёгкий смаз, низкосветовой шум и зерно. Макс. фотореализм — как видео от друга, НЕ кино, НЕ стилизация. Свет только от фонарей.
 【Длит.】10 сек
@@ -2202,15 +2236,24 @@ var TRENDS = {
     "girl-roses-photo": {
         type: "photo", cost: 30, model: "NanoBanana PRO",
         preview: "/static/tpl/girl-roses-photo.jpg", full: "/static/tpl/girl-roses-photo.jpg",
-        ratio: "9:16", minPhotos: 1, maxPhotos: 8, prompt: GIRL_ROSES_SKELETON,
+        ratio: "9:16", ratios: ["9:16", "3:4"], minPhotos: 1, maxPhotos: 8, prompt: GIRL_ROSES_SKELETON,
         skeleton: GIRL_ROSES_SKELETON, params: GIRL_ROSES_PARAMS,
         title: { ru: "Девушка с розами", en: "Girl with roses", es: "Chica con rosas" },
         desc: { ru: "Загрузите фото, где хорошо видно лицо — оно сохранится с референса (без сглаживания и AI-эффекта). Ниже выберите цветы, одежду, тапочки, часы и телефон, остальное соберётся автоматически.", en: "Upload a photo with a clearly visible face — it's kept from the reference (no skin smoothing, no AI look). Choose flowers, clothing, slippers, watch and phone below; the rest is assembled automatically.", es: "Sube una foto con la cara bien visible — se mantiene de la referencia (sin suavizado ni efecto AI). Elige flores, ropa, pantuflas, reloj y teléfono abajo; el resto se arma automáticamente." }
+    },
+    "girl-sunset-photo": {
+        type: "photo", cost: 30, model: "NanoBanana PRO",
+        preview: "/static/tpl/girl-sunset-photo.jpg", full: "/static/tpl/girl-sunset-photo.jpg",
+        ratio: "9:16", ratios: ["9:16", "3:4"], minPhotos: 1, maxPhotos: 8, prompt: GIRL_SUNSET_SKELETON,
+        skeleton: GIRL_SUNSET_SKELETON, params: GIRL_SUNSET_PARAMS,
+        title: { ru: "Селфи на закате", en: "Sunset selfie", es: "Selfie al atardecer" },
+        desc: { ru: "Загрузите фото, где хорошо видно лицо — оно сохранится с референса (без сглаживания и AI-эффекта). Ниже выберите одежду, платок, серёжки и очки, остальное соберётся автоматически.", en: "Upload a photo with a clearly visible face — it's kept from the reference (no skin smoothing, no AI look). Choose clothing, headscarf, earrings and glasses below; the rest is assembled automatically.", es: "Sube una foto con la cara bien visible — se mantiene de la referencia (sin suavizado ni efecto AI). Elige ropa, pañuelo, pendientes y gafas abajo; el resto se arma automáticamente." }
     }
 };
 
 var TOKENS_WORD = { ru: "токенов", en: "tokens", es: "tokens" };
 var tplFiles = [];
+var tplRatio = null;   // selected aspect ratio for templates that expose `ratios`
 
 function renderTplUploads(tpl) {
     var area = document.getElementById("tpl-uploads");
@@ -2411,6 +2454,16 @@ function showTplDetail(id) {
                   '<div class="tpl-select">' + tpl.quality + chevSvg + '</div>') : '';
     }
 
+    // Optional aspect-ratio picker (templates that list `ratios`). Otherwise the
+    // ratio is fixed to tpl.ratio. tplGenerate reads the selected tplRatio.
+    var ratioBlock = '';
+    tplRatio = tpl.ratio || (tpl.ratios && tpl.ratios[0]) || null;
+    if (tpl.ratios && tpl.ratios.length > 1) {
+        ratioBlock = '<h4 class="tpl-sec">' + t("tplOrientation") + '</h4><div class="pill-row" id="tpl-ratio">' +
+            tpl.ratios.map(function(r){ return '<button class="pill' + (r === tplRatio ? ' active' : '') + '" data-r="' + r + '">' + r + '</button>'; }).join('') +
+            '</div>';
+    }
+
     // Param mode (hide raw prompt, show key params) vs legacy textarea mode.
     var promptBlock;
     if (tpl.params) {
@@ -2438,6 +2491,7 @@ function showTplDetail(id) {
         afterUploads +
         promptBlock +
         setting +
+        ratioBlock +
         '<div class="gen-bar"><button class="gen-btn" id="tpl-gen"><span>' + t("generate") + '</span><div class="tok"><span class="coin">W</span>' + tpl.cost + '</div></button></div>';
 
     document.getElementById("tpl-detail-content").innerHTML = html;
@@ -2460,6 +2514,13 @@ function showTplDetail(id) {
 
     var refBtn = document.getElementById("tpl-refhint");
     if (refBtn) refBtn.addEventListener("click", function() { openRefguide("tpl-detail"); });
+    var ratioRow = document.getElementById("tpl-ratio");
+    if (ratioRow) ratioRow.addEventListener("click", function(e) {
+        var b = e.target.closest(".pill"); if (!b) return;
+        tplRatio = b.dataset.r;
+        ratioRow.querySelectorAll(".pill").forEach(function(x){ x.classList.toggle("active", x === b); });
+        haptic.select();
+    });
     document.getElementById("tpl-gen").addEventListener("click", function() { tplGenerate(tpl, this, id); });
 
     showPage("tpl-detail");
@@ -2487,7 +2548,7 @@ async function tplGenerate(tpl, btn, id) {
         fd.append("model", tpl.model);
         // Always send tplId — the server charges the fixed template price by it (pricing.py
         // TEMPLATE_COST), so the charged amount matches the price shown in the UI.
-        var settings = { ratio: tpl.ratio, tplId: id };
+        var settings = { ratio: (tplRatio || tpl.ratio), tplId: id };
         if (tpl.quality) settings.quality = tpl.quality;
         if (tpl.mode) settings.mode = tpl.mode;
         if (tpl.duration) settings.duration = tpl.duration;
