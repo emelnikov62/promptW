@@ -680,7 +680,7 @@ body.noscroll{overflow:hidden}
 /* desktop: constrain to phone-width centered column */
 @media (min-width:600px){
     body{background:#000}
-    #app{max-width:480px;margin:0 auto;min-height:100vh;background:var(--bg);border-left:1px solid var(--brd);border-right:1px solid var(--brd)}
+    #app{max-width:480px;margin:0 auto;min-height:100vh;background:var(--bg);border-left:1px solid var(--brd);border-right:1px solid var(--brd);padding-bottom:80px}
     .bnav{left:50%;transform:translateX(-50%);width:100%;max-width:480px}
     .chat-input-bar{left:50%;right:auto;transform:translateX(-50%);width:100%;max-width:480px}
     .gen-ov{left:50%;right:auto;transform:translateX(-50%);width:100%;max-width:480px}
