@@ -95,8 +95,13 @@ async def _create_tables():
             ALTER TABLE generations ADD COLUMN IF NOT EXISTS provider_task_id TEXT;
 
             CREATE INDEX IF NOT EXISTS idx_generations_user ON generations(user_tg_id);
+            -- Hot path: history is "this user's rows, newest first" — a composite
+            -- index serves the ORDER BY without a separate sort.
+            CREATE INDEX IF NOT EXISTS idx_generations_user_created ON generations(user_tg_id, created_at DESC);
             CREATE INDEX IF NOT EXISTS idx_generations_pending ON generations(status) WHERE status = 'pending';
             CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions(user_tg_id);
+            CREATE INDEX IF NOT EXISTS idx_transactions_user_created ON transactions(user_tg_id, created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_payments_user_created ON payments(user_tg_id, created_at DESC);
             CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_tg_id);
             CREATE INDEX IF NOT EXISTS idx_chat_dialogs_user ON chat_dialogs(user_tg_id, updated_at DESC);
             CREATE INDEX IF NOT EXISTS idx_chat_messages_dialog ON chat_messages(dialog_id, id);

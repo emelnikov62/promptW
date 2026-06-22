@@ -99,22 +99,31 @@ async def _yk_post(session, headers, body):
 
 async def yookassa_verify(payment_id: str) -> tuple:
     """Re-fetch a payment from ЮKassa (authoritative — webhooks are unsigned).
-    Returns (succeeded: bool, order_id or None)."""
+    Returns (succeeded: bool, order_id or None, amount_rub or None). The amount is
+    cross-checked against the stored order before crediting, so a tampered/replayed
+    notification can't settle an order for a different sum."""
     if not payment_id or not yookassa_available():
-        return False, None
+        return False, None, None
     headers = {"Authorization": _yk_auth()}
     try:
         async with aiohttp.ClientSession() as s:
             async with s.get(f"{YOOKASSA_API}/{payment_id}", headers=headers, timeout=20) as r:
                 data = await r.json()
                 if r.status >= 300:
-                    return False, None
+                    return False, None, None
                 ok = data.get("status") == "succeeded" and data.get("paid") is True
                 order_id = (data.get("metadata") or {}).get("order_id")
-                return ok, order_id
+                # amount.value is a decimal string like "498.00"; we store integer rubles.
+                amount = None
+                try:
+                    raw = (data.get("amount") or {}).get("value")
+                    amount = int(round(float(raw))) if raw is not None else None
+                except (ValueError, TypeError):
+                    amount = None
+                return ok, order_id, amount
     except Exception:
         logger.exception("YooKassa verify error")
-        return False, None
+        return False, None, None
 
 
 # ── Platega ──

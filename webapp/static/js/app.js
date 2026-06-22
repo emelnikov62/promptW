@@ -2261,8 +2261,8 @@ function showTplDetail(id) {
     var tokWord = TOKENS_WORD[L] || TOKENS_WORD.ru;
 
     var media = tpl.type === "photo"
-        ? '<img src="' + (tpl.full || tpl.preview) + '" alt="">'
-        : '<video src="' + tpl.preview + '" autoplay muted loop playsinline></video>';
+        ? '<img src="' + escHtml(tpl.full || tpl.preview) + '" alt="">'
+        : '<video src="' + escHtml(tpl.preview) + '" autoplay muted loop playsinline></video>';
     var needBadge = tpl.needPhoto
         ? '<div class="tpl-needphoto"><span class="pill-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7M19 12H5"/></svg></span><span>' + t("trendNeedPhoto") + '</span></div>' : '';
 
@@ -2303,12 +2303,12 @@ function showTplDetail(id) {
         '<div class="tpl-hero">' + media + '</div>' +
         needBadge +
         '<div class="tpl-head">' +
-            '<h2 class="tpl-title">' + title + '</h2>' +
+            '<h2 class="tpl-title">' + escHtml(title) + '</h2>' +
             '<span class="tpl-price"><span class="coin">W</span>' + tpl.cost + ' ' + tokWord + '</span>' +
             '<button class="tpl-share">' + shareSvg + '</button>' +
         '</div>' +
-        '<p class="tpl-model">' + tpl.model + '</p>' +
-        '<p class="tpl-desc">' + desc + '</p>' +
+        '<p class="tpl-model">' + escHtml(tpl.model || "") + '</p>' +
+        '<p class="tpl-desc">' + escHtml(desc) + '</p>' +
         '<h4 class="tpl-sec">' + t("yourPhotos") + '</h4>' +
         '<div class="tpl-uploads" id="tpl-uploads"></div>' +
         afterUploads +
