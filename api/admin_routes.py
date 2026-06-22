@@ -583,6 +583,111 @@ async def admin_template_upload(request):
     return web.json_response({"ok": True, "url": url})
 
 
+# ── Promo codes ──
+
+@admin_routes.get("/api/admin/promos")
+async def admin_promos_list(request):
+    _require_admin(request)
+    pool = await get_pool()
+    limit = _qint(request, "limit", 50, 1, 200)
+    offset = _qint(request, "offset", 0, 0)
+    rows = await pool.fetch("""
+        SELECT * FROM promo_codes ORDER BY created_at DESC LIMIT $1 OFFSET $2
+    """, limit, offset)
+    total = await pool.fetchval("SELECT COUNT(*) FROM promo_codes")
+    return web.json_response({"items": [_row(r) for r in rows], "total": total})
+
+
+@admin_routes.post("/api/admin/promos")
+async def admin_promo_create(request):
+    admin_id = _require_admin(request)
+    data = await _json_body(request)
+    code = (data.get("code") or "").strip().upper()
+    ptype = (data.get("type") or "").strip()
+    value = int(data.get("value", 0))
+    max_uses = int(data.get("max_uses", 0))
+    enabled = bool(data.get("enabled", True))
+    expires_at = data.get("expires_at") or None
+    if expires_at:
+        try:
+            expires_at = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+        except Exception:
+            expires_at = None
+
+    if not code or ptype not in ("topup", "bonus_pct") or value <= 0:
+        return web.json_response({"error": "code, valid type (topup/bonus_pct), and value > 0 required"}, status=400)
+
+    pool = await get_pool()
+    try:
+        await pool.execute("""
+            INSERT INTO promo_codes (code, type, value, max_uses, enabled, expires_at)
+            VALUES ($1, $2, $3, $4, $5, $6)
+        """, code, ptype, value, max_uses, enabled, expires_at)
+    except Exception:
+        return web.json_response({"error": "code already exists"}, status=409)
+
+    await _audit(admin_id, "promo_create", "promo", code,
+                 None, {"type": ptype, "value": value, "max_uses": max_uses},
+                 None, _client_ip(request))
+    return web.json_response({"ok": True})
+
+
+@admin_routes.put("/api/admin/promos/{promo_id}")
+async def admin_promo_update(request):
+    admin_id = _require_admin(request)
+    promo_id = int(request.match_info["promo_id"])
+    data = await _json_body(request)
+    pool = await get_pool()
+
+    old = await pool.fetchrow("SELECT * FROM promo_codes WHERE id = $1", promo_id)
+    if not old:
+        return web.json_response({"error": "not_found"}, status=404)
+
+    enabled = data.get("enabled", old["enabled"])
+    max_uses = int(data.get("max_uses", old["max_uses"]))
+    value = int(data.get("value", old["value"]))
+    ptype = (data.get("type") or old["type"]).strip()
+    expires_at = data.get("expires_at")
+    if expires_at == "":
+        expires_at = None
+    elif expires_at is not None:
+        try:
+            expires_at = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+        except Exception:
+            expires_at = old["expires_at"]
+    else:
+        expires_at = old["expires_at"]
+
+    if ptype not in ("topup", "bonus_pct"):
+        return web.json_response({"error": "valid type required"}, status=400)
+
+    await pool.execute("""
+        UPDATE promo_codes SET type=$1, value=$2, max_uses=$3, enabled=$4, expires_at=$5
+        WHERE id=$6
+    """, ptype, value, max_uses, bool(enabled), expires_at, promo_id)
+
+    await _audit(admin_id, "promo_update", "promo", old["code"],
+                 {"enabled": old["enabled"], "value": old["value"]},
+                 {"enabled": enabled, "value": value},
+                 None, _client_ip(request))
+    return web.json_response({"ok": True})
+
+
+@admin_routes.delete("/api/admin/promos/{promo_id}")
+async def admin_promo_delete(request):
+    admin_id = _require_admin(request)
+    promo_id = int(request.match_info["promo_id"])
+    pool = await get_pool()
+    old = await pool.fetchrow("SELECT code FROM promo_codes WHERE id = $1", promo_id)
+    if not old:
+        return web.json_response({"error": "not_found"}, status=404)
+    await pool.execute("DELETE FROM promo_activations WHERE promo_id = $1", promo_id)
+    await pool.execute("DELETE FROM promo_codes WHERE id = $1", promo_id)
+    await _audit(admin_id, "promo_delete", "promo", old["code"],
+                 None, None, None, _client_ip(request))
+    return web.json_response({"ok": True})
+
+
 # ── Audit log ──
 
 @admin_routes.get("/api/admin/audit")
