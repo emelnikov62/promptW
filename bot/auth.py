@@ -63,7 +63,12 @@ def _auth_secret(bot_token: str) -> bytes:
     return hmac.new(b"PromptWDesktopAuth", bot_token.encode(), hashlib.sha256).digest()
 
 
-def make_auth_token(tg_id: int, bot_token: str, ttl_sec: int = 7 * 86400) -> str:
+# TTL kept deliberately short: this token is embedded in the WebApp URL and persisted
+# to localStorage, so a leak grants full user-scope API access until it expires. 2 days
+# covers active desktop users (the token is re-minted on every /start) while shrinking
+# the leak window ~3.5x vs the old 7 days. Primary auth is initData (24h); this is only
+# a fallback for clients that don't expose it.
+def make_auth_token(tg_id: int, bot_token: str, ttl_sec: int = 2 * 86400) -> str:
     exp = int(time.time()) + ttl_sec
     msg = f"{tg_id}.{exp}"
     sig = hmac.new(_auth_secret(bot_token), msg.encode(), hashlib.sha256).hexdigest()

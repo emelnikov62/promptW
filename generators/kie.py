@@ -267,8 +267,24 @@ class KieGenerator(BaseGenerator):
             filepath = await self._download_file(urls[0], "png")
             return task_id, urls[0], filepath
 
-        # run N independent generations concurrently (one task per image)
-        results = await asyncio.gather(*[_one() for _ in range(count)])
+        # Run N independent generations concurrently (one task per image). Await ALL of
+        # them even if one fails (return_exceptions) so a single failure can't abandon the
+        # other in-flight tasks. Keep all-or-nothing semantics: on any failure, drop the
+        # siblings' already-downloaded files and re-raise so the caller refunds the whole
+        # gen (the reconciler can't half-finish a batch).
+        settled = await asyncio.gather(*[_one() for _ in range(count)], return_exceptions=True)
+        errors = [r for r in settled if isinstance(r, Exception)]
+        results = [r for r in settled if not isinstance(r, Exception)]
+        if errors:
+            for _tid, _url, fp in results:
+                try:
+                    if storage.is_remote(fp):
+                        await storage.adelete_url(fp)
+                    else:
+                        os.remove(fp)
+                except Exception:
+                    pass
+            raise errors[0]
 
         task_ids = [r[0] for r in results]
         all_urls = [r[1] for r in results]

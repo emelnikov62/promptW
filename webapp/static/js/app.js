@@ -1,6 +1,6 @@
 var tg = window.Telegram.WebApp;
 tg.ready(); tg.expand();
-tg.setHeaderColor("#08080F"); tg.setBackgroundColor("#08080F");
+tg.setHeaderColor("#16130F"); tg.setBackgroundColor("#16130F");   // warm --bg (design system), not cold near-black
 
 // Fullscreen mode — hides Telegram's centered "name / mini app" title, leaving just floating Close/menu.
 try { if (tg.requestFullscreen) tg.requestFullscreen(); } catch (e) {}
@@ -585,7 +585,7 @@ function renderRefChips(area) {
     files.forEach(function(f, i) {
         if (f.type && f.type.startsWith("image/")) {
             var objUrl = URL.createObjectURL(f);
-            html += '<div class="ref-chip ref-chip-img" data-idx="' + i + '"><img src="' + objUrl + '" class="ref-chip-thumb"><button class="ref-chip-x">×</button></div>';
+            html += '<div class="ref-chip ref-chip-img" data-idx="' + i + '"><img src="' + objUrl + '" class="ref-chip-thumb" onload="URL.revokeObjectURL(this.src)"><button class="ref-chip-x">×</button></div>';
         } else {
             var name = f.name.length > 12 ? f.name.substring(0, 9) + "…" : f.name;
             html += '<div class="ref-chip" data-idx="' + i + '"><span class="ref-chip-name">' + name + '</span><button class="ref-chip-x">×</button></div>';
@@ -2137,7 +2137,7 @@ function renderTplUploads(tpl) {
     var html = "";
     tplFiles.forEach(function(f, i) {
         var u = URL.createObjectURL(f);
-        html += '<div class="tpl-up-thumb"><img src="' + u + '"><button class="tpl-up-x" data-i="' + i + '">×</button></div>';
+        html += '<div class="tpl-up-thumb"><img src="' + u + '" onload="URL.revokeObjectURL(this.src)"><button class="tpl-up-x" data-i="' + i + '">×</button></div>';
     });
     if (tplFiles.length < max) html += '<div class="tpl-up-add" id="tpl-up-add">' + plusSvg + '</div>';
     area.innerHTML = html;
