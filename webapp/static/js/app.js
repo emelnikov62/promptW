@@ -2022,6 +2022,7 @@ async function loadRefsForRepeat(references){
 }
 
 async function repeatGeneration(item){
+    if(item.settings&&item.settings.tplId){ loadTemplateThen(item.settings.tplId); return; }
     var type=item.type==="photo"?"image":(item.type==="audio"?"audio":"video");
     uploadedFiles={};
 
