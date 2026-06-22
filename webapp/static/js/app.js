@@ -65,7 +65,17 @@ var state = { pRatio:1, pQual:1 };
 var PHOTO_BASE_COST = 30;               // фото: 30 W за генерацию в любом качестве
 // 1 кредит KIE = $0.005 ≈ 0.37 ₽; 1 токен ≈ 1.06 ₽. M=2.2 → маржа ~84% (list) / ~80% (макс. скидка)
 var CREDIT_TO_TOKEN = 2.2;
-// short brand monograms shown on the "active model" tile per neural network
+// mascot logos shown on the "active model" tile per neural network (transparent PNGs
+// extracted from the brand sheet → /static/img/models/<slug>.png). MODEL_LOGOS below
+// stays as the text-monogram fallback for any model without a logo file.
+var MODEL_LOGO_VER = 1; // bump when a logo PNG is re-exported (cache-bust)
+var MODEL_LOGO_IMG = {
+    "NanoBanana PRO":"nanobanana-pro","NanoBanana 2":"nanobanana-2","GPT Image 2":"gpt-image-2",
+    "Seedream 4.5":"seedream","Kling 3.0":"kling","Kling Motion 3.0":"kling-motion",
+    "Grok Imagine 1.5":"grok","Veo 3.1 Fast":"veo","Seedance 2.0":"seedance",
+    "Suno V5":"suno","Suno V4.5":"suno"
+};
+// short brand monograms — fallback when no logo PNG is mapped
 var MODEL_LOGOS = {
     "NanoBanana PRO":"NB","NanoBanana 2":"N2","GPT Image 2":"G2","Seedream 4.5":"SD",
     "Kling Motion 3.0":"KL","Grok Imagine 1.5":"GK","Kling 3.0":"KL","Veo 3.1 Fast":"VO","Seedance 2.0":"S2",
@@ -73,6 +83,13 @@ var MODEL_LOGOS = {
 };
 function applyModelLogo(icoId, modelName){
     var el = document.getElementById(icoId); if (!el) return;
+    var img = MODEL_LOGO_IMG[modelName];
+    if (img){
+        el.classList.add("has-logo");
+        el.innerHTML = '<img class="model-logo" src="/static/img/models/' + img + '.png?v=' + MODEL_LOGO_VER + '" alt="">';
+        return;
+    }
+    el.classList.remove("has-logo");
     var m = MODEL_LOGOS[modelName];
     if (m) el.innerHTML = '<span class="model-mono">' + m + '</span>';
 }

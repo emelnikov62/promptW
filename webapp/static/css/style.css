@@ -774,6 +774,8 @@ body.tg-back #back-btn{display:none}
 .rwd-ico svg{width:22px;height:22px;display:block}
 .model-ico svg{width:20px;height:20px;display:block}
 .model-mono{font-family:var(--font);font-weight:800;font-size:13px;letter-spacing:-.04em;line-height:1}
+.model-ico.has-logo{background:none;border:none;overflow:visible}
+.model-logo{width:42px;height:42px;object-fit:contain;display:block;filter:drop-shadow(0 2px 5px rgba(0,0,0,.45))}
 .tpl-hdr-ico{display:inline-flex;align-items:center;color:var(--tx2)}
 .tpl-hdr-ico svg{width:17px;height:17px}
 .pill-ico{display:inline-flex;flex-shrink:0;margin-top:1px}
@@ -797,7 +799,8 @@ body.tg-back #back-btn{display:none}
 .terms-accept{margin-top:20px;padding-top:14px;border-top:1px solid var(--brd);text-align:center;line-height:1.5}
 /* ── Onboarding ── */
 body.ob-open{overflow:hidden}
-.ob{position:fixed;inset:0;z-index:250;background:var(--bg);display:flex;flex-direction:column;padding:14px 18px calc(16px + env(safe-area-inset-bottom));box-sizing:border-box;font-family:var(--font-sans)}
+.ob{position:fixed;inset:0;z-index:250;background:var(--bg);display:flex;flex-direction:column;align-items:center;padding:14px 18px calc(16px + env(safe-area-inset-bottom));box-sizing:border-box;font-family:var(--font-sans)}
+.ob-top,.ob-view,.ob-foot{width:100%;max-width:480px}
 .ob-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 .ob-brand{font-size:14px;font-weight:600;letter-spacing:.02em;color:var(--tx)}
 .ob-w{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
