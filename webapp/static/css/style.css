@@ -93,7 +93,7 @@ body.scrolled .header{border-bottom-color:var(--brd)}
 .tpl-cat.expanded .tpl-thumb:not(.has-media){display:none}
 .tpl-cat.expanded .tpl-thumb-cap{font-size:11px;padding:18px 10px 9px}
 /* TEXT / CHAT */
-.chat-bar{display:flex;align-items:center;gap:8px;padding:4px 0 12px}
+.chat-bar{display:flex;align-items:center;gap:8px;padding:4px 16px 12px;position:sticky;top:0;z-index:80;background:var(--bg);margin:0 -16px}
 .chat-ic{position:relative;width:38px;height:38px;border-radius:12px;border:1px solid var(--brd);background:var(--card);color:var(--tx);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
 .chat-ic svg{width:18px;height:18px}
 .chat-ic::after{content:"";position:absolute;inset:-3px}
