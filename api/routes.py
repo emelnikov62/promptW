@@ -1061,16 +1061,46 @@ async def api_chat_delete(request: web.Request):
 #     handsome man). A/B on prod: supercar full-body 3/4 ok → waist-up framing 4/4.
 # Placed at the END of the prompt for recency. Kept out of the stored/returned
 # prompt so history/repeat stay clean (the suffix is re-applied each run).
+# Short identity lead placed at the very START of the prompt (primacy). The base
+# template prompts already front-load a Russian "copy the face 1:1" block, but a
+# concise English lead anchors the instruction the model weighs first and states the
+# single rule that matters most: describe the SCENE, never the person's features.
+_TPL_IDENTITY_ANCHOR = (
+    "Use the uploaded reference photo as the strict source of the person's face and "
+    "identity — the SAME real, specific person, copied 1:1. The description below "
+    "specifies only the scene, clothing, light and framing, never the person's facial "
+    "features or looks.\n\n"
+)
+
+# Appended at the END (recency). Kept in ENGLISH on purpose: the underlying model
+# (Gemini-based NanoBanana) follows English directives more precisely than Russian.
+# It reinforces the deltas the base prompt under-covers (real specific person, not a
+# model/celebrity; no added beard / age change; face-prominent framing) rather than
+# re-listing every feature the base block already enumerates.
 _TPL_IDENTITY_SUFFIX = (
-    "\n\nГЛАВНОЕ ПО ЛИЦУ: на результате — ТОТ ЖЕ человек, что на загруженном фото-референсе. "
-    "Перенеси лицо 1:1: форма и ШИРИНА лица, полнота щёк, линия челюсти, форма и пропорции носа, "
-    "разрез и ЦВЕТ глаз, брови, форма губ, скулы, текстура кожи, родинки, усы/щетина/борода, "
-    "цвет и причёска волос — строго как на фото. НЕ идеализируй, не омолаживай, не сужай лицо, "
-    "не делай его симметричнее или «модельным» — это обычный человек, узнаваемый мгновенно. "
-    "ЗАПРЕЩЕНО: добавлять бороду, усы или щетину, если их нет на фото (и наоборот — не убирать, если есть); "
-    "менять возраст, форму лица, делать скулы/челюсть резче, заменять человека на другого, более «модельного». "
-    "КОМПОЗИЦИЯ: построй кадр так, чтобы человек был КРУПНО, а ЛИЦО — в центре внимания, в фокусе и "
-    "максимально чётким (поясной или средний план). НЕ делай мелкую фигуру в полный рост с маленьким лицом."
+    "\n\n[IDENTITY — TOP PRIORITY] The person in the output MUST be the exact same real, "
+    "specific individual from the uploaded reference photo — a real photographed person, "
+    "NOT a similar-looking model, lookalike or celebrity, and NOT an idealized or "
+    "AI-beautified face. Copy the reference face 1:1: face shape and width, cheek fullness, "
+    "jawline, nose shape, eye shape and eye COLOR, eyebrows, lips, cheekbones, skin texture, "
+    "moles, facial hair and hairstyle. Do NOT beautify, slim or narrow the face, sharpen the "
+    "jaw or cheekbones, change the age, add a beard/stubble/moustache that is not in the photo "
+    "(or remove one that is), or make the face more symmetrical or 'model-like'. The result "
+    "must be instantly recognizable to the person's own family. "
+    "[FRAMING] Keep the person LARGE in frame with the FACE as the sharp, well-lit focal point "
+    "(waist-up or medium shot); never a tiny full-body figure with a small face."
+)
+
+# Black-and-white / editorial / high-fashion stylization is where faces drift most
+# (the model "fashionizes" them). Appended only when the scene asks for such a look.
+_BW_CUES = (
+    "чёрно-бел", "черно-бел", "ч/б", "монохром", "grayscale",
+    "black and white", "black-and-white", "editorial",
+)
+_BW_CLAUSE = (
+    " Even under black-and-white, monochrome or editorial/high-fashion stylization, keep the "
+    "exact real facial proportions and identity from the reference — never stylize the face "
+    "toward a fashion model."
 )
 
 
@@ -1080,18 +1110,30 @@ _TPL_IDENTITY_SUFFIX = (
 # bearded GQ models on jet/supercar, women drift younger on vogue). Neutralize them at
 # generation time — same code-side approach as _FULLBODY_REPL, no prod-DB mutation.
 _DEPRIME_REPL = (
+    # positive "be impressive/aspirational" priming on the person
     (r"\bуспешн\w+", ""),
     (r"\bуверенн\w+", ""),
     (r"\bстатусн\w+", ""),
     (r"\bэффектн\w+", ""),
     (r"\bгламурн\w+", ""),
     (r"\bроскошн\w+\s+(?=человек|мужчин|женщин|девушк|парн)", ""),
+    # "look like a (super)model" cues — the strongest substitution trigger. Note we do
+    # NOT strip a bare "модель": the base prompts use it inside protective negations
+    # ("НЕ заменяй на типовое «модельное»"), so blanket removal would gut the guard.
+    (r"\bсупермодел\w+", ""),
+    (r"\b(?:топ[-\s]?)?модел\w+\s+(?=внешност|лиц)", ""),
+    # appearance adjectives that bias the face toward a generic "pretty" prior
+    (r"\bкрасив\w+", ""),
+    (r"\bпривлекательн\w+", ""),
+    (r"\bсимпатичн\w+", ""),
+    (r"\bобаятельн\w+", ""),
+    (r"\bочаровательн\w+", ""),
+    # fashion-magazine style cues
     (r"в\s+стиле\s+VOGUE", "в стиле естественного портрета"),
     (r"\bVOGUE\b", ""),
     (r"\beditorial\b", ""),
     (r"\bfashion[-\s]?(?:модел\w+|съёмк\w+|съемк\w+)", "портрет"),
     (r"высок\w+\s+мод\w+", ""),
-    (r"\b(?:топ[-\s]?)?модел\w+", "человек"),
 )
 
 
@@ -1124,10 +1166,16 @@ def _augment_template_prompt(prompt: str, settings: dict, files: dict) -> str:
         return prompt
     if not (files or {}).get("photo-refs"):
         return prompt
+    # detect stylization cues on the ORIGINAL text (before de-prime strips them)
+    low = prompt.lower()
+    bw = any(c in low for c in _BW_CUES)
     for a, b in _FULLBODY_REPL:
         prompt = prompt.replace(a, b)
     prompt = _deprime(prompt)
-    return prompt + _TPL_IDENTITY_SUFFIX
+    out = _TPL_IDENTITY_ANCHOR + prompt + _TPL_IDENTITY_SUFFIX
+    if bw:
+        out += _BW_CLAUSE
+    return out
 
 
 @routes.post("/api/generate/image")
