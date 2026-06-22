@@ -64,7 +64,7 @@
 - `obCtaStart` (финальный primary-CTA): Создать первое фото / Create my first photo / Crear mi primera foto
 - `obReplay` (в «Инфо»): Посмотреть введение / Watch the intro / Ver la introducción
 
-**Бонус `{n}`:** подставляется из JS-константы `WELCOME_BONUS` (= серверный welcome-бонус, сейчас 90).
+**Бонус `{n}`:** подставляется из JS-константы `WELCOME_BONUS` (= серверный welcome-бонус, сейчас 60).
 Источник истины — бэкенд; константа в `app.js` должна совпадать. Онбординг **сам токены НЕ
 начисляет** — только анонсирует существующий welcome-бонус.
 
