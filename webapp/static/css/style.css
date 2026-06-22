@@ -799,15 +799,15 @@ body.tg-back #back-btn{display:none}
 .terms-accept{margin-top:20px;padding-top:14px;border-top:1px solid var(--brd);text-align:center;line-height:1.5}
 /* ── Onboarding ── */
 body.ob-open{overflow:hidden}
-.ob{position:fixed;inset:0;z-index:250;background:var(--bg);display:flex;flex-direction:column;align-items:center;padding:14px 18px calc(16px + env(safe-area-inset-bottom));box-sizing:border-box;font-family:var(--font-sans)}
-.ob-top,.ob-view,.ob-foot{width:100%;max-width:480px}
+.ob{position:fixed;inset:0;z-index:250;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:14px 18px calc(16px + env(safe-area-inset-bottom));box-sizing:border-box;font-family:var(--font-sans)}
+.ob-card{width:100%;max-width:440px;height:100%;max-height:780px;display:flex;flex-direction:column}
 .ob-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 .ob-brand{font-size:14px;font-weight:600;letter-spacing:.02em;color:var(--tx)}
 .ob-w{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
 .ob-skip{background:none;border:0;color:var(--tx3);font-size:13px;padding:8px 6px;cursor:pointer;font-family:inherit}
 .ob-view{flex:1;overflow:hidden;display:flex}
 .ob-track{display:flex;width:100%;transition:transform .32s cubic-bezier(.4,0,.2,1)}
-.ob-slide{flex:0 0 100%;display:flex;flex-direction:column;justify-content:center;gap:24px;padding:0 2px;box-sizing:border-box}
+.ob-slide{flex:0 0 100%;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:24px;padding:0 2px;box-sizing:border-box}
 .ob-final{align-items:center;text-align:center}
 .ob-vis{display:flex;align-items:center;justify-content:center}
 .ob-ba{display:flex;align-items:center;gap:12px}
