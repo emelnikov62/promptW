@@ -2524,9 +2524,8 @@ function renderTrendsGrid() {
     var grid = document.getElementById("trends-grid");
     if (!grid || !templatesList) return;
     var feat = templatesList.filter(function(x){ return x.featured; });
-    // Keep the two non-functional "coming soon" teasers exactly as before.
-    var teasers = '<div class="trend-t"><span>' + t("trendDance") + '</span></div>' +
-                  '<div class="trend-t"><span>' + t("trendMakePhoto") + '</span></div>';
+    // "Танец на миллион" teaser removed (no content yet); keep the make-photo teaser.
+    var teasers = '<div class="trend-t"><span>' + t("trendMakePhoto") + '</span></div>';
     grid.innerHTML = feat.map(tplTrendCard).join("") + teasers;
 }
 
