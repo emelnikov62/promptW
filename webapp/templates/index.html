@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=Unbounded:wght@500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css?v=123">
+    <link rel="stylesheet" href="/static/css/style.css?v=124">
 </head>
 <body>
 <div id="app">
@@ -325,6 +325,7 @@
             <div class="info-card gold-c"><span class="info-badge rf">ФР</span><b data-i18n="photoRef">Фото-референс</b><span class="muted small" data-i18n="photoRefDesc">Какое фото дать боту, чтобы результат был похожим.</span><span class="gold small" data-i18n="openMore">Открыть подробнее</span></div>
             <div class="info-card pink"><span class="info-badge pr">ПП</span><b data-i18n="partnerProgramInfo">Партнёрская программа</b><span class="muted small" data-i18n="partnerProgramInfoDesc">Выдавайте ссылку, объясните бота и смотрите начисления.</span><span class="gold small" data-i18n="openMore">Открыть подробнее</span></div>
         </div>
+        <button class="ob-replay-btn" id="ob-replay" data-i18n="obReplay">Посмотреть введение</button>
     </section>
 
     <!-- PHOTO REFERENCE GUIDE -->
@@ -640,7 +641,80 @@
 
 </div>
 <div class="media-lightbox" id="media-lightbox"><div id="lb-content"><button class="lb-close" id="lb-close">&times;</button></div></div>
-<script src="/static/js/i18n.js?v=100"></script>
-<script src="/static/js/app.js?v=137"></script>
+
+<!-- ONBOARDING -->
+<div id="onboarding" class="ob hidden" role="dialog" aria-modal="true" aria-label="PromptW">
+    <div class="ob-top">
+        <span class="ob-brand">Prompt<span class="ob-w">W</span></span>
+        <button class="ob-skip" id="ob-skip" data-i18n="obSkip">Пропустить</button>
+    </div>
+    <div class="ob-view">
+        <div class="ob-track" id="ob-track">
+
+            <div class="ob-slide">
+                <div class="ob-vis">
+                    <div class="ob-ba">
+                        <div class="ob-tile ob-before"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg><span data-i18n="ob1Before">твоё фото</span></div>
+                        <i class="ob-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg></i>
+                        <div class="ob-tile ob-after"><img src="/static/tpl/girl-roses-photo.jpg" alt="" loading="lazy"><span data-i18n="ob1After">результат</span></div>
+                    </div>
+                </div>
+                <div class="ob-text z-photo">
+                    <div class="ob-eyebrow" data-i18n="ob1Eyebrow">БЕЗ НАВЫКОВ</div>
+                    <div class="ob-title" data-i18n="ob1Title">Твой идеальный промт уже готов</div>
+                    <div class="ob-body" data-i18n="ob1Body">Загрузи фото — получи вау-результат по готовому шаблону. Промтить не надо, всё придумано за тебя 💛</div>
+                </div>
+            </div>
+
+            <div class="ob-slide">
+                <div class="ob-vis">
+                    <div class="ob-grid">
+                        <div class="ob-gtile"><img src="/static/tpl/yacht-photo.jpg" alt="" loading="lazy"><span data-i18n="ob2Yacht">Яхта</span></div>
+                        <div class="ob-gtile"><img src="/static/tpl/girl-vogue-photo.jpg" alt="" loading="lazy"><span data-i18n="ob2Vogue">Vogue</span></div>
+                        <div class="ob-gtile"><img src="/static/tpl/man-alpine-photo.jpg" alt="" loading="lazy"><span data-i18n="ob2Jet">Вершины</span></div>
+                        <div class="ob-gtile"><img src="/static/tpl/girl-neon-photo.jpg" alt="" loading="lazy"><span data-i18n="ob2Neon">Неон</span></div>
+                    </div>
+                </div>
+                <div class="ob-text z-video">
+                    <div class="ob-eyebrow" data-i18n="ob2Eyebrow">ТРЕНДЫ</div>
+                    <div class="ob-title" data-i18n="ob2Title">Тренды, которые залетают</div>
+                    <div class="ob-body" data-i18n="ob2Body">Яхта, обложка Vogue, частный джет — и везде твоё лицо. Новые шаблоны добавляем постоянно ✨</div>
+                </div>
+            </div>
+
+            <div class="ob-slide">
+                <div class="ob-vis">
+                    <div class="ob-icons">
+                        <div class="ob-itile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m22 3-9.5 9.5M22 3l-7 18-4-8-8-4 19-6z"/></svg><span data-i18n="ob3TileApp">в Telegram</span></div>
+                        <div class="ob-itile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span data-i18n="ob3TilePay">карта · СБП</span></div>
+                        <div class="ob-itile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 8.5h4a2 2 0 0 1 0 4h-4m0 0h4.5a2 2 0 0 1 0 4h-4.5m0-8V7m0 10v-1.5m2-8V7m0 10v-1.5"/></svg><span data-i18n="ob3TileCrypto">крипта</span></div>
+                    </div>
+                </div>
+                <div class="ob-text z-audio">
+                    <div class="ob-eyebrow" data-i18n="ob3Eyebrow">УДОБНО</div>
+                    <div class="ob-title" data-i18n="ob3Title">Всё прямо здесь, в Telegram</div>
+                    <div class="ob-body" data-i18n="ob3Body">Никаких отдельных приложений. Оплата как удобно — карта, СБП или крипта. Работаем с Россией и СНГ 😌</div>
+                </div>
+            </div>
+
+            <div class="ob-slide ob-final">
+                <div class="ob-vis"><div class="ob-coin">W</div></div>
+                <div class="ob-text">
+                    <div class="ob-eyebrow z-gold" data-i18n="ob4Eyebrow">ПОДАРОК</div>
+                    <div class="ob-title" id="ob4-title" data-i18n="ob4Title">Держи 90 токенов в подарок 🎁</div>
+                    <div class="ob-body" data-i18n="ob4Body">Это ~3 фото бесплатно. А ещё зарабатывай 30% с друзей по рефералке. Погнали?</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <div class="ob-foot">
+        <div class="ob-dots" id="ob-dots"></div>
+        <button class="ob-next" id="ob-next" data-i18n="obNext">Далее</button>
+    </div>
+</div>
+
+<script src="/static/js/i18n.js?v=101"></script>
+<script src="/static/js/app.js?v=138"></script>
 </body>
 </html>
