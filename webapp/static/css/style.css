@@ -811,27 +811,8 @@ body.ob-open{overflow:hidden}
 .ob-slide{flex:0 0 100%;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:24px;padding:0 2px;box-sizing:border-box}
 .ob-final{align-items:center;text-align:center}
 .ob-vis{display:flex;align-items:center;justify-content:center}
-.ob-ba{display:flex;align-items:center;gap:12px}
-.ob-tile{position:relative;width:38vw;max-width:138px;aspect-ratio:3/4;border-radius:var(--rs);background:var(--card2);border:1px solid var(--brd);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--tx2);overflow:hidden}
-.ob-tile svg{width:30px;height:30px}
-.ob-before span{font-size:11px;font-family:var(--font-mono);letter-spacing:.04em;color:var(--tx3)}
-.ob-after{border-color:var(--photo)}
-.ob-after img{width:100%;height:100%;object-fit:cover}
-.ob-after span{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:rgba(20,16,12,.72);color:var(--tx);padding:3px 10px;border-radius:999px;font-size:10px;font-family:var(--font-mono)}
-.ob-arrow{color:var(--photo);display:flex}
-.ob-arrow svg{width:22px;height:22px}
-.ob-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;max-width:300px;margin:0 auto}
-.ob-gtile{position:relative;aspect-ratio:1/1;border-radius:var(--rs);overflow:hidden;border:1px solid var(--brd);background:var(--card2)}
-.ob-gtile img{width:100%;height:100%;object-fit:cover}
-.ob-gtile span{position:absolute;bottom:6px;left:6px;background:rgba(20,16,12,.72);color:var(--tx);padding:2px 8px;border-radius:999px;font-size:10px;font-family:var(--font-mono)}
-.ob-icons{display:flex;gap:10px;justify-content:center;width:100%}
-.ob-itile{flex:1;max-width:96px;aspect-ratio:1/1;border-radius:var(--rs);background:var(--card2);border:1px solid var(--brd);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--tx2)}
-.ob-itile svg{width:26px;height:26px}
-.ob-itile:nth-child(1) svg{color:var(--chat)}
-.ob-itile:nth-child(2) svg{color:var(--gold)}
-.ob-itile:nth-child(3) svg{color:var(--audio)}
-.ob-itile span{font-size:10px;font-family:var(--font-mono);color:var(--tx3);text-align:center}
-.ob-coin{width:92px;height:92px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-family:var(--font-disp);font-weight:700;font-size:40px;color:#3A1109;box-shadow:0 8px 24px rgba(255,107,92,.32),inset 0 2px 6px rgba(255,255,255,.3)}
+.ob-hero{display:flex;justify-content:center;width:100%}
+.ob-hero img{width:100%;max-width:440px;max-height:50vh;display:block;border-radius:22px;-webkit-mask-image:linear-gradient(to right,transparent,#000 11%,#000 89%,transparent),linear-gradient(to bottom,transparent,#000 11%,#000 89%,transparent);-webkit-mask-composite:source-in;mask-image:linear-gradient(to right,transparent,#000 11%,#000 89%,transparent),linear-gradient(to bottom,transparent,#000 11%,#000 89%,transparent);mask-composite:intersect}
 .ob-text{max-width:340px}
 .ob-final .ob-text{margin:0 auto}
 .ob-eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;margin-bottom:10px;color:var(--tx3)}
