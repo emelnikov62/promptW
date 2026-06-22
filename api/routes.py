@@ -10,6 +10,7 @@ from datetime import datetime, date, timezone
 from decimal import Decimal
 
 import aiohttp
+import asyncpg
 from aiohttp import web
 from aiogram import Bot
 from aiogram.types import FSInputFile, BufferedInputFile
@@ -479,7 +480,10 @@ async def _parse_request(request: web.Request):
                 if too_big:
                     try: os.remove(fpath)
                     except OSError: pass
-                    continue   # silently drop the oversize file
+                    # Fail loudly instead of silently dropping the file: a dropped
+                    # reference used to produce a confusing wrong-face result with no
+                    # error. The client surfaces this as an upload error toast.
+                    raise web.HTTPBadRequest(text="file_too_large")
                 # PIL decode/resize/re-encode is blocking CPU+disk work; run it off
                 # the event loop so a large phone photo doesn't stall every other
                 # request (same executor pattern as storage/face_verify).
@@ -801,33 +805,37 @@ async def api_promo_activate(request: web.Request):
         if existing:
             return web.json_response({"error": "already_used"}, status=400)
 
-        async with conn.transaction():
-            await conn.execute("""
-                INSERT INTO promo_activations (promo_id, user_tg_id, tokens_given)
-                VALUES ($1, $2, $3)
-            """, promo["id"], tg_id, promo["value"] if promo["type"] == "topup" else 0)
-            await conn.execute(
-                "UPDATE promo_codes SET used_count = used_count + 1 WHERE id = $1",
-                promo["id"])
-
-            if promo["type"] == "topup":
-                await conn.execute(
-                    "UPDATE users SET balance = balance + $1, updated_at = NOW() WHERE tg_id = $2",
-                    promo["value"], tg_id)
+        # The check above is not atomic with the INSERT below — a concurrent double-tap
+        # could pass both checks, then the UNIQUE(promo_id, user_tg_id) constraint makes
+        # the 2nd INSERT raise. Catch it and return a clean "already_used" (400) instead
+        # of leaking a 500 / stack trace.
+        try:
+            async with conn.transaction():
                 await conn.execute("""
-                    INSERT INTO transactions (user_tg_id, amount, tx_type, description)
-                    VALUES ($1, $2, 'promo', $3)
-                """, tg_id, promo["value"], f"promo:{code}")
-                bal = await conn.fetchval("SELECT balance FROM users WHERE tg_id = $1", tg_id)
-                return web.json_response({
-                    "ok": True, "type": "topup",
-                    "tokens": promo["value"], "balance": bal
-                })
-            else:
-                return web.json_response({
-                    "ok": True, "type": "bonus_pct",
-                    "value": promo["value"], "promo_id": promo["id"]
-                })
+                    INSERT INTO promo_activations (promo_id, user_tg_id, tokens_given)
+                    VALUES ($1, $2, $3)
+                """, promo["id"], tg_id, promo["value"] if promo["type"] == "topup" else 0)
+                await conn.execute(
+                    "UPDATE promo_codes SET used_count = used_count + 1 WHERE id = $1",
+                    promo["id"])
+
+                if promo["type"] == "topup":
+                    await conn.execute(
+                        "UPDATE users SET balance = balance + $1, updated_at = NOW() WHERE tg_id = $2",
+                        promo["value"], tg_id)
+                    await conn.execute("""
+                        INSERT INTO transactions (user_tg_id, amount, tx_type, description)
+                        VALUES ($1, $2, 'promo', $3)
+                    """, tg_id, promo["value"], f"promo:{code}")
+                    bal = await conn.fetchval("SELECT balance FROM users WHERE tg_id = $1", tg_id)
+                    resp = {"ok": True, "type": "topup",
+                            "tokens": promo["value"], "balance": bal}
+                else:
+                    resp = {"ok": True, "type": "bonus_pct",
+                            "value": promo["value"], "promo_id": promo["id"]}
+        except asyncpg.UniqueViolationError:
+            return web.json_response({"error": "already_used"}, status=400)
+        return web.json_response(resp)
 
 
 # ── Top-up payments (ЮMoney RF / Platega CIS) ──

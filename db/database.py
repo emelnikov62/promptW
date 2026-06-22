@@ -13,6 +13,7 @@ async def init_db(dsn: str):
     global _pool
     _pool = await asyncpg.create_pool(dsn, min_size=2, max_size=10)
     await _create_tables()
+    await _safe_migrations()
     await _seed_templates()
 
 
@@ -240,6 +241,24 @@ async def _create_tables():
                 UNIQUE(promo_id, user_tg_id)
             );
         """)
+
+
+async def _safe_migrations():
+    """Best-effort migrations that MUST NOT block startup if they fail (e.g. a unique
+    index that can't be built because of pre-existing duplicate data). Each runs in its
+    own statement; a failure is logged and skipped rather than aborting boot."""
+    # Defense-in-depth backstop against double-crediting a referral commission: settle
+    # already prevents it via the pending->paid flip, but a unique index guarantees it
+    # at the storage layer even if a future code path re-runs crediting. (payment_id is
+    # nullable; Postgres treats NULLs as distinct, so non-commission rows are unaffected.)
+    async with _pool.acquire() as conn:
+        try:
+            await conn.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ux_ref_earnings_payment_line "
+                "ON ref_earnings(payment_id, line)")
+        except Exception:
+            logger.warning("ref_earnings unique index not created (pre-existing dupes?) "
+                           "— skipping; settle's pending-flip still prevents double-credit")
 
 
 async def _seed_templates():
