@@ -604,7 +604,7 @@ body.noscroll{overflow:hidden}
 .tpl-prompt-preview{white-space:pre-wrap;word-break:break-word;background:var(--card2);border:1px solid var(--brd);border-radius:var(--rs);padding:12px;margin-top:6px;font-family:var(--font-mono);font-size:11px;line-height:1.55;color:var(--tx2);max-height:240px;overflow-y:auto}
 .tpl-auto-note{display:flex;gap:8px;margin-top:14px;padding:11px 13px;background:var(--card2);border:1px solid var(--brd);border-radius:var(--rs);color:var(--tx2);font-size:13px;line-height:1.45}
 #page-tpl-detail .gen-btn{margin-top:20px}
-#page-tpl-detail{padding-bottom:28px}
+#page-tpl-detail{padding-bottom:90px}
 .tpl-price .coin{width:16px;height:16px;font-size:9px}
 
 /* ===================== v4 redesign ===================== */
