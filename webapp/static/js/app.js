@@ -2492,7 +2492,7 @@ async function tplGenerate(tpl, btn, id) {
 // Markup/classes mirror the former static layout 1:1 so the look is unchanged.
 var templatesList = null;     // cached light list
 var _tplListFetching = false;
-var TPL_CAT_ORDER = ["girls", "men"];   // curated sections; others appended after
+var TPL_CAT_ORDER = ["girls", "men", "cinema", "jobs", "eras"];   // curated sections; others appended after
 var TPL_PEOPLE_ICO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
 var TPL_CAMERA_ICO = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>';
 var TPL_ARROW_ICO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7M19 12H5"/></svg>';
