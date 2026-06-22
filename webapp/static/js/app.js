@@ -2622,6 +2622,46 @@ document.querySelectorAll("[data-rwd]").forEach(function(b) {
 updateRewardsDot();
 
 // ── Token packages → payment sheet (СБП / Карта РФ via ЮKassa) ──
+var activePromoId = null;
+var activePromoPct = 0;
+(function(){
+    var btn=document.getElementById("promo-activate");
+    if(!btn) return;
+    btn.addEventListener("click",async function(){
+        var inp=document.getElementById("promo-input");
+        var msg=document.getElementById("promo-msg");
+        var code=(inp?inp.value:"").trim();
+        if(!code){msg.textContent=t("promoEmpty");msg.className="promo-msg err";return;}
+        btn.disabled=true;
+        try{
+            var res=await fetch("/api/promo/activate",{
+                method:"POST",headers:authHeaders({"Content-Type":"application/json"}),
+                body:JSON.stringify({code:code})
+            });
+            var d=await res.json().catch(function(){return {};});
+            if(res.ok&&d.ok){
+                if(d.type==="topup"){
+                    msg.textContent=t("promoTopupOk").replace("{n}",d.tokens);
+                    msg.className="promo-msg ok";
+                    if(d.balance!=null){document.querySelectorAll(".user-balance").forEach(function(el){el.textContent=d.balance;});if(currentUser)currentUser.balance=d.balance;refreshGenButtons();}
+                } else {
+                    activePromoId=d.promo_id;
+                    activePromoPct=d.value;
+                    msg.textContent=t("promoBonusOk").replace("{n}",d.value);
+                    msg.className="promo-msg ok";
+                }
+                inp.value="";
+                haptic.notify("success");
+            } else {
+                var errKey={not_found:"promoNotFound",disabled:"promoDisabled",expired:"promoExpired",limit_reached:"promoLimit",already_used:"promoUsed"};
+                msg.textContent=t(errKey[d.error]||"promoError");
+                msg.className="promo-msg err";
+                haptic.notify("error");
+            }
+        }catch(e){msg.textContent=t("promoError");msg.className="promo-msg err";}
+        btn.disabled=false;
+    });
+})();
 var selectedPkg = null, payMethod = "sbp", lastPayUrl = null;
 var PKG_PRICE = {"100":106,"300":307,"500":498,"1000":954,"2000":1802,"5000":4240};
 function tuNote(msg, cls){ var n = document.getElementById("tu-note"); if (n){ n.className = "wd-note" + (cls ? " " + cls : ""); n.textContent = msg; } }
@@ -2652,7 +2692,7 @@ async function startPay(method){
         var res = await fetch("/api/topup/create", {
             method: "POST",
             headers: authHeaders({"Content-Type": "application/json"}),
-            body: JSON.stringify({ package: selectedPkg, provider: "yoomoney", method: method })
+            body: JSON.stringify({ package: selectedPkg, provider: "yoomoney", method: method, promo_id: activePromoId || undefined })
         });
         var d = await res.json().catch(function(){ return {}; });
         if (res.ok && d.url){

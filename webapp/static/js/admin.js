@@ -91,7 +91,7 @@ function logout() {
 
 // ── Navigation ──
 var navItems = document.querySelectorAll(".nav-item");
-var sectionTitles = {dashboard:"Dashboard",users:"Пользователи",generations:"Генерации",payments:"Платежи",withdrawals:"Выводы",templates:"Шаблоны",face:"Сходство лиц",audit:"Аудит-лог"};
+var sectionTitles = {dashboard:"Dashboard",users:"Пользователи",generations:"Генерации",payments:"Платежи",withdrawals:"Выводы",templates:"Шаблоны",promos:"Промокоды",face:"Сходство лиц",audit:"Аудит-лог"};
 
 navItems.forEach(function(btn) {
     btn.addEventListener("click", function() {
@@ -120,6 +120,7 @@ function showSection(name) {
         payments: function() { loadPayments(0); },
         withdrawals: function() { loadWithdrawals(0); },
         templates: function() { loadTemplates(0); },
+        promos: function() { loadPromos(0); },
         face: function() { loadFace(facePeriod); },
         audit: function() { loadAudit(0); }
     };
@@ -739,6 +740,91 @@ function deleteTemplate(id) {
     api("/api/admin/templates/" + encodeURIComponent(id), { method: "DELETE" }).then(function(d) {
         if (d.ok) loadTemplates(0);
         else alert("Ошибка: " + (d.error || "unknown"));
+    });
+}
+
+// ── Promos ──
+var PROMO_TYPES = {topup:"Пополнение на сумму",bonus_pct:"% бонус при пополнении"};
+function promoTypeBadge(t){ return '<span class="badge badge-'+(t==="topup"?"done":"pending")+'">'+(PROMO_TYPES[t]||t)+'</span>'; }
+
+function loadPromos(offset){
+    var mc=document.getElementById("main-content");
+    mc.innerHTML='<p style="color:var(--tx2)">Загрузка...</p>';
+    api("/api/admin/promos?limit="+PAGE_SIZE+"&offset="+offset).then(function(d){
+        var rows=d.items.map(function(p){
+            var en=p.enabled?'<span class="badge badge-done">on</span>':'<span class="badge badge-error">off</span>';
+            var uses=p.used_count+"/"+(p.max_uses||"∞");
+            var exp=p.expires_at?fmtDate(p.expires_at):"—";
+            var valStr=p.type==="topup"?p.value+" W":p.value+"%";
+            return '<tr><td>'+esc(p.code)+'</td><td>'+promoTypeBadge(p.type)+'</td><td>'+valStr+'</td><td>'+uses+'</td><td>'+en+'</td><td>'+exp+'</td><td>'+fmtDate(p.created_at)+'</td>'+
+                '<td><button class="btn btn-outline btn-sm" onclick="editPromo('+p.id+')">Изм.</button> '+
+                '<button class="btn btn-danger btn-sm" onclick="deletePromo('+p.id+',\''+esc(p.code)+'\')">Удал.</button></td></tr>';
+        }).join("");
+        mc.innerHTML='<div style="margin-bottom:12px"><button class="btn btn-primary btn-sm" onclick="newPromo()">+ Новый промокод</button></div>'+
+            '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Код</th><th>Тип</th><th>Значение</th><th>Использований</th><th>Вкл</th><th>Истекает</th><th>Создан</th><th>Действия</th></tr></thead><tbody>'+
+            (rows||'<tr><td colspan="8" style="text-align:center;color:var(--tx3)">Нет промокодов</td></tr>')+'</tbody></table></div>'+
+            pagination(d.total,offset,"loadPromos");
+    });
+}
+
+function _promoForm(p,isNew){
+    var typeOpts=['topup','bonus_pct'].map(function(t){return '<option value="'+t+'"'+(p.type===t?' selected':'')+'>'+PROMO_TYPES[t]+'</option>';}).join("");
+    return '<h3>'+(isNew?"Новый промокод":"Редактировать: "+esc(p.code))+'</h3>'+
+        '<div class="tpl-form">'+
+        tfField("Код",  '<input class="tf-in" id="pf-code" value="'+esc(p.code||"")+'" placeholder="SUMMER2026" style="text-transform:uppercase"'+(isNew?'':' disabled')+'>') +
+        tfField("Тип",  '<select class="tf-in" id="pf-type">'+typeOpts+'</select>') +
+        tfField("Значение", '<input class="tf-in" id="pf-value" type="number" min="1" value="'+(p.value||"")+'" placeholder="'+(_pTypeHint(p.type))+'">') +
+        '<p class="tf-hint" id="pf-hint">'+_pTypeHint(p.type)+'</p>'+
+        tfField("Макс. использований", '<input class="tf-in" id="pf-max" type="number" min="0" value="'+(p.max_uses||0)+'" placeholder="0 = безлимит">') +
+        tfField("Истекает", '<input class="tf-in" id="pf-expires" type="datetime-local" value="'+(p.expires_at?p.expires_at.slice(0,16):"")+'">') +
+        '<label class="tf-check" style="margin:12px 0"><input id="pf-enabled" type="checkbox"'+(p.enabled!==false?' checked':'')+'> Включён</label>'+
+        '<div class="tf-actions">'+
+            '<button class="btn btn-primary" onclick="savePromo('+(isNew?'0':p.id)+','+isNew+')">Сохранить</button>'+
+            '<button class="btn btn-outline" onclick="closeModal()">Отмена</button>'+
+        '</div></div>';
+}
+function _pTypeHint(t){return t==="bonus_pct"?"Процент бонуса при пополнении (напр. 30 = +30%)":"Сумма токенов для начисления (напр. 500)";}
+
+function newPromo(){
+    openModal(_promoForm({enabled:true,type:"topup"},true));
+    document.getElementById("pf-type").addEventListener("change",function(){
+        document.getElementById("pf-hint").textContent=_pTypeHint(this.value);
+    });
+}
+
+function editPromo(id){
+    api("/api/admin/promos?limit=200").then(function(d){
+        var p=null;
+        d.items.forEach(function(it){if(it.id===id)p=it;});
+        if(!p){alert("Не найден");return;}
+        openModal(_promoForm(p,false));
+        document.getElementById("pf-type").addEventListener("change",function(){
+            document.getElementById("pf-hint").textContent=_pTypeHint(this.value);
+        });
+    });
+}
+
+function savePromo(id,isNew){
+    var code=document.getElementById("pf-code").value.trim().toUpperCase();
+    var type=document.getElementById("pf-type").value;
+    var value=parseInt(document.getElementById("pf-value").value,10)||0;
+    var max_uses=parseInt(document.getElementById("pf-max").value,10)||0;
+    var enabled=document.getElementById("pf-enabled").checked;
+    var expires=document.getElementById("pf-expires").value;
+    if(!code||value<=0){alert("Код и значение > 0 обязательны");return;}
+    var body={code:code,type:type,value:value,max_uses:max_uses,enabled:enabled,expires_at:expires||null};
+    var path=isNew?"/api/admin/promos":"/api/admin/promos/"+id;
+    api(path,{method:isNew?"POST":"PUT",body:JSON.stringify(body)}).then(function(d){
+        if(d.ok){closeModal();loadPromos(0);}
+        else alert("Ошибка: "+(d.error||"unknown"));
+    });
+}
+
+function deletePromo(id,code){
+    if(!confirm("Удалить промокод «"+code+"»?"))return;
+    api("/api/admin/promos/"+id,{method:"DELETE"}).then(function(d){
+        if(d.ok)loadPromos(0);
+        else alert("Ошибка: "+(d.error||"unknown"));
     });
 }
 
