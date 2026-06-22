@@ -117,6 +117,16 @@ async def main():
     gen_name = "KieGenerator" if KIE_API_KEY else "StubGenerator"
     logging.info("Generator: %s", gen_name)
 
+    # Warm up the face-similarity model off the request path (the first request would
+    # otherwise block the loop loading it). Only when the feature is actually enabled.
+    if os.getenv("FACE_VERIFY", "0") == "1" or os.getenv("FACE_VERIFY_SHADOW", "0") == "1":
+        try:
+            import face_verify
+            ok = await face_verify.aavailable()
+            logging.info("face_verify warmup: %s", "ready" if ok else "unavailable (fail-open)")
+        except Exception:
+            logging.exception("face_verify warmup failed (feature stays off)")
+
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher()
     dp.include_router(router)

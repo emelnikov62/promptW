@@ -91,7 +91,7 @@ function logout() {
 
 // ── Navigation ──
 var navItems = document.querySelectorAll(".nav-item");
-var sectionTitles = {dashboard:"Dashboard",users:"Пользователи",generations:"Генерации",payments:"Платежи",withdrawals:"Выводы",templates:"Шаблоны",audit:"Аудит-лог"};
+var sectionTitles = {dashboard:"Dashboard",users:"Пользователи",generations:"Генерации",payments:"Платежи",withdrawals:"Выводы",templates:"Шаблоны",face:"Сходство лиц",audit:"Аудит-лог"};
 
 navItems.forEach(function(btn) {
     btn.addEventListener("click", function() {
@@ -120,6 +120,7 @@ function showSection(name) {
         payments: function() { loadPayments(0); },
         withdrawals: function() { loadWithdrawals(0); },
         templates: function() { loadTemplates(0); },
+        face: function() { loadFace(facePeriod); },
         audit: function() { loadAudit(0); }
     };
     if (loaders[name]) loaders[name]();
@@ -162,6 +163,75 @@ function loadDashboard() {
 }
 function kpi(label, value, sub, cls) {
     return '<div class="kpi"><div class="kpi-label">' + esc(label) + '</div><div class="kpi-value ' + (cls||"") + '">' + value + '</div><div class="kpi-sub">' + esc(sub||"") + '</div></div>';
+}
+
+// ── Face similarity ──
+var facePeriod = "all";
+function setFacePeriod(p) { facePeriod = p; loadFace(p); }
+function pct(n, d) { return d > 0 ? Math.round(n * 100 / d) + "%" : "—"; }
+function num(v) { return (v == null) ? "—" : v; }
+
+function loadFace(period) {
+    facePeriod = period || "all";
+    var mc = document.getElementById("main-content");
+    mc.innerHTML = '<p style="color:var(--tx2)">Загрузка...</p>';
+    api("/api/admin/face-stats?period=" + facePeriod).then(function(d) {
+        var s = d.stats || {};
+        var periods = [["day","День"],["week","Неделя"],["month","Месяц"],["all","Всё"]];
+        var tabs = '<div class="face-tabs">' + periods.map(function(p) {
+            return '<button class="face-tab' + (p[0] === facePeriod ? " active" : "") +
+                '" onclick="setFacePeriod(\'' + p[0] + '\')">' + p[1] + '</button>';
+        }).join("") + '</div>';
+
+        var ref = s.ref_found || 0;
+        var firstAcc = (s.accepted_first || 0);
+        var html = tabs + '<div class="kpi-grid">' +
+            kpi("Eligible-генераций", num(s.total), "с лицом в рефе: " + num(ref) + " (" + pct(ref, s.total) + ")") +
+            kpi("Retry-rate", pct(s.retried || 0, s.total), num(s.retried) + " с ≥2 попыток", (s.retried > 0 ? "accent" : "")) +
+            kpi("Acceptance", pct(s.accepted || 0, ref), "с 1-й: " + pct(firstAcc, ref), "success") +
+            kpi("Лишних прогонов", num(s.extra_attempts), "потери: " + (s.money_lost || 0).toLocaleString("ru") + " ₽" + (s.unit_cost ? "" : " (задай unit cost)"), (s.extra_attempts > 0 ? "error" : "")) +
+            kpi("Средний score", s.avg_score != null ? s.avg_score.toFixed(3) : "—", "медиана: " + (s.median_score != null ? s.median_score.toFixed(3) : "—")) +
+            '</div>';
+
+        // Attempts distribution + score bands
+        var a1 = s.att1 || 0, a2 = s.att2 || 0, a3 = s.att3 || 0, at = a1 + a2 + a3;
+        html += '<div class="face-row">';
+        html += '<div class="face-card"><h3>Попытки</h3>' +
+            faceBar("1 попытка", a1, at, "var(--success)") +
+            faceBar("2 попытки", a2, at, "var(--gold)") +
+            faceBar("3 попытки", a3, at, "var(--error)") + '</div>';
+        html += '<div class="face-card"><h3>Распределение score (где есть реф)</h3>' +
+            faceBar("Отлично ≥0.50", s.band_strong || 0, ref, "var(--success)") +
+            faceBar("Ок 0.35–0.50", s.band_ok || 0, ref, "var(--gold)") +
+            faceBar("Слабо <0.35", s.band_weak || 0, ref, "var(--error)") + '</div>';
+        html += '</div>';
+
+        // Per-template table
+        var rows = d.by_template || [];
+        var tbl = '<div class="face-card" style="margin-top:16px"><h3>По шаблонам</h3>';
+        if (!rows.length) {
+            tbl += '<p style="color:var(--tx2)">Нет данных за период.</p>';
+        } else {
+            tbl += '<table class="tbl"><thead><tr><th>Шаблон</th><th>Всего</th><th>Retry</th><th>Лишних</th><th>Потери ₽</th><th>Accept</th><th>Avg score</th></tr></thead><tbody>';
+            rows.forEach(function(r) {
+                tbl += '<tr><td>' + esc(r.tpl_id) + '</td><td>' + num(r.total) + '</td><td>' +
+                    pct(r.retried || 0, r.total) + '</td><td>' + num(r.extra_attempts) + '</td><td>' +
+                    (r.money_lost || 0).toLocaleString("ru") + '</td><td>' + pct(r.accepted || 0, r.total) +
+                    '</td><td>' + (r.avg_score != null ? r.avg_score.toFixed(3) : "—") + '</td></tr>';
+            });
+            tbl += '</tbody></table>';
+        }
+        tbl += '</div>';
+        mc.innerHTML = html + tbl;
+    }).catch(function() {
+        mc.innerHTML = '<p style="color:var(--error)">Не удалось загрузить статистику.</p>';
+    });
+}
+function faceBar(label, val, total, color) {
+    var p = total > 0 ? Math.round(val * 100 / total) : 0;
+    return '<div class="face-line"><span class="face-line-l">' + esc(label) + '</span>' +
+        '<span class="face-line-bar"><span style="width:' + p + '%;background:' + color + '"></span></span>' +
+        '<span class="face-line-v">' + val + ' · ' + p + '%</span></div>';
 }
 
 // ── Users ──

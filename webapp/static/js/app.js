@@ -1680,6 +1680,8 @@ async function runGenerate(type, prompt){
         haptic.notify("success");
         if(genViewOpen) genOvResult(mtype, data);
         else toast(t("genSavedToHistory"),"success");
+        // Face-verify: gentle, brand-voice nudge when similarity stayed low after retries.
+        if(data.face_tip) setTimeout(function(){ toast(t(data.face_tip),"info"); }, 600);
     } catch(err){
         applyBalanceDelta(genCost);   // generation failed — server refunds, restore the UI
         removePendingGen(pendId);
