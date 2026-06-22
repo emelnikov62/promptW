@@ -11,10 +11,12 @@ function applySafeArea() {
     document.documentElement.style.setProperty("--tg-top", top + "px");
 }
 applySafeArea();
+function syncHeaderH(){var h=document.getElementById("main-header");if(h)document.documentElement.style.setProperty("--header-h",h.offsetHeight+"px");}
+requestAnimationFrame(syncHeaderH);
 if (tg.onEvent) {
-    tg.onEvent("safeAreaChanged", applySafeArea);
-    tg.onEvent("contentSafeAreaChanged", applySafeArea);
-    tg.onEvent("fullscreenChanged", applySafeArea);
+    tg.onEvent("safeAreaChanged", function(){applySafeArea();syncHeaderH();});
+    tg.onEvent("contentSafeAreaChanged", function(){applySafeArea();syncHeaderH();});
+    tg.onEvent("fullscreenChanged", function(){applySafeArea();syncHeaderH();});
 }
 
 // Haptic Feedback helpers (no-op if unsupported)
