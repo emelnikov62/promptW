@@ -723,10 +723,12 @@ body.noscroll{overflow:hidden}
 .imgsrc-opt-title{font-size:15px;font-weight:700}
 .imgsrc-opt-sub{font-size:12px;font-weight:500;color:var(--tx3)}
 .imgsrc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;max-height:52vh;overflow-y:auto;padding:1px}
-.imgsrc-cell{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;cursor:pointer;background:var(--card)}
-.imgsrc-cell img{width:100%;height:100%;object-fit:cover;display:block}
+.imgsrc-cell{position:relative;border-radius:10px;overflow:hidden;cursor:pointer;background:var(--card);padding-bottom:100%}
+.imgsrc-cell img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 .imgsrc-cell:active{opacity:.75}
-.imgsrc-add{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:1.5px dashed var(--brd);color:var(--tx2);font-family:var(--font);font-weight:600}
+.imgsrc-add{border:1.5px dashed var(--brd);color:var(--tx2);font-family:var(--font);font-weight:600;text-align:center}
+.imgsrc-add .imgsrc-add-plus{position:absolute;top:50%;left:50%;transform:translate(-50%,-70%)}
+.imgsrc-add .imgsrc-add-t{position:absolute;bottom:25%;left:50%;transform:translateX(-50%);white-space:nowrap}
 .imgsrc-add .imgsrc-add-plus{font-size:24px;line-height:1;font-weight:400}
 .imgsrc-add .imgsrc-add-t{font-size:11px}
 .imgsrc-add:active{opacity:1;background:var(--bg)}
