@@ -20,12 +20,22 @@ import functools
 import logging
 import os
 
+# Keep ONNX/BLAS single-threaded — on the small shared VPS the default (all cores)
+# spikes CPU and starves the bot/Postgres. Inference stays ~0.3-0.5s, which is fine.
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+
 logger = logging.getLogger(__name__)
 
 FACE_MODEL_ROOT = os.getenv("FACE_MODEL_ROOT", "/opt/tg-image-ai-bot/models")
 FACE_MODEL_NAME = os.getenv("FACE_MODEL_NAME", "buffalo_l")
 # Detector input size; smaller = faster, larger = better on small faces.
 _DET_SIZE = int(os.getenv("FACE_DET_SIZE", "640"))
+# Load ONLY what verify needs: detect the face + embed it. The full buffalo_l pack
+# also ships landmark_3d/landmark_2d/genderage models that we never use — loading all
+# five pushed the bot's RSS to ~970MB and OOM-crashed the 2GB VPS. detection+recognition
+# alone roughly halves that. Override via FACE_MODULES (comma list) if ever needed.
+_MODULES = [m.strip() for m in os.getenv("FACE_MODULES", "detection,recognition").split(",") if m.strip()]
 
 _app = None            # insightface FaceAnalysis singleton
 _state = None          # None = not tried yet, True = ready, False = unavailable
@@ -40,11 +50,13 @@ def _load():
         import numpy  # noqa: F401  (ensure the stack is importable before we commit)
         from insightface.app import FaceAnalysis
         app = FaceAnalysis(name=FACE_MODEL_NAME, root=FACE_MODEL_ROOT,
-                           providers=["CPUExecutionProvider"])
+                           providers=["CPUExecutionProvider"],
+                           allowed_modules=_MODULES)
         app.prepare(ctx_id=-1, det_size=(_DET_SIZE, _DET_SIZE))
         _app = app
         _state = True
-        logger.info("face_verify ready (model=%s root=%s)", FACE_MODEL_NAME, FACE_MODEL_ROOT)
+        logger.info("face_verify ready (model=%s modules=%s root=%s)",
+                    FACE_MODEL_NAME, _MODULES, FACE_MODEL_ROOT)
     except Exception:
         _state = False
         logger.exception("face_verify unavailable — feature disabled (fail-open)")
