@@ -214,6 +214,10 @@ async def _create_tables():
             ALTER TABLE templates ADD COLUMN IF NOT EXISTS featured BOOLEAN DEFAULT FALSE;
             CREATE INDEX IF NOT EXISTS idx_templates_enabled ON templates(enabled, sort_order);
 
+            ALTER TABLE payments ADD COLUMN IF NOT EXISTS bonus_pct INTEGER DEFAULT 0;
+            ALTER TABLE payments ADD COLUMN IF NOT EXISTS bonus_tokens INTEGER DEFAULT 0;
+            ALTER TABLE payments ADD COLUMN IF NOT EXISTS promo_id BIGINT;
+
             CREATE TABLE IF NOT EXISTS promo_codes (
                 id BIGSERIAL PRIMARY KEY,
                 code VARCHAR(40) UNIQUE NOT NULL,

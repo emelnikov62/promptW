@@ -749,6 +749,9 @@ body.noscroll{overflow:hidden}
 .field.error .field-input,.field.error .field-area{border-color:var(--error)}
 .field.error .field-label{color:var(--error)}
 .promo-row .field{flex:1}
+.promo-msg{font-size:13px;margin:8px 0 0;line-height:1.4}
+.promo-msg.ok{color:var(--success)}
+.promo-msg.err{color:var(--error)}
 /* photo reference guide */
 .guide-rules{display:flex;flex-direction:column;gap:18px}
 .guide-rule{display:flex;gap:14px;align-items:flex-start}

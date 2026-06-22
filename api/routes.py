@@ -18,6 +18,7 @@ from generators.base import BaseGenerator
 from bot.config import BOT_TOKEN
 from bot.auth import validate_init_data, verify_auth_token, verify_admin_token
 from pricing import compute_cost, CHAT_COST
+from db.database import get_pool
 from db.queries import (
     get_user, upsert_user, update_user_lang, update_balance, try_charge,
     create_generation, update_generation, delete_generation, get_user_generations,
@@ -740,6 +741,68 @@ async def api_delete_reference(request: web.Request):
     return web.json_response({"ok": True})
 
 
+# ── Promo codes ──
+
+@routes.post("/api/promo/activate")
+async def api_promo_activate(request: web.Request):
+    tg_id = _authed_id(request)
+    if not tg_id:
+        return web.json_response({"error": "unauthorized"}, status=401)
+    if not _rate_ok("promo:" + str(tg_id), 10, 60):
+        return _too_many()
+    data, _ = await _parse_request(request)
+    code = (data.get("code") or "").strip().upper()
+    if not code:
+        return web.json_response({"error": "no_code"}, status=400)
+
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        promo = await conn.fetchrow(
+            "SELECT * FROM promo_codes WHERE code = $1", code)
+        if not promo:
+            return web.json_response({"error": "not_found"}, status=404)
+        if not promo["enabled"]:
+            return web.json_response({"error": "disabled"}, status=400)
+        if promo["expires_at"] and promo["expires_at"] < datetime.now(promo["expires_at"].tzinfo or None):
+            return web.json_response({"error": "expired"}, status=400)
+        if promo["max_uses"] > 0 and promo["used_count"] >= promo["max_uses"]:
+            return web.json_response({"error": "limit_reached"}, status=400)
+
+        existing = await conn.fetchval(
+            "SELECT id FROM promo_activations WHERE promo_id = $1 AND user_tg_id = $2",
+            promo["id"], tg_id)
+        if existing:
+            return web.json_response({"error": "already_used"}, status=400)
+
+        async with conn.transaction():
+            await conn.execute("""
+                INSERT INTO promo_activations (promo_id, user_tg_id, tokens_given)
+                VALUES ($1, $2, $3)
+            """, promo["id"], tg_id, promo["value"] if promo["type"] == "topup" else 0)
+            await conn.execute(
+                "UPDATE promo_codes SET used_count = used_count + 1 WHERE id = $1",
+                promo["id"])
+
+            if promo["type"] == "topup":
+                await conn.execute(
+                    "UPDATE users SET balance = balance + $1, updated_at = NOW() WHERE tg_id = $2",
+                    promo["value"], tg_id)
+                await conn.execute("""
+                    INSERT INTO transactions (user_tg_id, amount, tx_type, description)
+                    VALUES ($1, $2, 'promo', $3)
+                """, tg_id, promo["value"], f"promo:{code}")
+                bal = await conn.fetchval("SELECT balance FROM users WHERE tg_id = $1", tg_id)
+                return web.json_response({
+                    "ok": True, "type": "topup",
+                    "tokens": promo["value"], "balance": bal
+                })
+            else:
+                return web.json_response({
+                    "ok": True, "type": "bonus_pct",
+                    "value": promo["value"], "promo_id": promo["id"]
+                })
+
+
 # ── Top-up payments (ЮMoney RF / Platega CIS) ──
 @routes.post("/api/topup/create")
 async def api_topup_create(request: web.Request):
@@ -759,11 +822,26 @@ async def api_topup_create(request: web.Request):
     desc = f"PromptW: {tokens} токенов"
     success_url = WEBAPP_URL or "https://t.me"
 
+    bonus_pct = 0
+    bonus_tokens = 0
+    promo_id = None
+    promo_id_raw = data.get("promo_id")
+    if promo_id_raw:
+        pool = await get_pool()
+        promo = await pool.fetchrow(
+            "SELECT id, type, value, enabled FROM promo_codes WHERE id = $1",
+            int(promo_id_raw))
+        if promo and promo["enabled"] and promo["type"] == "bonus_pct":
+            bonus_pct = promo["value"]
+            bonus_tokens = int(tokens * bonus_pct / 100)
+            promo_id = promo["id"]
+
     if provider == "yoomoney":
         if not pg.yookassa_available():
             return web.json_response({"error": "provider_unavailable"}, status=503)
         method = data.get("method")
-        await create_payment(order_id, tg_id, "yoomoney", amount_rub, tokens)
+        await create_payment(order_id, tg_id, "yoomoney", amount_rub, tokens,
+                             bonus_pct=bonus_pct, bonus_tokens=bonus_tokens, promo_id=promo_id)
         url, pid = await pg.yookassa_create(amount_rub, order_id, success_url, desc, method)
         if not url:
             return web.json_response({"error": "provider_error"}, status=502)
@@ -774,7 +852,8 @@ async def api_topup_create(request: web.Request):
     if provider == "platega":
         if not pg.platega_available():
             return web.json_response({"error": "provider_unavailable"}, status=503)
-        await create_payment(order_id, tg_id, "platega", amount_rub, tokens)
+        await create_payment(order_id, tg_id, "platega", amount_rub, tokens,
+                             bonus_pct=bonus_pct, bonus_tokens=bonus_tokens, promo_id=promo_id)
         fail_url = success_url
         url, txid = await pg.platega_create(amount_rub, order_id, success_url, fail_url, desc)
         if not url:

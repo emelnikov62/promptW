@@ -345,13 +345,17 @@ REF_L2_RATE = 0.05   # second line
 
 async def create_payment(order_id: str, tg_id: int, provider: str,
                          amount_rub, tokens: int,
-                         external_id: Optional[str] = None) -> int:
+                         external_id: Optional[str] = None,
+                         bonus_pct: int = 0, bonus_tokens: int = 0,
+                         promo_id: Optional[int] = None) -> int:
     pool = await get_pool()
     async with pool.acquire() as conn:
         return await conn.fetchval("""
-            INSERT INTO payments (order_id, user_tg_id, provider, amount_rub, tokens, external_id)
-            VALUES ($1, $2, $3, $4, $5, $6) RETURNING id
-        """, order_id, tg_id, provider, amount_rub, tokens, external_id)
+            INSERT INTO payments (order_id, user_tg_id, provider, amount_rub, tokens,
+                                  external_id, bonus_pct, bonus_tokens, promo_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id
+        """, order_id, tg_id, provider, amount_rub, tokens, external_id,
+            bonus_pct, bonus_tokens, promo_id)
 
 
 async def get_payment(order_id: str) -> Optional[dict]:
@@ -421,20 +425,26 @@ async def settle_payment(order_id: str, external_id: Optional[str] = None,
                 WHERE order_id = $1 AND status = 'pending'
                   AND ($3::text IS NULL OR provider = $3)
                   AND ($4::numeric IS NULL OR amount_rub = $4)
-                RETURNING id, user_tg_id, amount_rub, tokens
+                RETURNING id, user_tg_id, amount_rub, tokens, bonus_pct, bonus_tokens
             """, order_id, external_id, provider, expected_amount)
             if pay is None:
                 return None
             buyer = pay["user_tg_id"]
-            # 1) credit purchased tokens
+            base_tokens = pay["tokens"]
+            bonus = pay["bonus_tokens"] or 0
+            total_tokens = base_tokens + bonus
+            # 1) credit purchased tokens + bonus
             await conn.execute(
                 "UPDATE users SET balance = balance + $1, updated_at = NOW() WHERE tg_id = $2",
-                pay["tokens"], buyer,
+                total_tokens, buyer,
             )
+            desc = f"topup:{pay['amount_rub']} RUB"
+            if bonus > 0:
+                desc += f" (+{bonus} bonus {pay['bonus_pct']}%)"
             await conn.execute("""
                 INSERT INTO transactions (user_tg_id, amount, tx_type, description)
                 VALUES ($1, $2, 'topup', $3)
-            """, buyer, pay["tokens"], f"topup:{pay['amount_rub']} RUB")
+            """, buyer, total_tokens, desc)
             # 2) referral commissions up the chain (rubles)
             amount = pay["amount_rub"]
             l1 = await conn.fetchval("SELECT referrer_id FROM users WHERE tg_id = $1", buyer)
