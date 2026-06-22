@@ -2524,9 +2524,8 @@ function renderTrendsGrid() {
     var grid = document.getElementById("trends-grid");
     if (!grid || !templatesList) return;
     var feat = templatesList.filter(function(x){ return x.featured; });
-    // "Танец на миллион" teaser removed (no content yet); keep the make-photo teaser.
-    var teasers = '<div class="trend-t"><span>' + t("trendMakePhoto") + '</span></div>';
-    grid.innerHTML = feat.map(tplTrendCard).join("") + teasers;
+    // Teasers removed (empty placeholder tiles not needed) — show only real featured templates.
+    grid.innerHTML = feat.map(tplTrendCard).join("");
 }
 
 function renderTplCats() {
