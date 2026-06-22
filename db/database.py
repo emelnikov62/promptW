@@ -118,7 +118,8 @@ async def _create_tables():
             CREATE INDEX IF NOT EXISTS idx_generations_pending ON generations(status) WHERE status = 'pending';
             CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions(user_tg_id);
             CREATE INDEX IF NOT EXISTS idx_transactions_user_created ON transactions(user_tg_id, created_at DESC);
-            CREATE INDEX IF NOT EXISTS idx_payments_user_created ON payments(user_tg_id, created_at DESC);
+            -- NB: idx_payments_* live in the payments-index block BELOW, after the
+            -- payments table is created — creating them here breaks a fresh-DB bootstrap.
             CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_tg_id);
             CREATE INDEX IF NOT EXISTS idx_chat_dialogs_user ON chat_dialogs(user_tg_id, updated_at DESC);
             CREATE INDEX IF NOT EXISTS idx_chat_messages_dialog ON chat_messages(dialog_id, id);
@@ -164,6 +165,7 @@ async def _create_tables():
             );
 
             CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
+            CREATE INDEX IF NOT EXISTS idx_payments_user_created ON payments(user_tg_id, created_at DESC);
             CREATE INDEX IF NOT EXISTS idx_ref_earnings_referrer ON ref_earnings(referrer_tg_id, created_at DESC);
             CREATE INDEX IF NOT EXISTS idx_withdrawals_status ON withdrawals(status, created_at DESC);
 

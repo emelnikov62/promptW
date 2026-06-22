@@ -352,6 +352,7 @@ function applyLang(lang) {
     renderVideoSettings(currentVideoModel);
     if (typeof renderTemplatesHome === "function") renderTemplatesHome();   // re-caption gallery
     if (typeof fixObBonus === "function") fixObBonus();   // keep onboarding bonus {n} substituted
+    if (typeof renderRewardsState === "function") renderRewardsState();   // re-apply "done" labels after re-localizing
 
     var tgId = getTgId();
     if (tgId) {

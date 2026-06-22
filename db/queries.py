@@ -57,6 +57,41 @@ async def try_charge(tg_id: int, amount: int, description: str = "") -> Optional
             return row["balance"]
 
 
+async def charge_and_create_generation(tg_id: int, gen_type: str, prompt: str,
+                                       model: Optional[str], settings: Optional[dict],
+                                       cost: int, *, charge: bool,
+                                       label: str = "") -> tuple:
+    """Atomically reserve `cost` tokens (when charge=True) AND insert the pending
+    generation row in ONE transaction. This closes the window where a crash between
+    the charge and the row INSERT would burn tokens with no row for the reconciler
+    to refund. Returns (gen_id, new_balance). On insufficient funds returns
+    (None, None) and nothing is written. When charge=False, no deduction happens
+    and balance is None (the row is still created)."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            balance = None
+            if charge and cost > 0:
+                row = await conn.fetchrow("""
+                    UPDATE users SET balance = balance - $1, updated_at = NOW()
+                    WHERE tg_id = $2 AND balance >= $1
+                    RETURNING balance
+                """, cost, tg_id)
+                if row is None:
+                    return None, None   # insufficient -> rollback, no generation row
+                balance = row["balance"]
+                await conn.execute("""
+                    INSERT INTO transactions (user_tg_id, amount, tx_type, description)
+                    VALUES ($1, $2, 'spend', $3)
+                """, tg_id, -cost, label)
+            grow = await conn.fetchrow("""
+                INSERT INTO generations (user_tg_id, gen_type, model, prompt, settings, cost)
+                VALUES ($1, $2, $3, $4, $5::jsonb, $6)
+                RETURNING id
+            """, tg_id, gen_type, model, prompt, json.dumps(settings or {}), cost)
+            return grow["id"], balance
+
+
 async def get_user(tg_id: int) -> Optional[dict]:
     pool = await get_pool()
     async with pool.acquire() as conn:
@@ -424,7 +459,11 @@ async def settle_payment(order_id: str, external_id: Optional[str] = None,
                     external_id = COALESCE($2, external_id)
                 WHERE order_id = $1 AND status = 'pending'
                   AND ($3::text IS NULL OR provider = $3)
-                  AND ($4::numeric IS NULL OR amount_rub = $4)
+                  -- Compare ROUNDED rubles: the provider verifiers return int(round(amount)),
+                  -- so an exact NUMERIC match would wrongly reject a fractional-priced order
+                  -- ("paid but got nothing"). order_id already identifies the row uniquely;
+                  -- this is a defense-in-depth cross-check, so rounded equality is enough.
+                  AND ($4::numeric IS NULL OR ROUND(amount_rub) = ROUND($4::numeric))
                 RETURNING id, user_tg_id, amount_rub, tokens, bonus_pct, bonus_tokens
             """, order_id, external_id, provider, expected_amount)
             if pay is None:

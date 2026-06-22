@@ -118,6 +118,12 @@ def video_cost(model: str, settings: dict) -> int:
     settings = settings or {}
     quality = settings.get("quality")
     duration = _int(settings.get("duration"))
+    if duration is not None:
+        # Guard against client-sent negative/absurd durations. A negative duration made
+        # `per * duration` negative -> cost<=0 -> treated as "free" generation; a huge one
+        # blew up the owner's provider bill. Clamp to a sane [1, 60]s; None falls through
+        # to the model's default below.
+        duration = max(1, min(duration, 60))
     sound = bool(settings.get("sound"))
     mode = settings.get("mode")
 
@@ -147,7 +153,12 @@ def compute_cost(gen_type: str, model: str, settings: dict):
     # unknown/deleted tplId is refused rather than silently re-priced from per-model math.
     tpl_id = s.get("tplId")
     if tpl_id:
-        return TEMPLATE_COST.get(tpl_id)
+        c = TEMPLATE_COST.get(tpl_id)
+        # A known template must carry a POSITIVE price. cost<=0 (admin oversight or the
+        # schema's default 0) is UNPRICEABLE (None -> 400), never "free" — otherwise a
+        # mispriced template would generate unlimited media at zero token cost while the
+        # owner still pays the provider. Unknown/deleted tplId -> None (same rejection).
+        return c if (c and c > 0) else None
     if gen_type in ("photo", "image"):
         return photo_cost(s)
     if gen_type == "audio":

@@ -102,6 +102,14 @@ async def main():
         raise RuntimeError(
             "AUTH_ENFORCE=0 is unsafe in production (cross-user IDOR). "
             "Set AUTH_ENFORCE=1, or set DEV=1 to allow it for local development.")
+    # BILLING_ENFORCE=0 generates for free and never deducts/refunds, while still
+    # stamping `cost` on rows — corrupting accounting. Allow it ONLY for local dev (DEV=1),
+    # mirroring the AUTH_ENFORCE guard, so it can't silently ship to prod.
+    if os.getenv("BILLING_ENFORCE", "1") != "1" and os.getenv("DEV", "0") != "1":
+        raise RuntimeError(
+            "BILLING_ENFORCE=0 means free generation + no charge/refund (corrupted "
+            "accounting) — unsafe in production. Set BILLING_ENFORCE=1, or DEV=1 for "
+            "local development.")
     await init_db(DATABASE_URL)
     logging.info("Database connected")
 

@@ -21,7 +21,8 @@ from pricing import compute_cost, CHAT_COST
 from db.database import get_pool
 from db.queries import (
     get_user, upsert_user, update_user_lang, update_balance, try_charge,
-    create_generation, update_generation, delete_generation, get_user_generations,
+    charge_and_create_generation,
+    update_generation, delete_generation, get_user_generations,
     add_generation_task, get_pending_generations,
     set_generation_task_ids, record_face_verify,
     finish_generation_if_pending, fail_generation_if_pending,
@@ -179,6 +180,22 @@ async def _insufficient(tg_id, cost: int):
         {"error": "insufficient_balance", "needed": cost, "balance": balance},
         status=402,
     )
+
+
+async def _charge_and_create(tg_id, gen_type: str, prompt: str, model,
+                             settings, cost: int, label: str):
+    """Reserve tokens AND create the pending generation row atomically (one tx), so a
+    crash between the two can't strand spent tokens with no row to refund.
+    Returns (ok, gen_id, balance). ok=False -> insufficient funds (nothing written)."""
+    if not tg_id:
+        # dev/anonymous (AUTH_ENFORCE=0): no row, no charge — matches legacy behaviour.
+        return True, None, None
+    charge = bool(BILLING_ENFORCE and cost > 0)
+    gen_id, balance = await charge_and_create_generation(
+        tg_id, gen_type, prompt, model, settings, cost, charge=charge, label=label)
+    if gen_id is None:
+        return False, None, None
+    return True, gen_id, balance
 
 
 # Generations run for minutes (video especially). Awaiting the work directly in
@@ -341,10 +358,17 @@ async def _reconcile_loop(interval: int):
         await asyncio.sleep(interval)
 
 
+_RECONCILER_TASK = None
+
+
 def start_reconciler(interval: int = 60):
     """Launch the background reconciliation loop (call once after the generator and
-    DB pool are ready). Runs an immediate pass, then every `interval` seconds."""
-    return asyncio.ensure_future(_reconcile_loop(interval))
+    DB pool are ready). Runs an immediate pass, then every `interval` seconds.
+    A module-level strong ref is kept so the task can't be garbage-collected
+    mid-flight (a bare ensure_future return value is weakly held by the loop)."""
+    global _RECONCILER_TASK
+    _RECONCILER_TASK = asyncio.ensure_future(_reconcile_loop(interval))
+    return _RECONCILER_TASK
 
 
 def _get_bot() -> Bot:
@@ -456,7 +480,10 @@ async def _parse_request(request: web.Request):
                     try: os.remove(fpath)
                     except OSError: pass
                     continue   # silently drop the oversize file
-                _shrink_image(fpath)   # downscale only if over the 2048px cap
+                # PIL decode/resize/re-encode is blocking CPU+disk work; run it off
+                # the event loop so a large phone photo doesn't stall every other
+                # request (same executor pattern as storage/face_verify).
+                await asyncio.get_event_loop().run_in_executor(None, _shrink_image, fpath)
                 key = part.name
                 if key in files:
                     if not isinstance(files[key], list):
@@ -1436,6 +1463,16 @@ async def generate_image(request: web.Request):
     if not prompt:
         return web.json_response({"error": "prompt is required"}, status=400)
 
+    # Clamp photo count to the priced range [1,4] and write it BACK into settings so
+    # pricing and the generator agree. Pricing clamps to 4, but the raw count was handed
+    # to the model — so count:100 was charged as 4 yet 100 images were requested (free
+    # over-generation), and count:0/-5 could under-/mis-generate.
+    try:
+        _cnt = int(settings.get("count", 1))
+    except (TypeError, ValueError):
+        _cnt = 1
+    settings["count"] = max(1, min(4, _cnt))
+
     if files:
         settings["references"] = await _publish_refs(files)
     effective_prompt = _augment_template_prompt(prompt, settings, files)
@@ -1443,13 +1480,10 @@ async def generate_image(request: web.Request):
     cost = compute_cost("photo", model, settings)
     if cost is None:
         return web.json_response({"error": "unknown_model"}, status=400)
-    ok, balance = await _charge(tg_id, cost, f"photo:{model}")
+    ok, gen_id, balance = await _charge_and_create(
+        tg_id, "photo", prompt, model, settings, cost, f"photo:{model}")
     if not ok:
         return await _insufficient(tg_id, cost)
-
-    gen_id = None
-    if tg_id:
-        gen_id = await create_generation(tg_id, "photo", prompt, model, settings, cost)
 
     async def _build():
         return await _run_image_generation(
@@ -1476,19 +1510,25 @@ async def generate_video(request: web.Request):
     if not prompt:
         return web.json_response({"error": "prompt is required"}, status=400)
 
+    # Clamp duration to a sane range and write it BACK so pricing and the model agree
+    # (a forged negative/huge duration otherwise made cost<=0 → free, or over-billed
+    # while asking the model for an absurd length). None falls through to the default.
+    if settings.get("duration") is not None:
+        try:
+            settings["duration"] = max(1, min(60, int(settings.get("duration"))))
+        except (TypeError, ValueError):
+            settings.pop("duration", None)
+
     if files:
         settings["references"] = await _publish_refs(files)
 
     cost = compute_cost("video", model, settings)
     if cost is None:
         return web.json_response({"error": "unknown_model"}, status=400)
-    ok, balance = await _charge(tg_id, cost, f"video:{model}")
+    ok, gen_id, balance = await _charge_and_create(
+        tg_id, "video", prompt, model, settings, cost, f"video:{model}")
     if not ok:
         return await _insufficient(tg_id, cost)
-
-    gen_id = None
-    if tg_id:
-        gen_id = await create_generation(tg_id, "video", prompt, model, settings, cost)
 
     async def _build():
         result = await generator.generate_video(
@@ -1539,13 +1579,10 @@ async def generate_audio(request: web.Request):
     cost = compute_cost("audio", model, settings)
     if cost is None:
         return web.json_response({"error": "unknown_model"}, status=400)
-    ok, balance = await _charge(tg_id, cost, f"audio:{model}")
+    ok, gen_id, balance = await _charge_and_create(
+        tg_id, "audio", prompt, model, settings, cost, f"audio:{model}")
     if not ok:
         return await _insufficient(tg_id, cost)
-
-    gen_id = None
-    if tg_id:
-        gen_id = await create_generation(tg_id, "audio", prompt, model, settings, cost)
 
     async def _build():
         result = await generator.generate_audio(
