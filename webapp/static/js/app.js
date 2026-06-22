@@ -407,7 +407,7 @@ function openRefguide(from) { refguideFrom = from || "create"; showPage("refguid
 var createRefHint = document.querySelector("#form-image [data-i18n='refHint']");
 if (createRefHint) createRefHint.addEventListener("click", function(){ openRefguide("create"); });
 // action cards
-document.querySelectorAll("[data-nav]").forEach(function(el){el.addEventListener("click",function(){showPage(el.dataset.nav)})});
+document.querySelectorAll("[data-nav]").forEach(function(el){el.addEventListener("click",function(e){if(el.closest("label")){e.preventDefault();e.stopPropagation();}showPage(el.dataset.nav)})});
 // "По шаблону" → scroll to the templates showcase on the home page
 (function(){ var b=document.getElementById("hook-tpl-btn"); if(b) b.addEventListener("click",function(){ var t=document.getElementById("home-tpl"); if(t) t.scrollIntoView({behavior:"smooth",block:"start"}); }); })();
 // stats period tabs
