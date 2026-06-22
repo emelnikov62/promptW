@@ -60,12 +60,24 @@ async def yookassa_create(amount_rub, order_id: str, return_url: str,
         "Idempotence-Key": order_id,
         "Content-Type": "application/json",
     }
+    amount_str = f"{int(amount_rub)}.00"
     body = {
-        "amount": {"value": f"{int(amount_rub)}.00", "currency": "RUB"},
+        "amount": {"value": amount_str, "currency": "RUB"},
         "capture": True,
         "confirmation": {"type": "redirect", "return_url": return_url},
         "description": description,
         "metadata": {"order_id": order_id},
+        "receipt": {
+            "customer": {"email": "payments@promptw.ru"},
+            "items": [{
+                "description": description[:128],
+                "quantity": "1.00",
+                "amount": {"value": amount_str, "currency": "RUB"},
+                "vat_code": 1,
+                "payment_subject": "service",
+                "payment_mode": "full_payment",
+            }],
+        },
     }
     if method in YK_METHODS:
         body["payment_method_data"] = {"type": YK_METHODS[method]}
