@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import logging
 import os
 
@@ -139,8 +140,15 @@ async def main():
 
     if WEBHOOK_URL:
         webhook_path = "/webhook"
-        await bot.set_webhook(f"{WEBHOOK_URL}{webhook_path}")
-        SimpleRequestHandler(dispatcher=dp, bot=bot).register(app, path=webhook_path)
+        # Authenticate the webhook: Telegram echoes this secret in the
+        # X-Telegram-Bot-Api-Secret-Token header and aiogram rejects mismatches, so
+        # forged updates posted straight to /webhook (which bypasses /api auth) are
+        # dropped. Derived from BOT_TOKEN if WEBHOOK_SECRET isn't set, so it's stable
+        # across restarts without extra config.
+        webhook_secret = os.getenv("WEBHOOK_SECRET") or hashlib.sha256(
+            ("whsec:" + BOT_TOKEN).encode()).hexdigest()
+        await bot.set_webhook(f"{WEBHOOK_URL}{webhook_path}", secret_token=webhook_secret)
+        SimpleRequestHandler(dispatcher=dp, bot=bot, secret_token=webhook_secret).register(app, path=webhook_path)
         setup_application(app, dp, bot=bot)
         runner = web.AppRunner(app)
         await runner.setup()

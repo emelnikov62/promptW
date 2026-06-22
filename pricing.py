@@ -135,16 +135,23 @@ def video_cost(model: str, settings: dict) -> int:
     return cfg.get("cost", 0)
 
 
-def compute_cost(gen_type: str, model: str, settings: dict) -> int:
+def compute_cost(gen_type: str, model: str, settings: dict):
+    """Return the token cost, or None when the request can't be priced (unknown model,
+    unknown/deleted template, or unknown gen_type). Callers MUST reject None with 400:
+    `model`/`gen_type`/`tplId` are client-controlled, and a None that slipped through to
+    `_charge` (which treats cost<=0 as "free") would let an unpriceable request generate
+    for free while the owner still pays the provider."""
+    s = settings or {}
     # Fixed-price templates win over per-model math (server stays authoritative: the
-    # client only selects a known tplId, it cannot forge an arbitrary price).
-    tpl_id = (settings or {}).get("tplId")
-    if tpl_id in TEMPLATE_COST:
-        return TEMPLATE_COST[tpl_id]
+    # client only selects a known tplId, it cannot forge an arbitrary price). An
+    # unknown/deleted tplId is refused rather than silently re-priced from per-model math.
+    tpl_id = s.get("tplId")
+    if tpl_id:
+        return TEMPLATE_COST.get(tpl_id)
     if gen_type in ("photo", "image"):
-        return photo_cost(settings)
+        return photo_cost(s)
     if gen_type == "audio":
-        return audio_cost(model, settings)
+        return audio_cost(model, s) if model in AUDIO_CREDITS else None
     if gen_type == "video":
-        return video_cost(model, settings)
-    return 0
+        return video_cost(model, s) if model in VIDEO_PRICING else None
+    return None
