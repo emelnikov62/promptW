@@ -22,6 +22,7 @@ from db.queries import (
     get_user, upsert_user, update_user_lang, update_balance, try_charge,
     create_generation, update_generation, delete_generation, get_user_generations,
     add_generation_task, get_pending_generations,
+    set_generation_task_ids, record_face_verify,
     finish_generation_if_pending, fail_generation_if_pending,
     get_user_transactions, get_referral_stats, get_partner_overview,
     create_payment, set_payment_external, settle_payment, get_payment,
@@ -33,6 +34,7 @@ from db.queries import (
 )
 import payments_gw as pg
 import storage
+import face_verify
 
 logger = logging.getLogger(__name__)
 routes = web.RouteTableDef()
@@ -1178,6 +1180,157 @@ def _augment_template_prompt(prompt: str, settings: dict, files: dict) -> str:
     return out
 
 
+# ── Face-similarity verify + silent best-of retry (Level C) ──────────────────
+# Re-checks that a template photo gen kept the reference face and silently
+# re-generates on drift, keeping the best of the attempts. Disabled by default;
+# see docs/specs/2026-06-22-face-verify-retry-design.md.
+FACE_VERIFY = os.getenv("FACE_VERIFY", "0") == "1"
+FACE_VERIFY_SHADOW = os.getenv("FACE_VERIFY_SHADOW", "0") == "1"
+FACE_VERIFY_THRESHOLD = float(os.getenv("FACE_VERIFY_THRESHOLD", "0.35"))
+FACE_VERIFY_MAX_RETRIES = int(os.getenv("FACE_VERIFY_MAX_RETRIES", "2"))
+FACE_VERIFY_BUDGET_SEC = float(os.getenv("FACE_VERIFY_BUDGET_SEC", "900"))
+
+
+def _face_verify_mode(settings: dict, files: dict) -> str:
+    """'enforce' (retry on miss) | 'shadow' (score only, no retry) | 'off'.
+    Gated to template photo gens with a face ref, single output, real KIE backend,
+    and a loaded face model — otherwise off (the normal single-shot path runs)."""
+    if not (FACE_VERIFY or FACE_VERIFY_SHADOW):
+        return "off"
+    if not (settings or {}).get("tplId"):
+        return "off"
+    if not (files or {}).get("photo-refs"):
+        return "off"
+    if (settings or {}).get("count", 1) != 1:
+        return "off"
+    if generator is None or generator.__class__.__name__ != "KieGenerator":
+        return "off"
+    if not face_verify.available():
+        return "off"
+    return "enforce" if FACE_VERIFY else "shadow"
+
+
+async def _media_bytes(path: str):
+    """Raw bytes of a reference/result, whether it's an S3 URL or a local/legacy path."""
+    try:
+        if storage.is_remote(path):
+            return await storage.aget_bytes(path)
+        local = os.path.join(MEDIA_DIR, os.path.basename(path)) if path.startswith("/media/") else path
+        with open(local, "rb") as f:
+            return f.read()
+    except Exception:
+        logger.exception("face_verify: could not read media %s", path)
+        return None
+
+
+async def _ref_face_embedding(files: dict):
+    """Embedding of the first uploaded reference that has a usable face (or None)."""
+    refs = files.get("photo-refs")
+    refs = refs if isinstance(refs, list) else [refs]
+    for r in refs:
+        data = await _media_bytes(r)
+        emb = await face_verify.aembed(data) if data else None
+        if emb is not None:
+            return emb
+    return None
+
+
+async def _generate_one_image(effective_prompt, model, settings, files, gen_id):
+    result = await generator.generate_image(
+        effective_prompt,
+        model=model,
+        aspect_ratio=settings.get("ratio"),
+        resolution=settings.get("quality"),
+        count=settings.get("count", 1),
+        files=files,
+        on_task=_task_saver(gen_id),
+    )
+    paths = result.file_paths or [result.file_path]
+    return result, paths
+
+
+async def _finalize_image(gen_id, result, paths, prompt, cost, balance, face_tip=None):
+    file_urls = [_media_url(p) for p in paths]
+    file_url = file_urls[0]
+    # Guarded finalize (pending->done): if the reconciler already failed+refunded this
+    # row, drop our orphan output and report failure (don't hand both refund + result).
+    if gen_id and not await finish_generation_if_pending(gen_id, file_url, file_urls):
+        await _discard_media(paths)
+        return {"__superseded__": True}
+    resp = {
+        "file_url": file_url,
+        "file_urls": file_urls,
+        "media_type": result.media_type,
+        "prompt": prompt,   # clean prompt (the identity/framing suffix stays internal)
+        "task_id": result.task_id,
+        "urls": result.urls,
+        "cost": cost,
+        "balance": balance,
+    }
+    if face_tip:
+        resp["face_tip"] = face_tip
+    return resp
+
+
+async def _run_image_generation(gen_id, tg_id, cost, balance, prompt,
+                                effective_prompt, model, settings, files):
+    """Single-shot generation, or (when face-verify applies) a best-of loop that keeps
+    the result most similar to the reference face. Always finalizes the row once."""
+    mode = _face_verify_mode(settings, files)
+    if mode == "off":
+        result, paths = await _generate_one_image(effective_prompt, model, settings, files, gen_id)
+        return await _finalize_image(gen_id, result, paths, prompt, cost, balance)
+
+    ref_emb = await _ref_face_embedding(files)
+    ref_found = ref_emb is not None
+    do_retry = (mode == "enforce") and ref_found
+    total = 1 + (FACE_VERIFY_MAX_RETRIES if do_retry else 0)
+
+    loop = asyncio.get_event_loop()
+    start = loop.time()
+    scores = []
+    best = None   # {"score", "result", "paths"}
+    for i in range(total):
+        if i > 0 and (loop.time() - start) >= FACE_VERIFY_BUDGET_SEC:
+            logger.info("face_verify: time budget hit for gen %s after %d attempt(s)", gen_id, i)
+            break
+        try:
+            result, paths = await _generate_one_image(effective_prompt, model, settings, files, gen_id)
+        except Exception:
+            if best is None:
+                raise   # first attempt failed -> let _run_generation refund + mark error
+            logger.exception("face_verify: retry attempt failed for gen %s, keeping best so far", gen_id)
+            break
+        score = -1.0
+        if ref_found:
+            res_emb = await face_verify.aembed(await _media_bytes(paths[0]))
+            score = face_verify.similarity(ref_emb, res_emb)
+        scores.append(round(score, 4))
+        if best is None or score > best["score"]:
+            if best is not None:
+                await _discard_media(best["paths"])   # keep only the running best
+            best = {"score": score, "result": result, "paths": paths}
+        else:
+            await _discard_media(paths)               # this attempt is worse -> drop now
+        if not do_retry or score >= FACE_VERIFY_THRESHOLD:
+            break
+
+    best_score = best["score"] if ref_found else None
+    accepted = (best["score"] >= FACE_VERIFY_THRESHOLD) if ref_found else None
+    face_tip = "faceTipLowSim" if (mode == "enforce" and ref_found and not accepted) else None
+
+    # Collapse the recorded task ids to the chosen attempt so a restart-time
+    # reconciler recovers the kept image, not a discarded one.
+    if gen_id and best["result"].task_id:
+        await set_generation_task_ids(gen_id, [best["result"].task_id])
+
+    resp = await _finalize_image(gen_id, best["result"], best["paths"], prompt, cost, balance, face_tip)
+    if gen_id and not resp.get("__superseded__"):
+        await record_face_verify(gen_id, len(scores), scores, FACE_VERIFY_THRESHOLD,
+                                 ref_found, best_score, accepted)
+    return resp
+
+
 @routes.post("/api/generate/image")
 async def generate_image(request: web.Request):
     data, files = await _parse_request(request)
@@ -1207,34 +1360,10 @@ async def generate_image(request: web.Request):
         gen_id = await create_generation(tg_id, "photo", prompt, model, settings, cost)
 
     async def _build():
-        result = await generator.generate_image(
-            effective_prompt,
-            model=model,
-            aspect_ratio=settings.get("ratio"),
-            resolution=settings.get("quality"),
-            count=settings.get("count", 1),
-            files=files,
-            on_task=_task_saver(gen_id),
+        return await _run_image_generation(
+            gen_id, tg_id, cost, balance, prompt,
+            effective_prompt, model, settings, files,
         )
-        paths = result.file_paths or [result.file_path]
-        file_urls = [_media_url(p) for p in paths]
-        file_url = file_urls[0]
-        # Guarded finalize (pending->done): if the reconciler already failed+refunded
-        # this row, DON'T resurrect it with an unconditional update — that would hand the
-        # user both the refund and the result. Drop our orphan output and report failure.
-        if gen_id and not await finish_generation_if_pending(gen_id, file_url, file_urls):
-            await _discard_media(paths)
-            return {"__superseded__": True}
-        return {
-            "file_url": file_url,
-            "file_urls": file_urls,
-            "media_type": result.media_type,
-            "prompt": prompt,   # clean prompt (the identity/framing suffix stays internal)
-            "task_id": result.task_id,
-            "urls": result.urls,
-            "cost": cost,
-            "balance": balance,
-        }
 
     resp = await _run_generation(gen_id, tg_id, cost, f"photo:{model}", _build)
     if resp.get("__error__") or resp.get("__superseded__"):

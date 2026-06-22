@@ -135,6 +135,36 @@ async def add_generation_task(gen_id: int, task_id: str):
         """, gen_id, task_id)
 
 
+async def set_generation_task_ids(gen_id: int, ids: list):
+    """Overwrite the recorded provider task ids with the chosen best-of attempt's
+    id(s). After a face-verify best-of run we discard the rejected attempts, so the
+    reconciler must not later 'recover' one of them — collapse the set to what we kept."""
+    ids = [i for i in (ids or []) if i]
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            UPDATE generations SET provider_task_ids = $2::jsonb, provider_task_id = $3
+            WHERE id = $1
+        """, gen_id, json.dumps(ids), ids[0] if ids else None)
+
+
+async def record_face_verify(gen_id: int, attempts: int, scores: list,
+                             threshold: float, ref_found: bool,
+                             best_score=None, accepted=None):
+    """Persist face-verify telemetry for a generation (admin dashboard + calibration).
+    `best_score`/`accepted` are NULL when the reference had no usable face (ref_found
+    is False) — the loop fell back to a plain single-shot generation."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            UPDATE generations SET
+                face_attempts = $2, face_scores = $3::jsonb, face_threshold = $4,
+                face_ref_found = $5, face_score = $6, face_accepted = $7
+            WHERE id = $1
+        """, gen_id, attempts, json.dumps(scores or []), threshold,
+           ref_found, best_score, accepted)
+
+
 async def get_pending_generations(limit: int = 50) -> List[dict]:
     """Generations still in flight (status 'pending'), oldest first — fed to the
     startup/periodic reconciliation sweep."""
@@ -212,6 +242,68 @@ async def get_user_generations(tg_id: int, limit: int = 20,
             FROM generations WHERE user_tg_id = $1
             ORDER BY created_at DESC LIMIT $2 OFFSET $3
         """, tg_id, limit, offset)
+        return [dict(r) for r in rows]
+
+
+# ── Face-verify analytics (admin) ─────────────────────────────────────
+_FACE_PERIOD_INTERVAL = {"day": "1 day", "week": "7 days", "month": "30 days"}
+
+
+def _face_time_clause(period: str) -> str:
+    iv = _FACE_PERIOD_INTERVAL.get(period)
+    return f"AND created_at >= NOW() - INTERVAL '{iv}'" if iv else ""
+
+
+async def get_face_verify_stats(period: str = "all") -> dict:
+    """Aggregate face-verify telemetry over template photo gens for a period.
+    'eligible' = rows where the verify path ran (face_attempts recorded); 'ref_found'
+    = the subset where a comparable reference face existed (scores are meaningful)."""
+    tc = _face_time_clause(period)
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(f"""
+            SELECT
+              COUNT(*)                                                       AS total,
+              COUNT(*) FILTER (WHERE face_ref_found)                         AS ref_found,
+              COUNT(*) FILTER (WHERE face_attempts = 1)                      AS att1,
+              COUNT(*) FILTER (WHERE face_attempts = 2)                      AS att2,
+              COUNT(*) FILTER (WHERE face_attempts >= 3)                     AS att3,
+              COUNT(*) FILTER (WHERE face_attempts > 1)                      AS retried,
+              COALESCE(SUM(GREATEST(face_attempts - 1, 0)), 0)              AS extra_attempts,
+              COUNT(*) FILTER (WHERE face_accepted)                          AS accepted,
+              COUNT(*) FILTER (WHERE face_accepted AND face_attempts = 1)    AS accepted_first,
+              AVG(face_score) FILTER (WHERE face_ref_found)                  AS avg_score,
+              PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY face_score)
+                  FILTER (WHERE face_ref_found)                             AS median_score,
+              COUNT(*) FILTER (WHERE face_ref_found AND face_score >= 0.5)                       AS band_strong,
+              COUNT(*) FILTER (WHERE face_ref_found AND face_score >= 0.35 AND face_score < 0.5) AS band_ok,
+              COUNT(*) FILTER (WHERE face_ref_found AND face_score < 0.35)                       AS band_weak
+            FROM generations
+            WHERE gen_type = 'photo' AND face_attempts IS NOT NULL {tc}
+        """)
+        return dict(row) if row else {}
+
+
+async def get_face_verify_by_template(period: str = "all", limit: int = 50) -> List[dict]:
+    """Per-template face-verify breakdown — surfaces which templates drift most
+    (high retry rate / low avg score), i.e. which prompts need fixing."""
+    tc = _face_time_clause(period)
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(f"""
+            SELECT settings->>'tplId'                                AS tpl_id,
+                   COUNT(*)                                          AS total,
+                   COUNT(*) FILTER (WHERE face_attempts > 1)         AS retried,
+                   COALESCE(SUM(GREATEST(face_attempts - 1, 0)), 0) AS extra_attempts,
+                   COUNT(*) FILTER (WHERE face_accepted)             AS accepted,
+                   AVG(face_score) FILTER (WHERE face_ref_found)     AS avg_score
+            FROM generations
+            WHERE gen_type = 'photo' AND face_attempts IS NOT NULL
+              AND settings->>'tplId' IS NOT NULL {tc}
+            GROUP BY settings->>'tplId'
+            ORDER BY retried DESC, total DESC
+            LIMIT {int(limit)}
+        """)
         return [dict(r) for r in rows]
 
 

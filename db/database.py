@@ -100,6 +100,17 @@ async def _create_tables():
             ALTER TABLE generations ADD COLUMN IF NOT EXISTS provider_task_ids JSONB DEFAULT '[]';
             ALTER TABLE generations ADD COLUMN IF NOT EXISTS result_urls JSONB DEFAULT '[]';
 
+            -- Face-similarity verify (Level C): per-gen telemetry for the silent
+            -- best-of retry loop. All nullable — only template photo gens with a face
+            -- ref populate them; everything else stays NULL. Used for the admin
+            -- "Сходство лиц" dashboard and offline threshold calibration.
+            ALTER TABLE generations ADD COLUMN IF NOT EXISTS face_attempts SMALLINT;   -- KIE runs made (1..N)
+            ALTER TABLE generations ADD COLUMN IF NOT EXISTS face_score REAL;          -- best cosine kept
+            ALTER TABLE generations ADD COLUMN IF NOT EXISTS face_accepted BOOLEAN;    -- best >= threshold
+            ALTER TABLE generations ADD COLUMN IF NOT EXISTS face_ref_found BOOLEAN;   -- ref had a usable face
+            ALTER TABLE generations ADD COLUMN IF NOT EXISTS face_scores JSONB;        -- per-attempt scores
+            ALTER TABLE generations ADD COLUMN IF NOT EXISTS face_threshold REAL;      -- threshold at gen time
+
             CREATE INDEX IF NOT EXISTS idx_generations_user ON generations(user_tg_id);
             -- Hot path: history is "this user's rows, newest first" — a composite
             -- index serves the ORDER BY without a separate sort.

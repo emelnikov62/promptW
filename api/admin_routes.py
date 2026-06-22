@@ -12,6 +12,7 @@ from db.database import get_pool
 from db.queries import (
     admin_list_templates, admin_get_template, admin_create_template,
     admin_update_template, admin_delete_template, get_template_costs,
+    get_face_verify_stats, get_face_verify_by_template,
 )
 from pricing import refresh_template_costs
 from bot.auth import make_admin_token
@@ -173,6 +174,36 @@ async def admin_stats(request):
         "tokens": {"spent": tokens_spent, "on_balances": tokens_on_balances},
         "withdrawals": {"pending": pending_withdrawals, "pending_amount": float(pending_wd_amount)},
     })
+
+
+# ── Face-similarity verify dashboard ──
+
+# Our real cost (₽) of one NanoBanana run — used to total the money lost on retries.
+FACE_VERIFY_RETRY_UNIT_COST = float(os.getenv("FACE_VERIFY_RETRY_UNIT_COST", "0"))
+
+
+@admin_routes.get("/api/admin/face-stats")
+async def admin_face_stats(request):
+    _require_admin(request)
+    period = request.query.get("period", "all")
+    if period not in ("day", "week", "month", "all"):
+        period = "all"
+    stats = await get_face_verify_stats(period)
+    by_tpl = await get_face_verify_by_template(period, limit=_qint(request, "limit", 50, 1, 200))
+
+    def _f(v):   # numbers may come back as Decimal/None
+        return float(v) if isinstance(v, Decimal) else v
+
+    stats = {k: _f(v) for k, v in (stats or {}).items()}
+    extra = stats.get("extra_attempts") or 0
+    stats["unit_cost"] = FACE_VERIFY_RETRY_UNIT_COST
+    stats["money_lost"] = round(extra * FACE_VERIFY_RETRY_UNIT_COST, 2)
+    rows = []
+    for r in by_tpl:
+        r = {k: _f(v) for k, v in r.items()}
+        r["money_lost"] = round((r.get("extra_attempts") or 0) * FACE_VERIFY_RETRY_UNIT_COST, 2)
+        rows.append(r)
+    return web.json_response({"period": period, "stats": stats, "by_template": rows})
 
 
 # ── Users ──

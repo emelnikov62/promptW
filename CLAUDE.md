@@ -50,6 +50,7 @@ generators/
   stub.py                — StubGenerator: заглушка для локалки (Pillow)
 payments_gw.py           — ЮKassa (РФ) + Platega (СНГ): создание платежа, верификация, шэр inline
 pricing.py               — расчёт стоимости в токенах (compute_cost, CHAT_COST)
+face_verify.py           — InsightFace (ArcFace) сходство лица результат↔референс (Level C); fail-open
 webapp/
   templates/index.html   — SPA: все страницы (home, text/chat, create, history, profile, topup, partner, info, stats, rewards)
   static/css/style.css   — все стили (минифицированные, CSS-токены в :root)
@@ -74,7 +75,12 @@ YOOKASSA_SHOP_ID / YOOKASSA_SECRET_KEY — платежи РФ
 AUTH_ENFORCE=1     — проверка initData (в проде ВСЕГДА 1; =0 только DEV=1)
 BILLING_ENFORCE    — 1 = списывать токены; 0 = считать без списания
 MEDIA_DIR          — директория скачанных файлов
+FACE_VERIFY        — 1 = проверять сходство лица + тихий best-of ретрай (шаблоны с лицом)
+FACE_VERIFY_SHADOW — 1 = только считать/писать score без ретраев (калибровка)
+FACE_MODEL_ROOT    — путь к модели InsightFace (вне git-чекаута, gitignored)
 ```
+Сходство лиц (Level C): спека `docs/specs/2026-06-22-face-verify-retry-design.md`,
+дашборд в админке «Сходство лиц». Раскатка — shadow → калибровка порога → enforce.
 
 ## Running locally
 

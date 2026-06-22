@@ -3,3 +3,7 @@ python-dotenv==1.0.1
 Pillow==11.1.0
 asyncpg==0.30.0
 boto3==1.43.34
+# Face-similarity verify (Level C). CPU inference. Pulls numpy + opencv-python-headless
+# transitively. The model pack (buffalo_l) is downloaded into FACE_MODEL_ROOT, NOT git.
+insightface==0.7.3
+onnxruntime==1.20.1
