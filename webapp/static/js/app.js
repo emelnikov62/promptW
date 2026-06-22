@@ -2823,7 +2823,7 @@ function closeLightbox(){
 })();
 
 // ── Onboarding ──
-var WELCOME_BONUS = 90;              // keep in sync with the server welcome bonus
+var WELCOME_BONUS = 60;              // keep in sync with the server welcome bonus (.env WELCOME_BONUS)
 var ONBOARDING_CTA_TARGET = "home";  // swap to a starter template id when chosen
 function fixObBonus(){
     var el = document.getElementById("ob4-title");

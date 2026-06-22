@@ -17,7 +17,7 @@ router = Router()
 generator: Optional[BaseGenerator] = None
 
 WEBAPP_URL = os.getenv("WEBAPP_URL", "")
-WELCOME_BONUS = int(os.getenv("WELCOME_BONUS", "0"))
+WELCOME_BONUS = int(os.getenv("WELCOME_BONUS", "60"))
 ADMIN_IDS = {int(x) for x in os.getenv("ADMIN_IDS", "").replace(" ", "").split(",") if x}
 
 
