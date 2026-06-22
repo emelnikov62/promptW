@@ -6622,7 +6622,7 @@
           "control": "sheet",
           "options": [
             {
-              "frag": "белый космический скафандр в стиле NASA с нашивками",
+              "frag": "white NASA-style space suit with mission patches",
               "label": {
                 "en": "White (NASA)",
                 "es": "Blanco",
@@ -6631,7 +6631,7 @@
               "value": "white"
             },
             {
-              "frag": "оранжевый стартовый скафандр",
+              "frag": "orange launch-and-entry suit",
               "label": {
                 "en": "Orange",
                 "es": "Naranja",
@@ -6640,7 +6640,7 @@
               "value": "orange"
             },
             {
-              "frag": "футуристичный белый скафандр нового поколения",
+              "frag": "futuristic next-generation white spacesuit",
               "label": {
                 "en": "Futuristic",
                 "es": "Futurista",
@@ -6660,7 +6660,7 @@
           "control": "sheet",
           "options": [
             {
-              "frag": "шлем держит под мышкой, лицо открыто",
+              "frag": "helmet held under the arm, face uncovered",
               "label": {
                 "en": "Under arm",
                 "es": "Bajo el brazo",
@@ -6669,7 +6669,7 @@
               "value": "arm"
             },
             {
-              "frag": "без шлема, лицо открыто",
+              "frag": "no helmet, face uncovered",
               "label": {
                 "en": "No helmet",
                 "es": "Sin casco",
@@ -6689,7 +6689,7 @@
           "control": "sheet",
           "options": [
             {
-              "frag": "на фоне ракеты на стартовом столе",
+              "frag": "in front of a rocket on the launch pad",
               "label": {
                 "en": "By rocket",
                 "es": "Cohete",
@@ -6698,7 +6698,7 @@
               "value": "rocket"
             },
             {
-              "frag": "внутри космического корабля, в иллюминаторе видна Земля",
+              "frag": "inside a spacecraft, Earth visible through the window",
               "label": {
                 "en": "In ship",
                 "es": "Nave",
@@ -6707,7 +6707,7 @@
               "value": "ship"
             },
             {
-              "frag": "на поверхности Луны, на фоне звёзд и Земли",
+              "frag": "on the lunar surface, stars and Earth in the background",
               "label": {
                 "en": "On the Moon",
                 "es": "Luna",
@@ -6723,7 +6723,7 @@
         "9:16",
         "3:4"
       ],
-      "skeleton": "Identity lock: лицо на 100% идентично исходному референсу — полностью узнаваемо, без искажений и без изменения пропорций, черт и внешности; любые изменения лица запрещены. Человек (пол, возраст, внешность, причёска, длина и тип волос, наличие или отсутствие бороды и усов, телосложение — строго как на загруженном фото-референсе, ничего не добавлять и не убирать) в образе космонавта: {suit}. {helmet}. Фон — {setting}. Чистый профессиональный свет, атмосфера космической миссии. Дружелюбный уверенный взгляд в камеру. КОМПОЗИЦИЯ: поясной или средний план, человек крупно в кадре, ЛИЦО — в центре внимания, в фокусе и максимально чёткое; НЕ мелкая фигура в полный рост с маленьким лицом. Фотореализм, реалистичная кожа с порами и текстурой, без ретуши и AI-сглаживания. Вертикальный кадр 9:16. Без посторонних людей, без текста, букв, логотипов и водяных знаков.",
+      "skeleton": "CRITICAL IDENTITY LOCK. The person in the uploaded reference image is the ONLY subject. Preserve the exact identity from the reference image. Maintain 100% facial consistency. Do not reinterpret, beautify, redesign, regenerate, or modify the person. LOCK ALL FACIAL FEATURES: face shape, jawline, cheekbones, forehead, eyebrows, eyes, eyelid shape, eye spacing, nose shape, nostrils, lips, mouth proportions, ears, skin texture, skin tone, facial proportions, age appearance, unique facial characteristics. Keep the exact same person as in the reference image. Pixel-accurate identity preservation. No identity drift. No face variation. No facial enhancement. No facial stylization. Only change: place this exact person in an astronaut studio portrait — {suit}. {helmet}. Background — {setting}. Clean professional lighting, space-mission atmosphere, friendly confident gaze into the camera. Waist-up / medium shot, the person large in the frame, the FACE the focal point, sharp and clearly recognizable, NOT a small full-body figure. Vertical 9:16 frame. No other people, no text, letters, logos or watermarks. Everything else must remain identical to the uploaded reference. NEGATIVE CONSTRAINTS: different person, altered face, beautified face, AI face, modified eyes, modified nose, modified lips, different jawline, different cheekbones, face reshaping, age change, gender change, skin smoothing, plastic skin, beauty filter, identity drift, face morphing, facial reconstruction. FINAL RULE: if any conflict exists between the scene description and the reference image, the reference image always has priority. Maintain exact facial identity from the reference image. Ultra photorealistic RAW photo, natural skin pores, real skin texture, micro details, authentic facial anatomy, DSLR quality, 85mm lens, high dynamic range, 8K, realistic lighting, natural imperfections, not CGI, not AI generated look.",
       "maxPhotos": 8,
       "minPhotos": 1
     },
@@ -6764,7 +6764,7 @@
           "control": "sheet",
           "options": [
             {
-              "frag": "синие хирургические скрабы",
+              "frag": "blue surgical scrubs",
               "label": {
                 "en": "Blue scrubs",
                 "es": "Azul",
@@ -6773,7 +6773,7 @@
               "value": "blue"
             },
             {
-              "frag": "зелёный хирургический халат",
+              "frag": "green surgical gown",
               "label": {
                 "en": "Green gown",
                 "es": "Verde",
@@ -6782,7 +6782,7 @@
               "value": "green"
             },
             {
-              "frag": "белый врачебный халат поверх формы",
+              "frag": "white doctor's coat over scrubs",
               "label": {
                 "en": "White coat",
                 "es": "Bata blanca",
@@ -6802,7 +6802,7 @@
           "control": "sheet",
           "options": [
             {
-              "frag": "на шее стетоскоп",
+              "frag": "a stethoscope around the neck",
               "label": {
                 "en": "Stethoscope",
                 "es": "Estetoscopio",
@@ -6811,7 +6811,7 @@
               "value": "stethoscope"
             },
             {
-              "frag": "хирургическая маска сдвинута на шею, медицинская шапочка на голове",
+              "frag": "surgical mask pulled down to the neck, surgical cap on the head",
               "label": {
                 "en": "Mask & cap",
                 "es": "Mascarilla",
@@ -6820,7 +6820,7 @@
               "value": "mask"
             },
             {
-              "frag": "медицинская шапочка, на шее стетоскоп",
+              "frag": "surgical cap, a stethoscope around the neck",
               "label": {
                 "en": "Cap",
                 "es": "Gorro",
@@ -6840,7 +6840,7 @@
           "control": "sheet",
           "options": [
             {
-              "frag": "операционная с яркими лампами",
+              "frag": "operating room with bright lights",
               "label": {
                 "en": "Operating room",
                 "es": "Quirófano",
@@ -6849,7 +6849,7 @@
               "value": "or"
             },
             {
-              "frag": "светлый кабинет врача",
+              "frag": "bright doctor's office",
               "label": {
                 "en": "Office",
                 "es": "Consulta",
@@ -6858,7 +6858,7 @@
               "value": "office"
             },
             {
-              "frag": "коридор современной клиники",
+              "frag": "corridor of a modern clinic",
               "label": {
                 "en": "Clinic hall",
                 "es": "Pasillo",
@@ -6874,7 +6874,7 @@
         "9:16",
         "3:4"
       ],
-      "skeleton": "Identity lock: лицо на 100% идентично исходному референсу — полностью узнаваемо, без искажений и без изменения пропорций, черт и внешности; любые изменения лица запрещены. Человек (пол, возраст, внешность, причёска, длина и тип волос, наличие или отсутствие бороды и усов, телосложение — строго как на загруженном фото-референсе, ничего не добавлять и не убирать) в образе врача-хирурга: {attire}. {accessory}. Фон — {setting}. Чистый клинический свет, профессиональная уверенная атмосфера. Спокойная дружелюбная полуулыбка, лицо открыто — маска сдвинута на шею и НЕ закрывает лицо. КОМПОЗИЦИЯ: поясной или средний план, человек крупно в кадре, ЛИЦО — в центре внимания, в фокусе и максимально чёткое; НЕ мелкая фигура в полный рост с маленьким лицом. Фотореализм, реалистичная кожа с порами и текстурой, без ретуши и AI-сглаживания. Вертикальный кадр 9:16. Без посторонних людей, без текста, букв, логотипов и водяных знаков.",
+      "skeleton": "CRITICAL IDENTITY LOCK. The person in the uploaded reference image is the ONLY subject. Preserve the exact identity from the reference image. Maintain 100% facial consistency. Do not reinterpret, beautify, redesign, regenerate, or modify the person. LOCK ALL FACIAL FEATURES: face shape, jawline, cheekbones, forehead, eyebrows, eyes, eyelid shape, eye spacing, nose shape, nostrils, lips, mouth proportions, ears, skin texture, skin tone, facial proportions, age appearance, unique facial characteristics. Keep the exact same person as in the reference image. Pixel-accurate identity preservation. No identity drift. No face variation. No facial enhancement. No facial stylization. Only change: place this exact person in a surgeon portrait — {attire}. {accessory}. Background — {setting}. Clean clinical lighting, calm friendly half-smile, the surgical mask pulled down to the neck and NOT covering the face. Waist-up / medium shot, the person large in the frame, the FACE the focal point, sharp and clearly recognizable, NOT a small full-body figure. Vertical 9:16 frame. No other people, no text, letters, logos or watermarks. Everything else must remain identical to the uploaded reference. NEGATIVE CONSTRAINTS: different person, altered face, beautified face, AI face, modified eyes, modified nose, modified lips, different jawline, different cheekbones, face reshaping, age change, gender change, skin smoothing, plastic skin, beauty filter, identity drift, face morphing, facial reconstruction. FINAL RULE: if any conflict exists between the scene description and the reference image, the reference image always has priority. Maintain exact facial identity from the reference image. Ultra photorealistic RAW photo, natural skin pores, real skin texture, micro details, authentic facial anatomy, DSLR quality, 85mm lens, high dynamic range, 8K, realistic lighting, natural imperfections, not CGI, not AI generated look.",
       "maxPhotos": 8,
       "minPhotos": 1
     },
@@ -6915,7 +6915,7 @@
           "control": "sheet",
           "options": [
             {
-              "frag": "белый поварской китель",
+              "frag": "white chef's jacket",
               "label": {
                 "en": "White jacket",
                 "es": "Chaqueta blanca",
@@ -6924,7 +6924,7 @@
               "value": "white"
             },
             {
-              "frag": "чёрный поварской китель",
+              "frag": "black chef's jacket",
               "label": {
                 "en": "Black jacket",
                 "es": "Chaqueta negra",
@@ -6933,7 +6933,7 @@
               "value": "black"
             },
             {
-              "frag": "тёмный фартук поверх рубашки с закатанными рукавами",
+              "frag": "dark apron over a shirt with rolled-up sleeves",
               "label": {
                 "en": "Apron",
                 "es": "Delantal",
@@ -6953,7 +6953,7 @@
           "control": "sheet",
           "options": [
             {
-              "frag": "держит тарелку с эффектно поданным блюдом",
+              "frag": "holding a plate with an elegantly plated dish",
               "label": {
                 "en": "Plating",
                 "es": "Plato",
@@ -6962,7 +6962,7 @@
               "value": "plate"
             },
             {
-              "frag": "у плиты, эффектный язык пламени над сковородой",
+              "frag": "at the stove, a dramatic flame leaping over the pan",
               "label": {
                 "en": "Flambé",
                 "es": "Fuego",
@@ -6971,7 +6971,7 @@
               "value": "fire"
             },
             {
-              "frag": "у разделочной доски с поварским ножом",
+              "frag": "at the cutting board with a chef's knife",
               "label": {
                 "en": "With knife",
                 "es": "Cuchillo",
@@ -6991,7 +6991,7 @@
           "control": "sheet",
           "options": [
             {
-              "frag": "профессиональная кухня ресторана с блестящей сталью",
+              "frag": "professional restaurant kitchen with gleaming steel",
               "label": {
                 "en": "Restaurant kitchen",
                 "es": "Cocina",
@@ -7000,7 +7000,7 @@
               "value": "kitchen"
             },
             {
-              "frag": "у раздачи (пасс) с готовыми блюдами",
+              "frag": "at the service pass with finished dishes",
               "label": {
                 "en": "The pass",
                 "es": "Pase",
@@ -7009,7 +7009,7 @@
               "value": "pass"
             },
             {
-              "frag": "крупный план у плиты с огнём",
+              "frag": "close-up at the stove with fire",
               "label": {
                 "en": "By the flame",
                 "es": "Llama",
@@ -7025,7 +7025,7 @@
         "9:16",
         "3:4"
       ],
-      "skeleton": "Identity lock: лицо на 100% идентично исходному референсу — полностью узнаваемо, без искажений и без изменения пропорций, черт и внешности; любые изменения лица запрещены. Человек (пол, возраст, внешность, причёска, длина и тип волос, наличие или отсутствие бороды и усов, телосложение — строго как на загруженном фото-референсе, ничего не добавлять и не убирать) в образе шеф-повара на профессиональной кухне ресторана: {attire}. {action}. Фон — {setting}, тёплый свет, лёгкий пар. Сосредоточенный уверенный взгляд, лёгкая улыбка. КОМПОЗИЦИЯ: поясной или средний план, человек крупно в кадре, ЛИЦО — в центре внимания, в фокусе и максимально чёткое; НЕ мелкая фигура в полный рост с маленьким лицом. Фотореализм, реалистичная кожа с порами и текстурой, без ретуши и AI-сглаживания. Вертикальный кадр 9:16. Без посторонних людей, без текста, букв, логотипов и водяных знаков.",
+      "skeleton": "CRITICAL IDENTITY LOCK. The person in the uploaded reference image is the ONLY subject. Preserve the exact identity from the reference image. Maintain 100% facial consistency. Do not reinterpret, beautify, redesign, regenerate, or modify the person. LOCK ALL FACIAL FEATURES: face shape, jawline, cheekbones, forehead, eyebrows, eyes, eyelid shape, eye spacing, nose shape, nostrils, lips, mouth proportions, ears, skin texture, skin tone, facial proportions, age appearance, unique facial characteristics. Keep the exact same person as in the reference image. Pixel-accurate identity preservation. No identity drift. No face variation. No facial enhancement. No facial stylization. Only change: place this exact person as a chef in a professional restaurant kitchen — {attire}. {action}. Background — {setting}, warm light, light steam, focused confident look with a slight smile. Waist-up / medium shot, the person large in the frame, the FACE the focal point, sharp and clearly recognizable, NOT a small full-body figure. Vertical 9:16 frame. No other people, no text, letters, logos or watermarks. Everything else must remain identical to the uploaded reference. NEGATIVE CONSTRAINTS: different person, altered face, beautified face, AI face, modified eyes, modified nose, modified lips, different jawline, different cheekbones, face reshaping, age change, gender change, skin smoothing, plastic skin, beauty filter, identity drift, face morphing, facial reconstruction. FINAL RULE: if any conflict exists between the scene description and the reference image, the reference image always has priority. Maintain exact facial identity from the reference image. Ultra photorealistic RAW photo, natural skin pores, real skin texture, micro details, authentic facial anatomy, DSLR quality, 85mm lens, high dynamic range, 8K, realistic lighting, natural imperfections, not CGI, not AI generated look.",
       "maxPhotos": 8,
       "minPhotos": 1
     },
@@ -7066,7 +7066,7 @@
           "control": "sheet",
           "options": [
             {
-              "frag": "парадный офицерский китель с погонами и наградами",
+              "frag": "formal officer's dress tunic with epaulettes and decorations",
               "label": {
                 "en": "Dress jacket",
                 "es": "De gala",
@@ -7075,7 +7075,7 @@
               "value": "dress"
             },
             {
-              "frag": "полевая военная форма",
+              "frag": "field military uniform",
               "label": {
                 "en": "Field uniform",
                 "es": "De campaña",
@@ -7084,7 +7084,7 @@
               "value": "field"
             },
             {
-              "frag": "лётная куртка военного пилота",
+              "frag": "military pilot's flight jacket",
               "label": {
                 "en": "Pilot jacket",
                 "es": "Piloto",
@@ -7104,7 +7104,7 @@
           "control": "sheet",
           "options": [
             {
-              "frag": "форменная фуражка",
+              "frag": "service peaked cap",
               "label": {
                 "en": "Peaked cap",
                 "es": "Gorra",
@@ -7113,7 +7113,7 @@
               "value": "cap"
             },
             {
-              "frag": "берет",
+              "frag": "beret",
               "label": {
                 "en": "Beret",
                 "es": "Boina",
@@ -7122,7 +7122,7 @@
               "value": "beret"
             },
             {
-              "frag": "без головного убора, причёска с референса",
+              "frag": "no headwear, hairstyle from the reference",
               "label": {
                 "en": "None",
                 "es": "Ninguno",
@@ -7142,7 +7142,7 @@
           "control": "sheet",
           "options": [
             {
-              "frag": "плац на фоне строя",
+              "frag": "parade ground with troops in formation behind",
               "label": {
                 "en": "Parade",
                 "es": "Desfile",
@@ -7151,7 +7151,7 @@
               "value": "parade"
             },
             {
-              "frag": "штаб с картой на стене",
+              "frag": "headquarters with a map on the wall",
               "label": {
                 "en": "HQ",
                 "es": "Cuartel",
@@ -7160,7 +7160,7 @@
               "value": "hq"
             },
             {
-              "frag": "на фоне военной техники",
+              "frag": "in front of military vehicles",
               "label": {
                 "en": "By vehicle",
                 "es": "Vehículo",
@@ -7176,7 +7176,7 @@
         "9:16",
         "3:4"
       ],
-      "skeleton": "Identity lock: лицо на 100% идентично исходному референсу — полностью узнаваемо, без искажений и без изменения пропорций, черт и внешности; любые изменения лица запрещены. Человек (пол, возраст, внешность, причёска, длина и тип волос, наличие или отсутствие бороды и усов, телосложение — строго как на загруженном фото-референсе, ничего не добавлять и не убирать) в образе военного офицера (парадный портрет, без сцен насилия): {uniform}. {accessory}. Фон — {setting}. Чистый профессиональный свет, собранная достойная поза, прямой взгляд в камеру. КОМПОЗИЦИЯ: поясной или средний план, человек крупно в кадре, ЛИЦО — в центре внимания, в фокусе и максимально чёткое; НЕ мелкая фигура в полный рост с маленьким лицом. Фотореализм, реалистичная кожа с порами и текстурой, без ретуши и AI-сглаживания. Вертикальный кадр 9:16. Без посторонних людей, без текста, букв, логотипов и водяных знаков.",
+      "skeleton": "CRITICAL IDENTITY LOCK. The person in the uploaded reference image is the ONLY subject. Preserve the exact identity from the reference image. Maintain 100% facial consistency. Do not reinterpret, beautify, redesign, regenerate, or modify the person. LOCK ALL FACIAL FEATURES: face shape, jawline, cheekbones, forehead, eyebrows, eyes, eyelid shape, eye spacing, nose shape, nostrils, lips, mouth proportions, ears, skin texture, skin tone, facial proportions, age appearance, unique facial characteristics. Keep the exact same person as in the reference image. Pixel-accurate identity preservation. No identity drift. No face variation. No facial enhancement. No facial stylization. Only change: place this exact person in a formal military officer portrait (parade portrait, no violence) — {uniform}. {accessory}. Background — {setting}. Clean professional lighting, composed dignified pose, direct gaze into the camera. Waist-up / medium shot, the person large in the frame, the FACE the focal point, sharp and clearly recognizable, NOT a small full-body figure. Vertical 9:16 frame. No other people, no text, letters, logos or watermarks. Everything else must remain identical to the uploaded reference. NEGATIVE CONSTRAINTS: different person, altered face, beautified face, AI face, modified eyes, modified nose, modified lips, different jawline, different cheekbones, face reshaping, age change, gender change, skin smoothing, plastic skin, beauty filter, identity drift, face morphing, facial reconstruction. FINAL RULE: if any conflict exists between the scene description and the reference image, the reference image always has priority. Maintain exact facial identity from the reference image. Ultra photorealistic RAW photo, natural skin pores, real skin texture, micro details, authentic facial anatomy, DSLR quality, 85mm lens, high dynamic range, 8K, realistic lighting, natural imperfections, not CGI, not AI generated look.",
       "maxPhotos": 8,
       "minPhotos": 1
     },
@@ -7217,7 +7217,7 @@
           "control": "sheet",
           "options": [
             {
-              "frag": "боёвка пожарного с отражающими полосами и каской",
+              "frag": "firefighter turnout gear with reflective stripes and helmet",
               "label": {
                 "en": "Turnout & helmet",
                 "es": "Equipo y casco",
@@ -7226,7 +7226,7 @@
               "value": "full"
             },
             {
-              "frag": "боёвка с отражающими полосами, каска под мышкой",
+              "frag": "turnout gear with reflective stripes, helmet held under the arm",
               "label": {
                 "en": "Helmet off",
                 "es": "Casco fuera",
@@ -7235,7 +7235,7 @@
               "value": "nohelm"
             },
             {
-              "frag": "парадная форма пожарного",
+              "frag": "firefighter dress uniform",
               "label": {
                 "en": "Dress uniform",
                 "es": "De gala",
@@ -7255,7 +7255,7 @@
           "control": "sheet",
           "options": [
             {
-              "frag": "в руке пожарный топор",
+              "frag": "holding a firefighter's axe",
               "label": {
                 "en": "Axe",
                 "es": "Hacha",
@@ -7264,7 +7264,7 @@
               "value": "axe"
             },
             {
-              "frag": "держит пожарный рукав",
+              "frag": "holding a fire hose",
               "label": {
                 "en": "Hose",
                 "es": "Manguera",
@@ -7273,7 +7273,7 @@
               "value": "hose"
             },
             {
-              "frag": "без дополнительных предметов",
+              "frag": "no additional props",
               "label": {
                 "en": "None",
                 "es": "Ninguno",
@@ -7293,7 +7293,7 @@
           "control": "sheet",
           "options": [
             {
-              "frag": "на фоне красной пожарной машины",
+              "frag": "in front of a red fire truck",
               "label": {
                 "en": "By the truck",
                 "es": "Camión",
@@ -7302,7 +7302,7 @@
               "value": "truck"
             },
             {
-              "frag": "на фоне дыма и отблесков огня",
+              "frag": "against smoke and the glow of fire",
               "label": {
                 "en": "Smoke & fire",
                 "es": "Humo",
@@ -7311,7 +7311,7 @@
               "value": "smoke"
             },
             {
-              "frag": "в пожарном депо",
+              "frag": "in the fire station",
               "label": {
                 "en": "Station",
                 "es": "Parque",
@@ -7327,7 +7327,7 @@
         "9:16",
         "3:4"
       ],
-      "skeleton": "Identity lock: лицо на 100% идентично исходному референсу — полностью узнаваемо, без искажений и без изменения пропорций, черт и внешности; любые изменения лица запрещены. Человек (пол, возраст, внешность, причёска, длина и тип волос, наличие или отсутствие бороды и усов, телосложение — строго как на загруженном фото-референсе, ничего не добавлять и не убирать) в образе пожарного в боевой экипировке: {gear}. {accessory}. Фон — {setting}, драматичный свет. Собранный смелый взгляд в камеру. КОМПОЗИЦИЯ: поясной или средний план, человек крупно в кадре, ЛИЦО — в центре внимания, в фокусе и максимально чёткое; НЕ мелкая фигура в полный рост с маленьким лицом. Фотореализм, реалистичная кожа с порами и текстурой, без ретуши и AI-сглаживания. Вертикальный кадр 9:16. Без посторонних людей, без текста, букв, логотипов и водяных знаков.",
+      "skeleton": "CRITICAL IDENTITY LOCK. The person in the uploaded reference image is the ONLY subject. Preserve the exact identity from the reference image. Maintain 100% facial consistency. Do not reinterpret, beautify, redesign, regenerate, or modify the person. LOCK ALL FACIAL FEATURES: face shape, jawline, cheekbones, forehead, eyebrows, eyes, eyelid shape, eye spacing, nose shape, nostrils, lips, mouth proportions, ears, skin texture, skin tone, facial proportions, age appearance, unique facial characteristics. Keep the exact same person as in the reference image. Pixel-accurate identity preservation. No identity drift. No face variation. No facial enhancement. No facial stylization. Only change: place this exact person in a firefighter portrait in full turnout gear — {gear}. {accessory}. Background — {setting}, dramatic light, composed brave gaze into the camera. Waist-up / medium shot, the person large in the frame, the FACE the focal point, sharp and clearly recognizable, NOT a small full-body figure. Vertical 9:16 frame. No other people, no text, letters, logos or watermarks. Everything else must remain identical to the uploaded reference. NEGATIVE CONSTRAINTS: different person, altered face, beautified face, AI face, modified eyes, modified nose, modified lips, different jawline, different cheekbones, face reshaping, age change, gender change, skin smoothing, plastic skin, beauty filter, identity drift, face morphing, facial reconstruction. FINAL RULE: if any conflict exists between the scene description and the reference image, the reference image always has priority. Maintain exact facial identity from the reference image. Ultra photorealistic RAW photo, natural skin pores, real skin texture, micro details, authentic facial anatomy, DSLR quality, 85mm lens, high dynamic range, 8K, realistic lighting, natural imperfections, not CGI, not AI generated look.",
       "maxPhotos": 8,
       "minPhotos": 1
     },
