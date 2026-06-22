@@ -377,8 +377,10 @@ def _row_to_json(row: dict) -> dict:
 # phone photo) and then generates from the prompt alone — a totally different
 # face. Downscale uploaded images to a safe longest side before they ever reach
 # the model. Verified: 3024x4032 ref was dropped; 960x1280 was applied 1:1.
+# Refs already within the cap are left BYTE-FOR-BYTE untouched (no re-encode);
+# only over-cap images are resized, and then saved near-lossless (quality=100).
 _IMG_SHRINK_EXT = {".jpg", ".jpeg", ".png", ".webp"}
-_IMG_MAX_SIDE = 1536
+_IMG_MAX_SIDE = 2048
 
 
 def _shrink_image(path: str):
@@ -394,12 +396,12 @@ def _shrink_image(path: str):
         im = Image.open(path)
         im.load()
         if max(im.size) <= _IMG_MAX_SIDE:
-            return
+            return   # within cap -> keep the original file untouched, no re-encode
         im.thumbnail((_IMG_MAX_SIDE, _IMG_MAX_SIDE))
         if ext in (".jpg", ".jpeg"):
-            im.convert("RGB").save(path, "JPEG", quality=88)
+            im.convert("RGB").save(path, "JPEG", quality=100, subsampling=0)
         elif ext == ".webp":
-            im.save(path, "WEBP", quality=88)
+            im.save(path, "WEBP", quality=100, lossless=True)
         else:
             im.save(path, "PNG", optimize=True)
     except Exception:
@@ -412,7 +414,6 @@ async def _parse_request(request: web.Request):
     if request.content_type and request.content_type.startswith("multipart/"):
         data = {}
         file_count = 0
-        saved_files = []   # defer shrink until tplId is known (job2-* sends full-size ref)
         reader = await request.multipart()
         while True:
             part = await reader.next()
@@ -443,7 +444,7 @@ async def _parse_request(request: web.Request):
                     try: os.remove(fpath)
                     except OSError: pass
                     continue   # silently drop the oversize file
-                saved_files.append(fpath)   # shrink deferred -> after settings parsed
+                _shrink_image(fpath)   # downscale only if over the 2048px cap
                 key = part.name
                 if key in files:
                     if not isinstance(files[key], list):
@@ -459,15 +460,6 @@ async def _parse_request(request: web.Request):
                 data["settings"] = json.loads(data["settings"])
             except (json.JSONDecodeError, TypeError):
                 data["settings"] = {}
-        # Downscale uploaded refs so KIE/NanoBanana doesn't silently drop an oversized
-        # image -> wrong face. EXCEPTION: job2-* templates send the reference full-size,
-        # untouched (raw selfie, identity A/B test). See _shrink_image.
-        _tpl_id = ""
-        if isinstance(data.get("settings"), dict):
-            _tpl_id = str(data["settings"].get("tplId") or "")
-        if not _tpl_id.startswith("job2-"):
-            for _fp in saved_files:
-                _shrink_image(_fp)
         if "tg_id" in data:
             try:
                 data["tg_id"] = int(data["tg_id"]) if data["tg_id"] else None
