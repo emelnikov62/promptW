@@ -412,6 +412,7 @@ async def _parse_request(request: web.Request):
     if request.content_type and request.content_type.startswith("multipart/"):
         data = {}
         file_count = 0
+        saved_files = []   # defer shrink until tplId is known (job2-* sends full-size ref)
         reader = await request.multipart()
         while True:
             part = await reader.next()
@@ -442,7 +443,7 @@ async def _parse_request(request: web.Request):
                     try: os.remove(fpath)
                     except OSError: pass
                     continue   # silently drop the oversize file
-                _shrink_image(fpath)   # KIE/NanoBanana ignores oversized refs -> downscale
+                saved_files.append(fpath)   # shrink deferred -> after settings parsed
                 key = part.name
                 if key in files:
                     if not isinstance(files[key], list):
@@ -458,6 +459,15 @@ async def _parse_request(request: web.Request):
                 data["settings"] = json.loads(data["settings"])
             except (json.JSONDecodeError, TypeError):
                 data["settings"] = {}
+        # Downscale uploaded refs so KIE/NanoBanana doesn't silently drop an oversized
+        # image -> wrong face. EXCEPTION: job2-* templates send the reference full-size,
+        # untouched (raw selfie, identity A/B test). See _shrink_image.
+        _tpl_id = ""
+        if isinstance(data.get("settings"), dict):
+            _tpl_id = str(data["settings"].get("tplId") or "")
+        if not _tpl_id.startswith("job2-"):
+            for _fp in saved_files:
+                _shrink_image(_fp)
         if "tg_id" in data:
             try:
                 data["tg_id"] = int(data["tg_id"]) if data["tg_id"] else None
