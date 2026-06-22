@@ -332,6 +332,7 @@ function applyLang(lang) {
     document.getElementById("lang-btn").textContent = langFlags[lang] || langFlags.ru;
     renderVideoSettings(currentVideoModel);
     if (typeof renderTemplatesHome === "function") renderTemplatesHome();   // re-caption gallery
+    if (typeof fixObBonus === "function") fixObBonus();   // keep onboarding bonus {n} substituted
 
     var tgId = getTgId();
     if (tgId) {
@@ -2760,4 +2761,55 @@ function closeLightbox(){
 (function(){
     var lb=document.getElementById("media-lightbox");
     if(lb) lb.addEventListener("click",function(e){ if(e.target===lb) closeLightbox(); });
+})();
+
+// ── Onboarding ──
+var WELCOME_BONUS = 90;              // keep in sync with the server welcome bonus
+var ONBOARDING_CTA_TARGET = "home";  // swap to a starter template id when chosen
+function fixObBonus(){
+    var el = document.getElementById("ob4-title");
+    if (el) el.textContent = t("ob4Title").replace("{n}", WELCOME_BONUS);
+}
+(function initOnboarding(){
+    var ob = document.getElementById("onboarding");
+    if (!ob) return;
+    var track = document.getElementById("ob-track");
+    var dotsWrap = document.getElementById("ob-dots");
+    var nextBtn = document.getElementById("ob-next");
+    var skipBtn = document.getElementById("ob-skip");
+    var slides = track ? track.children.length : 0;
+    var i = 0, x0 = null;
+    for (var d = 0; d < slides; d++){ var dot = document.createElement("span"); dot.className = "ob-dot"; dotsWrap.appendChild(dot); }
+    var dots = dotsWrap.children;
+    function render(){
+        track.style.transform = "translateX(-" + (i * 100) + "%)";
+        for (var k = 0; k < slides; k++){ dots[k].classList.toggle("on", k === i); }
+        var last = i === slides - 1;
+        nextBtn.textContent = last ? t("obCtaStart") : t("obNext");
+        nextBtn.classList.toggle("cta", last);
+        skipBtn.style.visibility = last ? "hidden" : "visible";
+    }
+    function go(n){ var p = i; i = Math.max(0, Math.min(slides - 1, n)); if (i !== p) haptic.select(); render(); }
+    function finish(){
+        try { localStorage.setItem("pwOnboardingSeen", "1"); } catch(e){}
+        ob.classList.add("hidden");
+        document.body.classList.remove("ob-open");
+        showPage(ONBOARDING_CTA_TARGET);
+    }
+    nextBtn.addEventListener("click", function(){ if (i < slides - 1) go(i + 1); else finish(); });
+    skipBtn.addEventListener("click", finish);
+    track.addEventListener("touchstart", function(e){ x0 = e.touches[0].clientX; }, { passive: true });
+    track.addEventListener("touchend", function(e){ if (x0 === null) return; var dx = e.changedTouches[0].clientX - x0; if (dx < -40) go(i + 1); else if (dx > 40) go(i - 1); x0 = null; });
+    window.showOnboarding = function(){ i = 0; fixObBonus(); render(); ob.classList.remove("hidden"); document.body.classList.add("ob-open"); };
+    var replay = document.getElementById("ob-replay");
+    if (replay) replay.addEventListener("click", function(){ window.showOnboarding(); });
+})();
+// First launch: show onboarding unless already seen or a deep-link page was requested.
+(function(){
+    var seen; try { seen = localStorage.getItem("pwOnboardingSeen"); } catch(e){ seen = "1"; }
+    if (seen) return;
+    var dl = null;
+    try { dl = new URLSearchParams(location.search).get("p") || (tg.initDataUnsafe && tg.initDataUnsafe.start_param); } catch(e){}
+    if (dl) return;   // honor the deep-link this time; onboarding will show on a later plain launch
+    if (typeof window.showOnboarding === "function") window.showOnboarding();
 })();
