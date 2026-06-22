@@ -377,10 +377,12 @@ def _row_to_json(row: dict) -> dict:
 # phone photo) and then generates from the prompt alone — a totally different
 # face. Downscale uploaded images to a safe longest side before they ever reach
 # the model. Verified: 3024x4032 ref was dropped; 960x1280 was applied 1:1.
-# Refs already within the cap are left BYTE-FOR-BYTE untouched (no re-encode);
-# only over-cap images are resized, and then saved near-lossless (quality=100).
+# Refs already within the cap AND upright are left BYTE-FOR-BYTE untouched (no
+# re-encode); only over-cap or EXIF-rotated images are rewritten, then saved
+# near-lossless (quality=100).
 _IMG_SHRINK_EXT = {".jpg", ".jpeg", ".png", ".webp"}
 _IMG_MAX_SIDE = 2048
+_EXIF_ORIENTATION = 0x0112
 
 
 def _shrink_image(path: str):
@@ -388,16 +390,25 @@ def _shrink_image(path: str):
     if ext not in _IMG_SHRINK_EXT:
         return
     try:
-        from PIL import Image
+        from PIL import Image, ImageOps
         # Decompression-bomb guard: a tiny upload can declare a huge canvas and
         # exhaust memory on .load(). Cap declared pixels before decoding; Pillow
         # raises DecompressionBombError past the limit (caught below → left as-is).
         Image.MAX_IMAGE_PIXELS = 64_000_000   # ~64 MP
         im = Image.open(path)
         im.load()
-        if max(im.size) <= _IMG_MAX_SIDE:
-            return   # within cap -> keep the original file untouched, no re-encode
-        im.thumbnail((_IMG_MAX_SIDE, _IMG_MAX_SIDE))
+        # Phone cameras store the photo unrotated + an EXIF orientation tag. KIE
+        # (and a PIL re-save) drop/ignore that tag, so the ref arrives rotated.
+        # Bake the rotation into the pixels (exif_transpose drops the tag too).
+        orient = im.getexif().get(_EXIF_ORIENTATION, 1)
+        needs_rotate = orient not in (0, 1)
+        over_cap = max(im.size) > _IMG_MAX_SIDE
+        if not needs_rotate and not over_cap:
+            return   # upright & within cap -> keep the original file untouched
+        if needs_rotate:
+            im = ImageOps.exif_transpose(im)
+        if over_cap:
+            im.thumbnail((_IMG_MAX_SIDE, _IMG_MAX_SIDE))
         if ext in (".jpg", ".jpeg"):
             im.convert("RGB").save(path, "JPEG", quality=100, subsampling=0)
         elif ext == ".webp":
