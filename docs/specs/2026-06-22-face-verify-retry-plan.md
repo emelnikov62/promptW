@@ -33,9 +33,9 @@
 
 ## Осталось (деплой / владелец)
 
-1. На VPS: `pip install -r requirements.txt`, создать gitignored `FACE_MODEL_ROOT`,
-   предзагрузить `buffalo_l` (первый `face_verify.available()`/импорт InsightFace скачает
-   пак в `FACE_MODEL_ROOT`).
+1. На VPS: `pip install -r requirements.txt`, затем предзагрузить модель одной командой —
+   `set -a && . ./.env && set +a && venv/bin/python tools_face_warmup.py` (скачает `buffalo_l`
+   в gitignored `FACE_MODEL_ROOT` и проверит, что модель грузится; exit 0 = ready).
 2. Проверить RAM (буфало_l ок — подтверждено).
 3. Этап shadow: `.env` `FACE_VERIFY_SHADOW=1`, `FACE_VERIFY=0` → собрать `face_scores`
    без трат на ретраи.
