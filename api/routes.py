@@ -820,7 +820,7 @@ async def api_topup_create(request: web.Request):
     tokens, amount_rub = pkg
     order_id = str(uuid.uuid4())
     desc = f"PromptW: {tokens} токенов"
-    success_url = WEBAPP_URL or "https://t.me"
+    success_url = "https://t.me/promptW_bot/app"
 
     bonus_pct = 0
     bonus_tokens = 0
