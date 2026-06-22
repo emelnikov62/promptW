@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import uuid
 import asyncio
@@ -1014,9 +1015,43 @@ _TPL_IDENTITY_SUFFIX = (
     "разрез и ЦВЕТ глаз, брови, форма губ, скулы, текстура кожи, родинки, усы/щетина/борода, "
     "цвет и причёска волос — строго как на фото. НЕ идеализируй, не омолаживай, не сужай лицо, "
     "не делай его симметричнее или «модельным» — это обычный человек, узнаваемый мгновенно. "
+    "ЗАПРЕЩЕНО: добавлять бороду, усы или щетину, если их нет на фото (и наоборот — не убирать, если есть); "
+    "менять возраст, форму лица, делать скулы/челюсть резче, заменять человека на другого, более «модельного». "
     "КОМПОЗИЦИЯ: построй кадр так, чтобы человек был КРУПНО, а ЛИЦО — в центре внимания, в фокусе и "
     "максимально чётким (поясной или средний план). НЕ делай мелкую фигуру в полный рост с маленьким лицом."
 )
+
+
+# Base template prompts carry "person-priming" adjectives (успешный/уверенный/
+# статусный мужчина; женские VOGUE/editorial/высокая мода/модель/гламур). Those cue
+# the model toward a generic idealized person and trigger substitution (eval: men get
+# bearded GQ models on jet/supercar, women drift younger on vogue). Neutralize them at
+# generation time — same code-side approach as _FULLBODY_REPL, no prod-DB mutation.
+_DEPRIME_REPL = (
+    (r"\bуспешн\w+", ""),
+    (r"\bуверенн\w+", ""),
+    (r"\bстатусн\w+", ""),
+    (r"\bэффектн\w+", ""),
+    (r"\bгламурн\w+", ""),
+    (r"\bроскошн\w+\s+(?=человек|мужчин|женщин|девушк|парн)", ""),
+    (r"в\s+стиле\s+VOGUE", "в стиле естественного портрета"),
+    (r"\bVOGUE\b", ""),
+    (r"\beditorial\b", ""),
+    (r"\bfashion[-\s]?(?:модел\w+|съёмк\w+|съемк\w+)", "портрет"),
+    (r"высок\w+\s+мод\w+", ""),
+    (r"\b(?:топ[-\s]?)?модел\w+", "человек"),
+)
+
+
+def _deprime(prompt: str) -> str:
+    for pat, repl in _DEPRIME_REPL:
+        prompt = re.sub(pat, repl, prompt, flags=re.IGNORECASE)
+    # tidy the double spaces / dangling commas left by removals
+    prompt = re.sub(r"\s{2,}", " ", prompt)
+    prompt = re.sub(r"\s+([,.;])", r"\1", prompt)
+    prompt = re.sub(r",(?:\s*,)+", ",", prompt)
+    prompt = re.sub(r"\s{2,}", " ", prompt)
+    return prompt.strip(" ,")
 
 
 # A few legacy template skeletons ask for "в полный рост" (full-body), which is the
@@ -1039,6 +1074,7 @@ def _augment_template_prompt(prompt: str, settings: dict, files: dict) -> str:
         return prompt
     for a, b in _FULLBODY_REPL:
         prompt = prompt.replace(a, b)
+    prompt = _deprime(prompt)
     return prompt + _TPL_IDENTITY_SUFFIX
 
 
