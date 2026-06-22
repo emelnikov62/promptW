@@ -1783,7 +1783,7 @@ function makeVideoThumb(url){
     if(videoThumbs[url] || videoThumbPending[url]) return;
     videoThumbPending[url]=true;
     var v=document.createElement("video");
-    v.muted=true; v.playsInline=true; v.preload="auto"; v.src=url;
+    v.muted=true; v.playsInline=true; v.preload="auto"; v.crossOrigin="anonymous"; v.src=mediaBlobUrl(url);
     var done=false;
     function finish(){ if(!done){ done=true; delete videoThumbPending[url]; } }
     v.addEventListener("loadedmetadata",function(){
