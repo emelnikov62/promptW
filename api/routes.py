@@ -192,6 +192,21 @@ def _task_saver(gen_id):
     return _on_task
 
 
+async def _discard_media(paths):
+    """Delete already-produced media (remote S3 object or local file) — used when the
+    reconciler beat the live task to finalizing a row, so we don't keep an orphan."""
+    for p in paths:
+        if not p:
+            continue
+        try:
+            if storage.is_remote(p):
+                await storage.adelete_url(p)
+            else:
+                os.remove(p)
+        except OSError:
+            pass
+
+
 async def _run_generation(gen_id, tg_id, cost: int, label: str, build):
     """Run `build()` to completion regardless of whether the HTTP client stays
     connected. `build` returns the JSON-able response dict (and writes the 'done'
@@ -1045,6 +1060,8 @@ async def generate_image(request: web.Request):
     effective_prompt = _augment_template_prompt(prompt, settings, files)
 
     cost = compute_cost("photo", model, settings)
+    if cost is None:
+        return web.json_response({"error": "unknown_model"}, status=400)
     ok, balance = await _charge(tg_id, cost, f"photo:{model}")
     if not ok:
         return await _insufficient(tg_id, cost)
@@ -1066,8 +1083,12 @@ async def generate_image(request: web.Request):
         paths = result.file_paths or [result.file_path]
         file_urls = [_media_url(p) for p in paths]
         file_url = file_urls[0]
-        if gen_id:
-            await update_generation(gen_id, "done", file_url)
+        # Guarded finalize (pending->done): if the reconciler already failed+refunded
+        # this row, DON'T resurrect it with an unconditional update — that would hand the
+        # user both the refund and the result. Drop our orphan output and report failure.
+        if gen_id and not await finish_generation_if_pending(gen_id, file_url):
+            await _discard_media(paths)
+            return {"__superseded__": True}
         return {
             "file_url": file_url,
             "file_urls": file_urls,
@@ -1080,7 +1101,7 @@ async def generate_image(request: web.Request):
         }
 
     resp = await _run_generation(gen_id, tg_id, cost, f"photo:{model}", _build)
-    if resp.get("__error__"):
+    if resp.get("__error__") or resp.get("__superseded__"):
         return web.json_response({"error": "generation_failed"}, status=500)
     return web.json_response(resp)
 
@@ -1102,6 +1123,8 @@ async def generate_video(request: web.Request):
         settings["references"] = await _publish_refs(files)
 
     cost = compute_cost("video", model, settings)
+    if cost is None:
+        return web.json_response({"error": "unknown_model"}, status=400)
     ok, balance = await _charge(tg_id, cost, f"video:{model}")
     if not ok:
         return await _insufficient(tg_id, cost)
@@ -1124,8 +1147,9 @@ async def generate_video(request: web.Request):
             on_task=_task_saver(gen_id),
         )
         file_url = _media_url(result.file_path)
-        if gen_id:
-            await update_generation(gen_id, "done", file_url)
+        if gen_id and not await finish_generation_if_pending(gen_id, file_url):
+            await _discard_media([result.file_path])
+            return {"__superseded__": True}
         return {
             "file_url": file_url,
             "media_type": result.media_type,
@@ -1137,7 +1161,7 @@ async def generate_video(request: web.Request):
         }
 
     resp = await _run_generation(gen_id, tg_id, cost, f"video:{model}", _build)
-    if resp.get("__error__"):
+    if resp.get("__error__") or resp.get("__superseded__"):
         return web.json_response({"error": "generation_failed"}, status=500)
     return web.json_response(resp)
 
@@ -1156,6 +1180,8 @@ async def generate_audio(request: web.Request):
         return web.json_response({"error": "prompt is required"}, status=400)
 
     cost = compute_cost("audio", model, settings)
+    if cost is None:
+        return web.json_response({"error": "unknown_model"}, status=400)
     ok, balance = await _charge(tg_id, cost, f"audio:{model}")
     if not ok:
         return await _insufficient(tg_id, cost)
@@ -1182,8 +1208,9 @@ async def generate_audio(request: web.Request):
             on_task=_task_saver(gen_id),
         )
         file_url = _media_url(result.file_path)
-        if gen_id:
-            await update_generation(gen_id, "done", file_url)
+        if gen_id and not await finish_generation_if_pending(gen_id, file_url):
+            await _discard_media([result.file_path])
+            return {"__superseded__": True}
         return {
             "file_url": file_url,
             "media_type": result.media_type,
@@ -1195,7 +1222,7 @@ async def generate_audio(request: web.Request):
         }
 
     resp = await _run_generation(gen_id, tg_id, cost, f"audio:{model}", _build)
-    if resp.get("__error__"):
+    if resp.get("__error__") or resp.get("__superseded__"):
         return web.json_response({"error": "generation_failed"}, status=500)
     return web.json_response(resp)
 
