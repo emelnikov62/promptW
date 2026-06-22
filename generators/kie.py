@@ -70,7 +70,7 @@ class KieGenerator(BaseGenerator):
             async with session.post(url, json=body,
                                     headers=self._headers()) as resp:
                 data = await resp.json()
-                logger.info("createTask response: %s", data)
+                logger.debug("createTask response: %s", data)
                 if data.get("code") != 200:
                     raise RuntimeError(
                         f"KIE createTask failed: {data.get('msg', data)}")
@@ -123,7 +123,7 @@ class KieGenerator(BaseGenerator):
             async with session.post(url, json=body,
                                     headers=self._headers()) as resp:
                 data = await resp.json()
-                logger.info("generate audio response: %s", data)
+                logger.debug("generate audio response: %s", data)
                 if data.get("code") != 200:
                     raise RuntimeError(
                         f"KIE audio failed: {data.get('msg', data)}")
@@ -156,7 +156,7 @@ class KieGenerator(BaseGenerator):
 
                 task = data.get("data") or {}
                 state = task.get("state", "")
-                logger.info("Task %s state: %s", task_id, state)
+                logger.debug("Task %s state: %s", task_id, state)
 
                 if state == "success":
                     return task
@@ -300,7 +300,7 @@ class KieGenerator(BaseGenerator):
             async with session.post(f"{API_BASE}/api/v1/veo/generate",
                                     json=body, headers=self._headers()) as resp:
                 data = await resp.json()
-                logger.info("veo generate response: %s", data)
+                logger.debug("veo generate response: %s", data)
                 if data.get("code") != 200:
                     raise RuntimeError(f"KIE Veo failed: {data.get('msg', data)}")
                 task_id = (data.get("data") or {}).get("taskId")
@@ -325,7 +325,7 @@ class KieGenerator(BaseGenerator):
                     raise RuntimeError(f"KIE Veo record-info failed: {data.get('msg', data)}")
                 d = data.get("data", {})
                 flag = d.get("successFlag")
-                logger.info("Veo task %s flag: %s", task_id, flag)
+                logger.debug("Veo task %s flag: %s", task_id, flag)
                 if flag == 1:
                     response = d.get("response") or {}
                     urls = response.get("resultUrls") or response.get("fullResultUrls") or []

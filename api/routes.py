@@ -15,7 +15,7 @@ from aiogram.types import FSInputFile, BufferedInputFile
 
 from generators.base import BaseGenerator
 from bot.config import BOT_TOKEN
-from bot.auth import validate_init_data, verify_auth_token
+from bot.auth import validate_init_data, verify_auth_token, verify_admin_token
 from pricing import compute_cost, CHAT_COST
 from db.queries import (
     get_user, upsert_user, update_user_lang, update_balance, try_charge,
@@ -116,11 +116,19 @@ async def auth_middleware(request: web.Request, handler):
     else:
         # Fallback for clients that don't expose initData (some Telegram Desktop
         # builds): a bot-issued HMAC token carried in the WebApp URL.
-        tok_id = verify_auth_token(request.headers.get("X-Auth-Token", ""), BOT_TOKEN)
+        token = request.headers.get("X-Auth-Token", "")
+        tok_id = verify_auth_token(token, BOT_TOKEN)
         if tok_id is not None:
             request["tg_id"] = tok_id
-        elif AUTH_ENFORCE:
-            return web.json_response({"error": "unauthorized"}, status=401)
+        else:
+            # Admin-session token (distinct namespace) — grants the admin panel
+            # only; a normal user token can never set admin_scope.
+            adm_id = verify_admin_token(token, BOT_TOKEN)
+            if adm_id is not None:
+                request["tg_id"] = adm_id
+                request["admin_scope"] = True
+            elif AUTH_ENFORCE:
+                return web.json_response({"error": "unauthorized"}, status=401)
     return await handler(request)
 
 
@@ -353,6 +361,10 @@ def _shrink_image(path: str):
         return
     try:
         from PIL import Image
+        # Decompression-bomb guard: a tiny upload can declare a huge canvas and
+        # exhaust memory on .load(). Cap declared pixels before decoding; Pillow
+        # raises DecompressionBombError past the limit (caught below → left as-is).
+        Image.MAX_IMAGE_PIXELS = 64_000_000   # ~64 MP
         im = Image.open(path)
         im.load()
         if max(im.size) <= _IMG_MAX_SIDE:
@@ -457,8 +469,10 @@ async def api_set_lang(request: web.Request):
 @routes.get("/api/user/{tg_id}/history")
 async def api_get_history(request: web.Request):
     tg_id = _authed_id(request, _int_or_none(request.match_info["tg_id"]))
-    limit = int(request.query.get("limit", "20"))
-    offset = int(request.query.get("offset", "0"))
+    # Cap generously: the History "show more" grows the window by 30 each click,
+    # so the bound only exists to reject absurd/garbage values, not to paginate.
+    limit = max(1, min(_int_or_none(request.query.get("limit")) or 20, 2000))
+    offset = max(0, _int_or_none(request.query.get("offset")) or 0)
     rows = await get_user_generations(tg_id, limit, offset)
     result = []
     for r in rows:
@@ -604,6 +618,10 @@ async def api_media_proxy(request: web.Request):
     from our own origin removes the cross-origin dependency entirely. Only objects
     inside our bucket are served (key_from_url guards against SSRF); they're
     already public, so no auth is required (this path is in _AUTH_SKIP)."""
+    # Unauthenticated by design, so rate-limit on the peer IP to stop it being
+    # used as an open bandwidth relay for our bucket.
+    if not _rate_ok("mproxy:" + _client_ip(request), 120, 60):
+        return _too_many()
     url = request.query.get("url", "")
     if not storage.is_remote(url) or not storage.key_from_url(url):
         return web.json_response({"error": "bad_url"}, status=400)
@@ -744,10 +762,11 @@ async def api_topup_status(request: web.Request):
         order_id = str(pay["order_id"])
     if pay["status"] != "paid" and pay["external_id"]:
         if pay["provider"] == "yoomoney":
-            ok, vorder = await pg.yookassa_verify(pay["external_id"])
+            ok, vorder, vamount = await pg.yookassa_verify(pay["external_id"])
             if ok and vorder == order_id:
                 try:
-                    await settle_payment(order_id, pay["external_id"], provider="yoomoney")
+                    await settle_payment(order_id, pay["external_id"], provider="yoomoney",
+                                         expected_amount=vamount)
                     pay = await get_payment(order_id) or pay
                 except Exception:
                     logger.exception("ЮKassa settle (status) failed for %s", order_id)
@@ -779,10 +798,11 @@ async def api_pay_yoomoney(request: web.Request):
         return web.json_response({"ok": True})
     obj = data.get("object") or {}
     if data.get("event") == "payment.succeeded" and obj.get("id"):
-        ok, order_id = await pg.yookassa_verify(obj["id"])
+        ok, order_id, vamount = await pg.yookassa_verify(obj["id"])
         if ok and order_id:
             try:
-                await settle_payment(order_id, obj["id"])
+                await settle_payment(order_id, obj["id"], provider="yoomoney",
+                                     expected_amount=vamount)
             except Exception:
                 logger.exception("ЮKassa settle failed for %s", order_id)
     return web.json_response({"ok": True})

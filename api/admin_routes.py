@@ -14,7 +14,7 @@ from db.queries import (
     admin_update_template, admin_delete_template, get_template_costs,
 )
 from pricing import refresh_template_costs
-from bot.auth import make_auth_token
+from bot.auth import make_admin_token
 from bot.config import BOT_TOKEN
 import storage
 
@@ -25,6 +25,48 @@ admin_routes = web.RouteTableDef()
 ADMIN_IDS = {int(x) for x in os.getenv("ADMIN_IDS", "").replace(" ", "").split(",") if x}
 ADMIN_LOGIN = os.getenv("ADMIN_LOGIN", "")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
+
+
+# ── Login brute-force throttle (in-memory, fixed window, single-process) ──
+import time as _time
+_LOGIN_RL = {}  # ip -> [window_start, count]
+
+
+def _login_rate_ok(ip: str, limit: int = 10, window: int = 300) -> bool:
+    now = _time.time()
+    rec = _LOGIN_RL.get(ip)
+    if rec is None or now - rec[0] >= window:
+        if len(_LOGIN_RL) > 2000:
+            for k in [k for k, v in _LOGIN_RL.items() if now - v[0] >= window]:
+                _LOGIN_RL.pop(k, None)
+        _LOGIN_RL[ip] = [now, 1]
+        return True
+    if rec[1] >= limit:
+        return False
+    rec[1] += 1
+    return True
+
+
+def _qint(request, name, default, lo=None, hi=None):
+    """Parse a query int defensively (a bad value yields the default, not a 500)."""
+    try:
+        v = int(request.query.get(name, default))
+    except (ValueError, TypeError):
+        v = default
+    if lo is not None:
+        v = max(lo, v)
+    if hi is not None:
+        v = min(hi, v)
+    return v
+
+
+async def _json_body(request):
+    """await request.json() that never 500s on malformed input."""
+    try:
+        d = await request.json()
+        return d if isinstance(d, dict) else {}
+    except Exception:
+        return {}
 
 
 def _serialize(obj):
@@ -46,8 +88,11 @@ def _client_ip(request):
 
 
 def _require_admin(request):
+    # Require BOTH an admin-scoped session token (set by auth_middleware) and
+    # membership in ADMIN_IDS. A plain user/desktop token can authenticate to the
+    # rest of the API but never carries admin_scope, so it can't reach the panel.
     tg_id = request.get("tg_id")
-    if not tg_id or tg_id not in ADMIN_IDS:
+    if not request.get("admin_scope") or not tg_id or tg_id not in ADMIN_IDS:
         raise web.HTTPForbidden(text="forbidden")
     return tg_id
 
@@ -70,15 +115,18 @@ async def _audit(admin_tg_id, action, target_type=None, target_id=None,
 async def admin_login(request):
     if not ADMIN_LOGIN or not ADMIN_PASSWORD:
         return web.json_response({"error": "ADMIN_LOGIN/ADMIN_PASSWORD not configured"}, status=503)
-    data = await request.json()
+    ip = _client_ip(request)
+    if not _login_rate_ok(ip):
+        return web.json_response({"error": "too_many_attempts"}, status=429)
+    data = await _json_body(request)
     login = (data.get("login") or "").strip()
     password = (data.get("password") or "").strip()
     if not hmac.compare_digest(login, ADMIN_LOGIN) or not hmac.compare_digest(password, ADMIN_PASSWORD):
         await _audit(0, "login_failed", "admin", None,
-                     None, {"login": login}, None, _client_ip(request))
+                     None, {"login": login}, None, ip)
         return web.json_response({"error": "invalid credentials"}, status=403)
     admin_tg_id = next(iter(ADMIN_IDS)) if ADMIN_IDS else 0
-    token = make_auth_token(admin_tg_id, BOT_TOKEN, ttl_sec=12 * 3600)
+    token = make_admin_token(admin_tg_id, BOT_TOKEN, ttl_sec=12 * 3600)
     await _audit(admin_tg_id, "login_browser", "admin", admin_tg_id,
                  None, None, None, _client_ip(request))
     return web.json_response({"ok": True, "token": token})
@@ -134,8 +182,8 @@ async def admin_users(request):
     _require_admin(request)
     pool = await get_pool()
     q = request.query.get("q", "").strip()
-    limit = min(int(request.query.get("limit", "50")), 200)
-    offset = int(request.query.get("offset", "0"))
+    limit = _qint(request, "limit", 50, 1, 200)
+    offset = _qint(request, "offset", 0, 0)
     sort = request.query.get("sort", "created_at")
     order = "DESC" if request.query.get("order", "desc").lower() == "desc" else "ASC"
 
@@ -204,7 +252,7 @@ async def admin_adjust_balance(request):
     admin_id = _require_admin(request)
     pool = await get_pool()
     tg_id = int(request.match_info["tg_id"])
-    data = await request.json()
+    data = await _json_body(request)
     amount = int(data.get("amount", 0))
     reason = (data.get("reason") or "").strip()
     if amount == 0 or not reason:
@@ -234,7 +282,7 @@ async def admin_ban_user(request):
     admin_id = _require_admin(request)
     pool = await get_pool()
     tg_id = int(request.match_info["tg_id"])
-    data = await request.json()
+    data = await _json_body(request)
     banned = bool(data.get("banned", True))
     reason = (data.get("reason") or "").strip()
 
@@ -250,7 +298,7 @@ async def admin_set_note(request):
     admin_id = _require_admin(request)
     pool = await get_pool()
     tg_id = int(request.match_info["tg_id"])
-    data = await request.json()
+    data = await _json_body(request)
     note = (data.get("note") or "").strip()[:500]
 
     await pool.execute("UPDATE users SET admin_note = $1, updated_at = NOW() WHERE tg_id = $2",
@@ -265,8 +313,8 @@ async def admin_set_note(request):
 async def admin_generations(request):
     _require_admin(request)
     pool = await get_pool()
-    limit = min(int(request.query.get("limit", "50")), 200)
-    offset = int(request.query.get("offset", "0"))
+    limit = _qint(request, "limit", 50, 1, 200)
+    offset = _qint(request, "offset", 0, 0)
     status = request.query.get("status")
     gen_type = request.query.get("type")
 
@@ -305,8 +353,8 @@ async def admin_generations(request):
 async def admin_payments(request):
     _require_admin(request)
     pool = await get_pool()
-    limit = min(int(request.query.get("limit", "50")), 200)
-    offset = int(request.query.get("offset", "0"))
+    limit = _qint(request, "limit", 50, 1, 200)
+    offset = _qint(request, "offset", 0, 0)
     status = request.query.get("status")
 
     if status:
@@ -333,8 +381,8 @@ async def admin_payments(request):
 async def admin_withdrawals(request):
     _require_admin(request)
     pool = await get_pool()
-    limit = min(int(request.query.get("limit", "50")), 200)
-    offset = int(request.query.get("offset", "0"))
+    limit = _qint(request, "limit", 50, 1, 200)
+    offset = _qint(request, "offset", 0, 0)
 
     rows = await pool.fetch("""
         SELECT w.*, u.username FROM withdrawals w
@@ -350,7 +398,7 @@ async def admin_withdrawal_action(request):
     admin_id = _require_admin(request)
     pool = await get_pool()
     wd_id = int(request.match_info["wd_id"])
-    data = await request.json()
+    data = await _json_body(request)
     action = data.get("action")
     reason = (data.get("reason") or "").strip()
 
@@ -409,8 +457,8 @@ async def _reload_costs():
 @admin_routes.get("/api/admin/templates")
 async def admin_templates_list(request):
     _require_admin(request)
-    limit = min(int(request.query.get("limit", "200")), 500)
-    offset = int(request.query.get("offset", "0"))
+    limit = _qint(request, "limit", 200, 1, 500)
+    offset = _qint(request, "offset", 0, 0)
     return web.json_response(await admin_list_templates(limit, offset))
 
 
@@ -426,7 +474,7 @@ async def admin_template_get(request):
 @admin_routes.post("/api/admin/templates")
 async def admin_template_create(request):
     admin_id = _require_admin(request)
-    data = _tpl_payload(await request.json())
+    data = _tpl_payload(await _json_body(request))
     if not data["id"] or data["type"] not in _TPL_TYPES:
         return web.json_response({"error": "id and valid type required"}, status=400)
     ok = await admin_create_template(data)
@@ -445,7 +493,7 @@ async def admin_template_update(request):
     before = await admin_get_template(tpl_id)
     if not before:
         return web.json_response({"error": "not_found"}, status=404)
-    body = await request.json()
+    body = await _json_body(request)
     body["id"] = tpl_id  # id is immutable; ignore any id in the body
     data = _tpl_payload(body)
     if data["type"] not in _TPL_TYPES:
@@ -510,8 +558,8 @@ async def admin_template_upload(request):
 async def admin_audit_log(request):
     _require_admin(request)
     pool = await get_pool()
-    limit = min(int(request.query.get("limit", "50")), 200)
-    offset = int(request.query.get("offset", "0"))
+    limit = _qint(request, "limit", 50, 1, 200)
+    offset = _qint(request, "offset", 0, 0)
 
     rows = await pool.fetch("""
         SELECT * FROM admin_audit_log ORDER BY created_at DESC LIMIT $1 OFFSET $2

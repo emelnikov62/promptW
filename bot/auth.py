@@ -90,3 +90,41 @@ def verify_auth_token(token: str, bot_token: str):
     if not hmac.compare_digest(calc, sig):
         return None
     return tg_id
+
+
+# ── Admin session token ──
+# Scoped SEPARATELY from the user/desktop token above (distinct HMAC namespace),
+# so a leaked user token (which is long-lived and embedded in the WebApp URL)
+# can NEVER be replayed against the admin panel. Same format, different secret;
+# the admin routes accept ONLY this token, never a user token.
+
+def _admin_secret(bot_token: str) -> bytes:
+    return hmac.new(b"PromptWAdminSession", bot_token.encode(), hashlib.sha256).digest()
+
+
+def make_admin_token(tg_id: int, bot_token: str, ttl_sec: int = 12 * 3600) -> str:
+    exp = int(time.time()) + ttl_sec
+    msg = f"{tg_id}.{exp}"
+    sig = hmac.new(_admin_secret(bot_token), msg.encode(), hashlib.sha256).hexdigest()
+    return f"{msg}.{sig}"
+
+
+def verify_admin_token(token: str, bot_token: str):
+    """Return the admin tg_id for a valid, unexpired admin-session token, else None."""
+    if not token or not bot_token:
+        return None
+    parts = token.split(".")
+    if len(parts) != 3:
+        return None
+    tg_id_s, exp_s, sig = parts
+    try:
+        tg_id = int(tg_id_s)
+        exp = int(exp_s)
+    except (ValueError, TypeError):
+        return None
+    if exp < time.time():
+        return None
+    calc = hmac.new(_admin_secret(bot_token), f"{tg_id_s}.{exp_s}".encode(), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(calc, sig):
+        return None
+    return tg_id
