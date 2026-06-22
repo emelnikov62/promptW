@@ -15,6 +15,13 @@ logger = logging.getLogger(__name__)
 API_BASE = "https://api.kie.ai"
 MEDIA_DIR = os.getenv("MEDIA_DIR", "/tmp")
 
+# Every KIE HTTP call must be bounded. aiohttp's default total timeout (5 min) lets a
+# half-open/stalled connection wedge a generation worker (and leak its session) far
+# past the generation's own poll deadline. API calls get a tight cap; file downloads
+# get a generous total but a sock_read cap so a stalled CDN stream is still detected.
+_API_TIMEOUT = aiohttp.ClientTimeout(total=60, sock_connect=10, sock_read=30)
+_DOWNLOAD_TIMEOUT = aiohttp.ClientTimeout(total=600, sock_connect=10, sock_read=60)
+
 IMAGE_MODELS = {
     "NanoBanana PRO": {"model": "nano-banana-pro", "ref_field": "image_input"},
     "NanoBanana 2": {"model": "nano-banana-2", "ref_field": "image_input"},
@@ -66,7 +73,7 @@ class KieGenerator(BaseGenerator):
         if callback_url or self.callback_url:
             body["callBackUrl"] = callback_url or self.callback_url
 
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(timeout=_API_TIMEOUT) as session:
             async with session.post(url, json=body,
                                     headers=self._headers()) as resp:
                 data = await resp.json()
@@ -119,7 +126,7 @@ class KieGenerator(BaseGenerator):
         if kwargs.get("callback_url") or self.callback_url:
             body["callBackUrl"] = kwargs.get("callback_url") or self.callback_url
 
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(timeout=_API_TIMEOUT) as session:
             async with session.post(url, json=body,
                                     headers=self._headers()) as resp:
                 data = await resp.json()
@@ -142,7 +149,7 @@ class KieGenerator(BaseGenerator):
         url = f"{API_BASE}/api/v1/jobs/recordInfo"
         deadline = asyncio.get_event_loop().time() + timeout
 
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(timeout=_API_TIMEOUT) as session:
             while asyncio.get_event_loop().time() < deadline:
                 async with session.get(
                     url, params={"taskId": task_id},
@@ -182,7 +189,7 @@ class KieGenerator(BaseGenerator):
     async def _download_file(self, file_url: str, ext: str) -> str:
         filename = f"{uuid.uuid4().hex}.{ext}"
         filepath = os.path.join(MEDIA_DIR, filename)
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(timeout=_DOWNLOAD_TIMEOUT) as session:
             async with session.get(file_url) as resp:
                 # Don't write a 404/expired-URL error body into a .png/.mp4 — fail
                 # so the caller's except/refund path fires instead of charging for junk.
@@ -296,7 +303,7 @@ class KieGenerator(BaseGenerator):
         if self.callback_url:
             body["callBackUrl"] = self.callback_url
 
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(timeout=_API_TIMEOUT) as session:
             async with session.post(f"{API_BASE}/api/v1/veo/generate",
                                     json=body, headers=self._headers()) as resp:
                 data = await resp.json()
@@ -316,7 +323,7 @@ class KieGenerator(BaseGenerator):
         poll_url = f"{API_BASE}/api/v1/veo/record-info"
         deadline = asyncio.get_event_loop().time() + 600
         urls = []
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(timeout=_API_TIMEOUT) as session:
             while asyncio.get_event_loop().time() < deadline:
                 async with session.get(poll_url, params={"taskId": task_id},
                                        headers=self._headers()) as resp:
@@ -486,18 +493,28 @@ class KieGenerator(BaseGenerator):
 
     async def recover_task(self, task_id: str, gen_type: str,
                            model: Optional[str] = None) -> Optional[str]:
-        """Single-shot re-check of an existing task (reconciliation sweep). Returns
-        the downloaded local path if done, None if still processing, raises if failed."""
+        """Single-shot re-check of an existing task (reconciliation sweep). Returns the
+        downloaded local path if done, or None if still processing OR on a transient
+        transport/API error — so the sweep RETRIES instead of permanently killing a
+        still-running job (the reconciler's give-up timeout is the backstop). Raises
+        ONLY when the provider reports the task GENUINELY failed (state failed/error,
+        successFlag 2/3) — that's the signal to fail+refund the row now."""
         ext = {"photo": "png", "image": "png", "audio": "mp3"}.get(gen_type, "mp4")
 
         if model == "Veo 3.1 Fast":
             url = f"{API_BASE}/api/v1/veo/record-info"
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, params={"taskId": task_id},
-                                       headers=self._headers()) as resp:
-                    data = await resp.json()
+            try:
+                async with aiohttp.ClientSession(timeout=_API_TIMEOUT) as session:
+                    async with session.get(url, params={"taskId": task_id},
+                                           headers=self._headers()) as resp:
+                        data = await resp.json()
+            except Exception as e:
+                logger.warning("recover Veo %s: transient API error (%s) — will retry", task_id, e)
+                return None
             if data.get("code") != 200:
-                raise RuntimeError(f"KIE Veo record-info failed: {data.get('msg', data)}")
+                logger.warning("recover Veo %s: code=%s (%s) — treating as transient, will retry",
+                               task_id, data.get("code"), data.get("msg"))
+                return None
             d = data.get("data", {})
             flag = d.get("successFlag")
             if flag in (2, 3):
@@ -508,12 +525,18 @@ class KieGenerator(BaseGenerator):
             urls = response.get("resultUrls") or response.get("fullResultUrls") or []
         else:
             url = f"{API_BASE}/api/v1/jobs/recordInfo"
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, params={"taskId": task_id},
-                                       headers=self._headers()) as resp:
-                    data = await resp.json()
+            try:
+                async with aiohttp.ClientSession(timeout=_API_TIMEOUT) as session:
+                    async with session.get(url, params={"taskId": task_id},
+                                           headers=self._headers()) as resp:
+                        data = await resp.json()
+            except Exception as e:
+                logger.warning("recover %s: transient API error (%s) — will retry", task_id, e)
+                return None
             if data.get("code") != 200:
-                raise RuntimeError(f"KIE recordInfo failed: {data.get('msg', data)}")
+                logger.warning("recover %s: code=%s (%s) — treating as transient, will retry",
+                               task_id, data.get("code"), data.get("msg"))
+                return None
             task = data.get("data") or {}
             state = task.get("state", "")
             if state in ("failed", "error"):
@@ -523,5 +546,11 @@ class KieGenerator(BaseGenerator):
             urls = self._parse_result_urls(task)
 
         if not urls:
-            raise RuntimeError("Task done but no result URLs")
-        return await self._download_file(urls[0], ext)
+            # success reported but URLs not populated yet — treat as still-processing.
+            logger.warning("recover %s: done but no result URLs yet — will retry", task_id)
+            return None
+        try:
+            return await self._download_file(urls[0], ext)
+        except Exception as e:
+            logger.warning("recover %s: download failed (%s) — will retry", task_id, e)
+            return None

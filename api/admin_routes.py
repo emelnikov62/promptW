@@ -508,6 +508,9 @@ async def admin_template_create(request):
     data = _tpl_payload(await _json_body(request))
     if not data["id"] or data["type"] not in _TPL_TYPES:
         return web.json_response({"error": "id and valid type required"}, status=400)
+    if data["enabled"] and data["cost"] <= 0:
+        return web.json_response(
+            {"error": "an enabled template needs a positive cost"}, status=400)
     ok = await admin_create_template(data)
     if not ok:
         return web.json_response({"error": "id already exists"}, status=409)
@@ -529,6 +532,9 @@ async def admin_template_update(request):
     data = _tpl_payload(body)
     if data["type"] not in _TPL_TYPES:
         return web.json_response({"error": "valid type required"}, status=400)
+    if data["enabled"] and data["cost"] <= 0:
+        return web.json_response(
+            {"error": "an enabled template needs a positive cost"}, status=400)
     await admin_update_template(tpl_id, data)
     await _reload_costs()
     await _audit(admin_id, "template_update", "template", tpl_id,
