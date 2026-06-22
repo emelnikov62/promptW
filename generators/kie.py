@@ -249,10 +249,10 @@ class KieGenerator(BaseGenerator):
 
         on_task = kwargs.get("on_task")
 
-        async def _one(report):
-            # Only the first task reports its id back for recovery (one row, one id).
-            task_id = await self._create_task(model, input_data,
-                                              on_task=on_task if report else None)
+        async def _one():
+            # Every task reports its id (add_generation_task appends to the row's
+            # provider_task_ids), so a restart can recover ALL N images, not just one.
+            task_id = await self._create_task(model, input_data, on_task=on_task)
             task = await self._poll_task(task_id)
             urls = self._parse_result_urls(task)
             if not urls:
@@ -261,7 +261,7 @@ class KieGenerator(BaseGenerator):
             return task_id, urls[0], filepath
 
         # run N independent generations concurrently (one task per image)
-        results = await asyncio.gather(*[_one(i == 0) for i in range(count)])
+        results = await asyncio.gather(*[_one() for _ in range(count)])
 
         task_ids = [r[0] for r in results]
         all_urls = [r[1] for r in results]

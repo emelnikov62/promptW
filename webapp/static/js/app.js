@@ -207,16 +207,24 @@ async function loadUserHistory() {
             var items = await res.json();
             // A full window back means the server likely has older rows beyond it.
             historyHasMore = items.length >= historyLimit;
-            galleryItems = items.filter(function(i){ return i.result_url; }).map(function(i){
+            galleryItems = [];
+            items.forEach(function(i){
+                if (!i.result_url) return;
                 var s = i.settings || {};
                 if (typeof s === "string") { try { s = JSON.parse(s); } catch(e) { s = {}; } }
-                return {
-                    id: i.id, url: i.result_url,
-                    type: (i.gen_type === "photo" || i.gen_type === "audio") ? i.gen_type : "video",
-                    prompt: i.prompt, model: i.model,
-                    settings: s,
-                    cost: i.cost || 0, created_at: i.created_at
-                };
+                var type = (i.gen_type === "photo" || i.gen_type === "audio") ? i.gen_type : "video";
+                // A multi-image gen stores the full set in result_urls — expand each into
+                // its own gallery card (sharing the row id; deleting one deletes the row).
+                var urls = (i.result_urls && i.result_urls.length) ? i.result_urls : [i.result_url];
+                urls.forEach(function(u){
+                    if (!u) return;
+                    galleryItems.push({
+                        id: i.id, url: u, type: type,
+                        prompt: i.prompt, model: i.model,
+                        settings: s,
+                        cost: i.cost || 0, created_at: i.created_at
+                    });
+                });
             });
             // Still-running jobs (status pending, no result yet) → placeholder cards that
             // survive reloads. Skip stale rows so a crashed job doesn't spin forever.

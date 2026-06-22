@@ -117,14 +117,22 @@ async def update_generation(gen_id: int, status: str,
         """, status, result_url, gen_id)
 
 
-async def set_generation_task(gen_id: int, task_id: str):
-    """Persist the provider (KIE) task id so a restart-killed generation can be
-    recovered later by re-polling that task."""
+async def add_generation_task(gen_id: int, task_id: str):
+    """Append a provider (KIE) task id so a restart-killed generation can be recovered
+    later by re-polling. A photo gen with count=N creates N tasks, all of which report
+    here; the legacy single column keeps the first id for back-compat. Idempotent: a
+    repeated id (callback retry) is not appended twice."""
     pool = await get_pool()
     async with pool.acquire() as conn:
-        await conn.execute(
-            "UPDATE generations SET provider_task_id = $2 WHERE id = $1",
-            gen_id, task_id)
+        await conn.execute("""
+            UPDATE generations SET
+                provider_task_ids = CASE
+                    WHEN provider_task_ids @> to_jsonb($2::text) THEN provider_task_ids
+                    ELSE COALESCE(provider_task_ids, '[]'::jsonb) || to_jsonb($2::text)
+                END,
+                provider_task_id = COALESCE(provider_task_id, $2)
+            WHERE id = $1
+        """, gen_id, task_id)
 
 
 async def get_pending_generations(limit: int = 50) -> List[dict]:
@@ -133,23 +141,28 @@ async def get_pending_generations(limit: int = 50) -> List[dict]:
     pool = await get_pool()
     async with pool.acquire() as conn:
         rows = await conn.fetch("""
-            SELECT id, user_tg_id, gen_type, model, cost, provider_task_id, created_at
+            SELECT id, user_tg_id, gen_type, model, cost,
+                   provider_task_id, provider_task_ids, created_at
             FROM generations WHERE status = 'pending'
             ORDER BY created_at ASC LIMIT $1
         """, limit)
         return [dict(r) for r in rows]
 
 
-async def finish_generation_if_pending(gen_id: int, result_url: str) -> bool:
+async def finish_generation_if_pending(gen_id: int, result_url: str,
+                                       result_urls: Optional[list] = None) -> bool:
     """Atomically flip pending->done (only if still pending). Returns True if THIS
-    call won the transition — guards against the live task and the sweep racing."""
+    call won the transition — guards against the live task and the sweep racing.
+    `result_urls` persists the full image set (multi-photo gens); the legacy
+    `result_url` keeps the first url."""
+    urls = result_urls if result_urls else [result_url]
     pool = await get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow("""
-            UPDATE generations SET status = 'done', result_url = $2
+            UPDATE generations SET status = 'done', result_url = $2, result_urls = $3::jsonb
             WHERE id = $1 AND status = 'pending'
             RETURNING id
-        """, gen_id, result_url)
+        """, gen_id, result_url, json.dumps(urls))
         return row is not None
 
 
@@ -166,16 +179,27 @@ async def fail_generation_if_pending(gen_id: int) -> Optional[dict]:
         return dict(row) if row else None
 
 
-async def delete_generation(gen_id: int, tg_id: int) -> Optional[str]:
-    """Delete a generation owned by tg_id. Returns its result_url (to clean up the
-    media file), or None if it didn't exist / wasn't owned by this user."""
+async def delete_generation(gen_id: int, tg_id: int) -> Optional[list]:
+    """Delete a generation owned by tg_id. Returns the list of its media urls (the
+    full set for a multi-image gen, to clean up every object), or None if it didn't
+    exist / wasn't owned by this user."""
     pool = await get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow("""
             DELETE FROM generations WHERE id = $1 AND user_tg_id = $2
-            RETURNING result_url
+            RETURNING result_url, result_urls
         """, gen_id, tg_id)
-        return row["result_url"] if row else None
+    if not row:
+        return None
+    urls = []
+    if row["result_urls"]:
+        try:
+            urls = json.loads(row["result_urls"]) if isinstance(row["result_urls"], str) else list(row["result_urls"])
+        except (json.JSONDecodeError, TypeError):
+            urls = []
+    if not urls and row["result_url"]:
+        urls = [row["result_url"]]
+    return urls
 
 
 async def get_user_generations(tg_id: int, limit: int = 20,
@@ -183,7 +207,8 @@ async def get_user_generations(tg_id: int, limit: int = 20,
     pool = await get_pool()
     async with pool.acquire() as conn:
         rows = await conn.fetch("""
-            SELECT id, gen_type, model, prompt, settings, result_url, status, cost, created_at
+            SELECT id, gen_type, model, prompt, settings, result_url, result_urls,
+                   status, cost, created_at
             FROM generations WHERE user_tg_id = $1
             ORDER BY created_at DESC LIMIT $2 OFFSET $3
         """, tg_id, limit, offset)

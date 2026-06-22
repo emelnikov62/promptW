@@ -21,7 +21,7 @@ from pricing import compute_cost, CHAT_COST
 from db.queries import (
     get_user, upsert_user, update_user_lang, update_balance, try_charge,
     create_generation, update_generation, delete_generation, get_user_generations,
-    set_generation_task, get_pending_generations,
+    add_generation_task, get_pending_generations,
     finish_generation_if_pending, fail_generation_if_pending,
     get_user_transactions, get_referral_stats, get_partner_overview,
     create_payment, set_payment_external, settle_payment, get_payment,
@@ -195,7 +195,7 @@ def _task_saver(gen_id):
     async def _on_task(task_id):
         if gen_id and task_id:
             try:
-                await set_generation_task(gen_id, task_id)
+                await add_generation_task(gen_id, task_id)
             except Exception:
                 logger.exception("failed to persist task id for gen %s", gen_id)
     return _on_task
@@ -261,6 +261,22 @@ async def _reconcile_fail(gen_id, model, reason):
         logger.info("reconcile: gen %s failed (%s), refunded %s", gen_id, reason, info["cost"])
 
 
+def _parse_task_ids(row) -> list:
+    """The task ids to recover for a pending row: the full multi-image set
+    (provider_task_ids JSONB) if present, else the legacy single id."""
+    raw = row.get("provider_task_ids")
+    ids = []
+    if raw:
+        try:
+            ids = json.loads(raw) if isinstance(raw, str) else list(raw)
+        except (json.JSONDecodeError, TypeError):
+            ids = []
+    ids = [i for i in ids if i]
+    if not ids and row.get("provider_task_id"):
+        ids = [row["provider_task_id"]]
+    return ids
+
+
 async def _reconcile_once():
     if generator is None:
         return
@@ -273,37 +289,44 @@ async def _reconcile_once():
     for row in rows:
         gen_id = row["id"]
         model = row["model"]
-        task_id = row["provider_task_id"]
         created = row["created_at"]
         age = (now - created).total_seconds() if created else 1e9
         if age < _RECONCILE_MIN_AGE:
             continue
-        if not task_id:
+        task_ids = _parse_task_ids(row)
+        if not task_ids:
             if age > _RECONCILE_NOTASK_GIVEUP:
                 await _reconcile_fail(gen_id, model, "no task id")
             continue
-        try:
-            path = await generator.recover_task(task_id, row["gen_type"], model)
-        except Exception as e:
-            logger.warning("reconcile: task %s (gen %s) failed: %s", task_id, gen_id, e)
+        # Recover EVERY task — a multi-image gen is only "done" once all N are ready.
+        paths, failed, incomplete = [], False, False
+        for tid in task_ids:
+            try:
+                p = await generator.recover_task(tid, row["gen_type"], model)
+            except Exception as e:
+                logger.warning("reconcile: task %s (gen %s) failed: %s", tid, gen_id, e)
+                failed = True
+                break
+            if p is None:        # this task still processing on KIE
+                incomplete = True
+                break
+            paths.append(p)
+        if failed:
+            await _discard_media(paths)   # drop any siblings already downloaded
             await _reconcile_fail(gen_id, model, "provider task failed")
             continue
-        if path is None:   # still processing on KIE
+        if incomplete:
+            # Not all ready yet — discard this pass's partial downloads (they'll be
+            # re-fetched next sweep, so nothing is orphaned) and wait, unless too old.
+            await _discard_media(paths)
             if age > _RECONCILE_GIVEUP:
                 await _reconcile_fail(gen_id, model, "timeout")
             continue
-        file_url = _media_url(path)
-        if await finish_generation_if_pending(gen_id, file_url):
-            logger.info("reconcile: recovered gen %s -> %s", gen_id, file_url)
+        file_urls = [_media_url(p) for p in paths]
+        if await finish_generation_if_pending(gen_id, file_urls[0], file_urls):
+            logger.info("reconcile: recovered gen %s -> %d file(s)", gen_id, len(file_urls))
         else:
-            # another path already finalized this row — drop the duplicate object/file
-            if storage.is_remote(path):
-                await storage.adelete_url(path)
-            else:
-                try:
-                    os.remove(path)
-                except OSError:
-                    pass
+            await _discard_media(paths)   # another path finalized first — drop duplicates
 
 
 async def _reconcile_loop(interval: int):
@@ -483,6 +506,12 @@ async def api_get_history(request: web.Request):
                 item["settings"] = json.loads(item["settings"])
             except (json.JSONDecodeError, TypeError):
                 item["settings"] = {}
+        # result_urls is JSONB (full image set for multi-photo gens) — decode to a list.
+        if isinstance(item.get("result_urls"), str):
+            try:
+                item["result_urls"] = json.loads(item["result_urls"])
+            except (json.JSONDecodeError, TypeError):
+                item["result_urls"] = []
         result.append(item)
     return web.json_response(result)
 
@@ -510,19 +539,22 @@ async def api_delete_generation(request: web.Request):
     gen_id = _int_or_none(data.get("id"))
     if not tg_id or gen_id is None:
         return web.json_response({"error": "tg_id and id required"}, status=400)
-    result_url = await delete_generation(gen_id, tg_id)
-    if result_url is None:
+    urls = await delete_generation(gen_id, tg_id)
+    if urls is None:
         return web.json_response({"error": "not_found"}, status=404)
-    # Best-effort cleanup of the stored media (s3 object or legacy MEDIA_DIR file).
-    if storage.is_remote(result_url):
-        await storage.adelete_url(result_url)
-    else:
-        try:
-            fpath = os.path.join(MEDIA_DIR, os.path.basename(result_url))
-            if os.path.realpath(fpath).startswith(os.path.realpath(MEDIA_DIR) + os.sep) and os.path.isfile(fpath):
-                os.remove(fpath)
-        except OSError:
-            pass
+    # Best-effort cleanup of every stored object (the full set for a multi-image gen).
+    for result_url in urls:
+        if not result_url:
+            continue
+        if storage.is_remote(result_url):
+            await storage.adelete_url(result_url)
+        else:
+            try:
+                fpath = os.path.join(MEDIA_DIR, os.path.basename(result_url))
+                if os.path.realpath(fpath).startswith(os.path.realpath(MEDIA_DIR) + os.sep) and os.path.isfile(fpath):
+                    os.remove(fpath)
+            except OSError:
+                pass
     return web.json_response({"ok": True})
 
 
@@ -1142,7 +1174,7 @@ async def generate_image(request: web.Request):
         # Guarded finalize (pending->done): if the reconciler already failed+refunded
         # this row, DON'T resurrect it with an unconditional update — that would hand the
         # user both the refund and the result. Drop our orphan output and report failure.
-        if gen_id and not await finish_generation_if_pending(gen_id, file_url):
+        if gen_id and not await finish_generation_if_pending(gen_id, file_url, file_urls):
             await _discard_media(paths)
             return {"__superseded__": True}
         return {

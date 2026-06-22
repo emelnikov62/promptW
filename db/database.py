@@ -93,6 +93,12 @@ async def _create_tables():
             -- KIE task id, stored as soon as the task is created so a restart-killed
             -- in-flight generation can be recovered (re-polled) on the next startup.
             ALTER TABLE generations ADD COLUMN IF NOT EXISTS provider_task_id TEXT;
+            -- A photo gen with count=N runs N KIE tasks and yields N images. Store the
+            -- FULL set so the whole batch survives a restart (recovery) and reloads
+            -- (history), not just the first. Legacy single columns above keep holding
+            -- the first element for back-compat.
+            ALTER TABLE generations ADD COLUMN IF NOT EXISTS provider_task_ids JSONB DEFAULT '[]';
+            ALTER TABLE generations ADD COLUMN IF NOT EXISTS result_urls JSONB DEFAULT '[]';
 
             CREATE INDEX IF NOT EXISTS idx_generations_user ON generations(user_tg_id);
             -- Hot path: history is "this user's rows, newest first" — a composite
