@@ -452,25 +452,22 @@ class KieGenerator(BaseGenerator):
 
         elif model_name == "Kling 3.0":
             # kling-3.0/video required fields: prompt + duration (str) + mode + multi_shots.
-            # image_urls is a 1-2 item array (first, optional last frame) — there is NO
-            # separate tail_image_url field. Quality is `mode` (std/pro/4K), NOT `resolution`:
-            # sending resolution and omitting mode/multi_shots => "This field is required".
-            imgs = []
+            # Kling 3.0 does NOT support an end/tail frame: a 2-item image_urls [first,last]
+            # makes the task fail to generate at all. So we send ONLY the first frame (the
+            # end-frame field is hidden in the UI for this model). Quality is `mode`
+            # (std/pro/4K), NOT `resolution`: sending resolution and omitting mode/multi_shots
+            # => "This field is required".
             if first_url:
-                imgs.append(first_url)
-            if last_url:
-                imgs.append(last_url)
-            if imgs:
-                input_data["image_urls"] = imgs
+                input_data["image_urls"] = [first_url]
             input_data["aspect_ratio"] = kwargs.get("aspect_ratio") or "16:9"
             input_data["duration"] = str(duration) if duration else "5"
             res = str(resolution or "720p").lower()
             input_data["mode"] = "4K" if "4k" in res else ("pro" if "1080" in res else "std")
             input_data["multi_shots"] = False
-            # Single first frame, no last frame: Kling otherwise tends to "complete the
-            # story" — cutting to a second invented scene where the subject drifts/disappears.
-            # Steer it to one continuous shot that keeps the person from the first frame.
-            if first_url and not last_url:
+            # Single first frame: Kling otherwise tends to "complete the story" — cutting to a
+            # second invented scene where the subject drifts/disappears. Steer it to one
+            # continuous shot that keeps the person from the first frame.
+            if first_url:
                 input_data["prompt"] = (prompt or "").strip() + (
                     " Один непрерывный план без смены сцен, монтажных склеек и резких "
                     "переходов. На протяжении всего ролика остаётся тот же самый человек "
