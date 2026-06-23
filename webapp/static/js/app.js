@@ -405,7 +405,7 @@ function showPage(name) {
     if (name === "stats") { setStatsPeriod("month"); }
     if (name === "partner") loadPartner();
     if (name === "text") initChat();
-    if (name === "rewards") renderRewardsState();
+    if (name === "rewards") loadRewards();
     if (NATIVE_UI && tg.BackButton) { if (isSub) tg.BackButton.show(); else tg.BackButton.hide(); }
     window.scrollTo(0,0);
 }
@@ -2588,21 +2588,35 @@ document.addEventListener("click", function(e) {
 renderTemplatesHome();   // initial fill on load
 
 // ── Rewards (dot over the gift pulses while there are unclaimed tasks) ──
-function rwdKey(){ return "promptw_rwd_" + (getTgId() || "anon"); }
-function rwdGetDone(){ try { return JSON.parse(localStorage.getItem(rwdKey())) || []; } catch(e){ return []; } }
-function rwdMarkDone(id){ var d=rwdGetDone(); if(id && d.indexOf(id)<0){ d.push(id); try{ localStorage.setItem(rwdKey(), JSON.stringify(d)); }catch(e){} } }
-function rwdTasks(){ return Array.prototype.map.call(document.querySelectorAll(".rwd-card[data-rwd-id]"), function(c){ return c.dataset.rwdId; }); }
+// Rewards are server-authoritative (was localStorage). rewardsData mirrors
+// GET /api/rewards: [{id,type,amount,configured,claimed,channel_link?}].
+var rewardsData = null;
+function rwdById(id){ var a=rewardsData||[]; for(var i=0;i<a.length;i++){ if(a[i].id===id) return a[i]; } return null; }
+async function loadRewards(){
+    if(!getTgId()) return;
+    try {
+        var res = await fetch("/api/rewards", { headers: authHeaders() });
+        if(!res.ok) return;
+        rewardsData = await res.json();
+    } catch(e){ return; }
+    renderRewardsState();
+}
 function updateRewardsDot(){
     var dot=document.querySelector("#rewards-btn-h .dot-badge");
     if(!dot) return;
-    var done=rwdGetDone();
-    var active=rwdTasks().some(function(id){ return done.indexOf(id)<0; });
-    dot.classList.toggle("active", active);   // pulse if anything left, hidden when all claimed
+    // pulse if a configured reward is still unclaimed; hidden when all done/unavailable
+    var active=(rewardsData||[]).some(function(r){ return r.configured && !r.claimed; });
+    dot.classList.toggle("active", active);
 }
 function renderRewardsState(){
-    var done=rwdGetDone();
     document.querySelectorAll(".rwd-card[data-rwd-id]").forEach(function(card){
-        var isDone=done.indexOf(card.dataset.rwdId)>=0;
+        var r=rwdById(card.dataset.rwdId);
+        // Hide subscription cards whose channel isn't configured yet.
+        card.style.display = (r && !r.configured) ? "none" : "";
+        if(r && r.channel_link){
+            card.querySelectorAll('.rwd-btn[data-rwd="open"]').forEach(function(b){ b.dataset.link=r.channel_link; });
+        }
+        var isDone=!!(r && r.claimed);
         card.classList.toggle("done", isDone);
         card.querySelectorAll('.rwd-btn[data-rwd="check"],.rwd-btn[data-rwd="do"]').forEach(function(btn){
             btn.disabled=isDone;
@@ -2611,21 +2625,57 @@ function renderRewardsState(){
     });
     updateRewardsDot();
 }
-document.querySelectorAll("[data-rwd]").forEach(function(b) {
-    b.addEventListener("click", function() {
-        var act = b.dataset.rwd;
-        if (act === "open" && b.dataset.link) {
-            if (tg && tg.openTelegramLink) tg.openTelegramLink(b.dataset.link);
-            else window.open(b.dataset.link, "_blank");
+async function rwdClaim(rid, btn){
+    if(btn) btn.disabled=true;
+    try {
+        var res=await fetch("/api/rewards/claim", { method:"POST",
+            headers: authHeaders({"Content-Type":"application/json"}),
+            body: JSON.stringify({ reward_id: rid }) });
+        var d=await res.json().catch(function(){ return {}; });
+        if(res.ok && d.ok){
+            var r=rwdById(rid); if(r) r.claimed=true;
+            if(d.credited){ applyBalanceDelta(+d.credited); haptic.notify("success"); toast(t("rwdCredited").replace("{n}", d.credited), "success"); }
+            else { toast(t("rwdAlready"), "info"); }
+            renderRewardsState();
             return;
         }
-        var card = b.closest(".rwd-card[data-rwd-id]");
-        if (card) { rwdMarkDone(card.dataset.rwdId); renderRewardsState(); }
-        haptic.notify("success");
-        toast(act === "do" ? t("sendScreenshot") : t("rwdCheckMsg"), "info");
+        var err=(d && d.error) || "";
+        if(err==="not_subscribed") toast(t("rwdNotSubscribed"), "error");
+        else toast(t("rwdCheckFail"), "error");
+    } catch(e){ toast(t("rwdCheckFail"), "error"); }
+    if(btn) btn.disabled=false;
+}
+function rwdShareStory(rid, btn){
+    var mediaUrl = location.origin + "/static/img/share-story.jpg";
+    var shared=false;
+    try {
+        if(tg && tg.shareToStory){
+            tg.shareToStory(mediaUrl, { text: t("rwdStoryText"),
+                widget_link: { url: referralLink(), name: "PromptW" } });
+            shared=true;
+        } else if(tg && tg.openTelegramLink){
+            tg.openTelegramLink("https://t.me/share/url?url=" + encodeURIComponent(referralLink()) + "&text=" + encodeURIComponent(t("inviteShareText")));
+            shared=true;
+        }
+    } catch(e){}
+    // Honor-based: credit once after the share editor is invoked (Telegram gives no
+    // post-confirmation callback). Idempotent server-side.
+    if(shared) rwdClaim(rid, btn);
+    else toast(t("rwdCheckFail"), "error");
+}
+document.querySelectorAll(".rwd-card[data-rwd-id] [data-rwd]").forEach(function(b){
+    b.addEventListener("click", function(){
+        var act=b.dataset.rwd;
+        var card=b.closest(".rwd-card[data-rwd-id]");
+        var rid=card ? card.dataset.rwdId : "";
+        if(act==="open"){
+            if(b.dataset.link){ if(tg && tg.openTelegramLink) tg.openTelegramLink(b.dataset.link); else window.open(b.dataset.link, "_blank"); }
+            return;
+        }
+        if(act==="do"){ rwdShareStory(rid, b); return; }   // share → shareToStory + honor credit
+        if(act==="check"){ rwdClaim(rid, b); return; }      // subscription → getChatMember verify
     });
 });
-updateRewardsDot();
 
 // ── Token packages → payment sheet (СБП / Карта РФ via ЮKassa) ──
 var activePromoId = null;
@@ -2801,6 +2851,7 @@ renderVideoSettings(currentVideoModel);
 initPhotoUpload();
 loadUserProfile();
 loadUserHistory();
+loadRewards();   // server-authoritative; also drives the header dot pulse on home
 
 // Deep-link from the bot menu: open the requested page (?p=video / start_param).
 (function(){

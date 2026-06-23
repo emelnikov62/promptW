@@ -34,6 +34,7 @@ from db.queries import (
     list_references, add_reference, delete_reference,
     list_chat_dialogs, get_chat_dialog, append_chat_turn, delete_chat_dialog,
     list_templates_public, get_template_public,
+    claim_reward, claimed_rewards,
 )
 import payments_gw as pg
 import storage
@@ -72,6 +73,43 @@ ADMIN_IDS = {int(x) for x in os.getenv("ADMIN_IDS", "").replace(" ", "").split("
 WD_MIN = {"card": 1000, "crypto": 500}
 # Absolute upper bound per request (sanity cap; the real limit is the ruble balance).
 WD_MAX = int(os.getenv("WD_MAX", "500000"))
+
+# Rewards ("Награды"). Channel handles come from .env so they can be plugged in
+# without a code deploy; an empty chat → reward is "not configured" → hidden in the
+# UI. The bot MUST be an admin/member of a subscription channel for getChatMember.
+REWARDS = {
+    "share":   {"type": "story",        "amount": 100},
+    "tg":      {"type": "subscription", "amount": 10, "chat": os.getenv("RWD_TG_CHANNEL", "").strip()},
+    "prompts": {"type": "subscription", "amount": 10, "chat": os.getenv("RWD_PROMPTS_CHANNEL", "").strip()},
+}
+_SUBSCRIBED_STATUSES = {"member", "administrator", "creator"}
+
+
+def _channel_link(chat: str) -> str:
+    """Public t.me link for a @username channel (numeric -100… ids have no link)."""
+    if chat.startswith("@"):
+        return "https://t.me/" + chat[1:]
+    return ""
+
+
+async def _is_subscribed(chat: str, tg_id: int) -> bool:
+    """True if tg_id is a member of `chat` per Bot API getChatMember. Raises on any
+    API/transport error so the caller can return check_failed (never credit on doubt)."""
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/getChatMember"
+    timeout = aiohttp.ClientTimeout(total=8)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
+        async with session.get(url, params={"chat_id": chat, "user_id": tg_id}) as resp:
+            data = await resp.json()
+    if not data.get("ok"):
+        raise RuntimeError("getChatMember failed: " + str(data.get("description")))
+    member = data.get("result") or {}
+    status = member.get("status")
+    if status in _SUBSCRIBED_STATUSES:
+        return True
+    # "restricted" but still in the chat counts as subscribed.
+    if status == "restricted" and member.get("is_member"):
+        return True
+    return False
 
 # ── Simple in-memory rate limiting (fixed window, single-process) ──
 import time as _time
@@ -836,6 +874,59 @@ async def api_promo_activate(request: web.Request):
         except asyncpg.UniqueViolationError:
             return web.json_response({"error": "already_used"}, status=400)
         return web.json_response(resp)
+
+
+# ── Rewards ("Награды") ──
+@routes.get("/api/rewards")
+async def api_rewards(request: web.Request):
+    """Reward catalogue + this user's claimed state (server source of truth).
+    Unconfigured subscription rewards (no channel set) are marked configured=false."""
+    tg_id = _authed_id(request)
+    if not tg_id:
+        return web.json_response({"error": "unauthorized"}, status=401)
+    done = await claimed_rewards(tg_id)
+    out = []
+    for rid, r in REWARDS.items():
+        configured = r["type"] != "subscription" or bool(r.get("chat"))
+        item = {"id": rid, "type": r["type"], "amount": r["amount"],
+                "configured": configured, "claimed": rid in done}
+        if r["type"] == "subscription" and r.get("chat"):
+            item["channel_link"] = _channel_link(r["chat"])
+        out.append(item)
+    return web.json_response(out)
+
+
+@routes.post("/api/rewards/claim")
+async def api_rewards_claim(request: web.Request):
+    """Claim a reward once. Subscription rewards are verified via getChatMember;
+    the story reward is honor-based (credited on the client's shareToStory tap)."""
+    tg_id = _authed_id(request)
+    if not tg_id:
+        return web.json_response({"error": "unauthorized"}, status=401)
+    if not _rate_ok("reward:" + str(tg_id), 10, 60):
+        return _too_many()
+    data, _ = await _parse_request(request)
+    rid = str(data.get("reward_id", ""))
+    reward = REWARDS.get(rid)
+    if not reward:
+        return web.json_response({"error": "bad_reward"}, status=400)
+
+    if reward["type"] == "subscription":
+        chat = reward.get("chat")
+        if not chat:
+            return web.json_response({"error": "not_configured"}, status=400)
+        try:
+            ok = await _is_subscribed(chat, tg_id)
+        except Exception:
+            logger.exception("reward %s: getChatMember failed", rid)
+            return web.json_response({"error": "check_failed"}, status=400)
+        if not ok:
+            return web.json_response({"error": "not_subscribed"}, status=400)
+
+    res = await claim_reward(tg_id, rid, reward["amount"])
+    if res.get("already"):
+        return web.json_response({"ok": True, "already": True, "balance": res["balance"]})
+    return web.json_response({"ok": True, "credited": res["credited"], "balance": res["balance"]})
 
 
 # ── Top-up payments (ЮMoney RF / Platega CIS) ──

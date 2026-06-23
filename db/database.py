@@ -240,6 +240,16 @@ async def _create_tables():
                 created_at TIMESTAMPTZ DEFAULT NOW(),
                 UNIQUE(promo_id, user_tg_id)
             );
+            -- Rewards ("Награды"): one credit per (user, reward) — UNIQUE makes the
+            -- crediting idempotent at the storage layer (mirrors promo_activations).
+            CREATE TABLE IF NOT EXISTS reward_claims (
+                id BIGSERIAL PRIMARY KEY,
+                user_tg_id BIGINT NOT NULL REFERENCES users(tg_id),
+                reward_id  TEXT  NOT NULL,
+                amount     INTEGER NOT NULL,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                UNIQUE(user_tg_id, reward_id)
+            );
         """)
 
 
