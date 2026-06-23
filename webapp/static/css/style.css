@@ -250,6 +250,9 @@ body.scrolled .header{border-bottom-color:var(--brd)}
 .set-pick{border:none;background:none;text-align:left;cursor:pointer;font-family:inherit;display:block;color:var(--tx)}
 .set-pick:active{opacity:.7}
 .set-chev{width:16px;height:16px;color:var(--tx3);flex-shrink:0}
+/* Ratio locked to the attached frame (Kling): informational, not a dropdown. */
+.set-col.ratio-locked .set-chev{display:none}
+.set-col.ratio-locked .set-val{font-size:15px;color:var(--tx2)}
 
 .cnt-sec{margin-bottom:16px}.cnt-lbl{font-size:13px;font-weight:600;display:block;margin-bottom:10px}
 .cnt-btns{display:flex;gap:8px}
