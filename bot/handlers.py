@@ -4,12 +4,13 @@ from typing import Optional
 from aiogram import Router, F
 from aiogram.filters import CommandStart, Command
 from aiogram.types import (
-    Message, FSInputFile, WebAppInfo,
+    Message, CallbackQuery, FSInputFile, WebAppInfo,
     ReplyKeyboardMarkup, KeyboardButton, MenuButtonWebApp,
+    InlineKeyboardMarkup, InlineKeyboardButton,
 )
 
 from generators.base import BaseGenerator
-from db.queries import upsert_user, create_referral, get_user
+from db.queries import upsert_user, create_referral, get_user, update_user_lang
 from bot.config import BOT_TOKEN
 from bot.auth import make_auth_token
 from bot import notify as notif
@@ -57,6 +58,32 @@ def main_menu_kb(token: str = "") -> ReplyKeyboardMarkup:
     )
 
 
+def lang_picker_kb() -> InlineKeyboardMarkup:
+    """One-time language choice shown to new users on /start."""
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="🇷🇺 Русский", callback_data="lang:ru"),
+        InlineKeyboardButton(text="🇬🇧 English", callback_data="lang:en"),
+        InlineKeyboardButton(text="🇪🇸 Español", callback_data="lang:es"),
+    ]])
+
+
+async def _send_welcome(bot, user_id: int, lang: str):
+    """Send the localized welcome + persistent menu, and set the personal menu button."""
+    token = make_auth_token(user_id, BOT_TOKEN)
+    welcome = notif.text("welcomeTg", lang, bonus=WELCOME_BONUS) or (
+        "Привет! 👋\n\nЭто PromptW — генерация фото, видео, музыки и текста через AI.\n"
+        "Выбери, что создать, в меню ниже 👇")
+    await bot.send_message(user_id, welcome, reply_markup=main_menu_kb(token))
+    try:
+        await bot.set_chat_menu_button(
+            chat_id=user_id,
+            menu_button=MenuButtonWebApp(text="🚀 PromptW",
+                                         web_app=WebAppInfo(url=_wa_url("", token))),
+        )
+    except Exception:
+        pass
+
+
 @router.message(CommandStart())
 async def cmd_start(message: Message):
     user = message.from_user
@@ -77,7 +104,7 @@ async def cmd_start(message: Message):
     if referrer_id and not await get_user(referrer_id):
         referrer_id = None
 
-    await upsert_user(
+    res = await upsert_user(
         tg_id=user.id,
         username=user.username,
         first_name=user.first_name,
@@ -92,26 +119,16 @@ async def cmd_start(message: Message):
         notif.notify_bg(referrer_id, "refNewTg", btn_key="partnerBtn", page="partner")
 
     if WEBAPP_URL:
-        # Per-user fallback auth token, embedded in every WebApp entry point so the
-        # app works even where Telegram doesn't expose initData (Desktop).
-        token = make_auth_token(user.id, BOT_TOKEN)
-        lang = notif.norm_lang(user.language_code)
-        welcome = notif.text("welcomeTg", lang, bonus=WELCOME_BONUS) or (
-            "Привет! 👋\n\nЭто PromptW — генерация фото, видео, музыки и текста через AI.\n"
-            "Выбери, что создать, в меню ниже 👇")
-        await message.answer(
-            welcome,
-            reply_markup=main_menu_kb(token),
-        )
-        # Personalised blue menu button (carries the token; overrides the global one).
-        try:
-            await message.bot.set_chat_menu_button(
-                chat_id=user.id,
-                menu_button=MenuButtonWebApp(text="🚀 PromptW",
-                                             web_app=WebAppInfo(url=_wa_url("", token))),
+        # New users pick their language once here; it's saved and afterwards only
+        # changeable in the app. Returning users go straight to the welcome in the
+        # language they already chose (users.lang).
+        if res.get("is_new"):
+            await message.answer(
+                "Выбери язык / Choose your language / Elige tu idioma:",
+                reply_markup=lang_picker_kb(),
             )
-        except Exception:
-            pass
+        else:
+            await _send_welcome(message.bot, user.id, res.get("lang") or "ru")
     else:
         await message.answer(
             "Привет! Отправь мне текстовый промпт, и я сгенерирую изображение.\n"
@@ -119,6 +136,21 @@ async def cmd_start(message: Message):
             "/image <prompt> — сгенерировать картинку\n"
             "/video <prompt> — сгенерировать видео"
         )
+
+
+@router.callback_query(F.data.startswith("lang:"))
+async def cb_set_lang(callback: CallbackQuery):
+    """New user picked a language on /start: persist it, then show the welcome."""
+    lang = callback.data.split(":", 1)[1]
+    if lang not in ("ru", "en", "es"):
+        lang = "ru"
+    await update_user_lang(callback.from_user.id, lang)
+    await callback.answer()
+    try:
+        await callback.message.edit_reply_markup(reply_markup=None)
+    except Exception:
+        pass
+    await _send_welcome(callback.bot, callback.from_user.id, lang)
 
 
 @router.message(Command("image"))

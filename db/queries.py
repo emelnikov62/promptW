@@ -30,9 +30,7 @@ async def upsert_user(tg_id: int, username: Optional[str] = None,
                     INSERT INTO transactions (user_tg_id, amount, tx_type, description)
                     VALUES ($1, $2, 'bonus', 'Welcome bonus')
                 """, tg_id, welcome_bonus)
-            user = dict(row)
-            user.pop("is_new", None)
-            return user
+            return dict(row)   # includes is_new (True on first INSERT)
 
 
 async def try_charge(tg_id: int, amount: int, description: str = "") -> Optional[int]:
