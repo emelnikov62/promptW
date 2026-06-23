@@ -238,14 +238,27 @@ class KieGenerator(BaseGenerator):
         if ref_urls and "ref_model" in model_cfg:
             model = model_cfg["ref_model"]
 
-        input_data = {"prompt": prompt, "output_format": "png"}
-        if kwargs.get("aspect_ratio"):
-            input_data["aspect_ratio"] = kwargs["aspect_ratio"]
-        if kwargs.get("resolution"):
-            input_data["resolution"] = kwargs["resolution"]
-
         ref_field = model_cfg.get("ref_field", "image_input")
-        input_data[ref_field] = ref_urls
+
+        if model_name == "Seedream 4.5":
+            # KIE seedream schema differs: required prompt + aspect_ratio + quality
+            # ('basic'=2K / 'high'=4K). No output_format/resolution fields. The edit
+            # variant additionally takes image_urls. Sending our generic resolution=
+            # "2K" left `quality` missing → "This field is required".
+            input_data = {"prompt": prompt}
+            if kwargs.get("aspect_ratio"):
+                input_data["aspect_ratio"] = kwargs["aspect_ratio"]
+            res = str(kwargs.get("resolution") or "").upper()
+            input_data["quality"] = "high" if "4K" in res else "basic"
+            if ref_urls:
+                input_data[ref_field] = ref_urls
+        else:
+            input_data = {"prompt": prompt, "output_format": "png"}
+            if kwargs.get("aspect_ratio"):
+                input_data["aspect_ratio"] = kwargs["aspect_ratio"]
+            if kwargs.get("resolution"):
+                input_data["resolution"] = kwargs["resolution"]
+            input_data[ref_field] = ref_urls
 
         count = kwargs.get("count", 1)
         try:
