@@ -1750,7 +1750,8 @@ function bindGen(btnId, promptId, type) {
         if(btn.classList.contains("topup-needed")){ haptic.impact("light"); showPage("topup"); return; }
         var promptEl = document.getElementById(promptId);
         var prompt = promptEl ? promptEl.value.trim() : "";
-        if(!prompt && type !== "video"){ toast(t("alertPrompt"),"error"); return; }
+        if(!prompt && type !== "video" && type !== "audio"){ toast(t("alertPrompt"),"error"); return; }
+        if(!prompt && type === "audio" && AUDIO_STYLES.length){ prompt = AUDIO_STYLES[0].v; document.getElementById("prompt-audio").value = prompt; }
         runGenerate(type, prompt);
     });
 }
