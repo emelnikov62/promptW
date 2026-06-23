@@ -2087,6 +2087,11 @@ function showGenDetail(item){
         html+='<div class="detail-media"><video src="'+escHtml(item.url)+'#t=0.1" controls preload="metadata" playsinline></video></div>';
     }
 
+    // "Оживить" — promote a photo into a Kling 3.0 video (amber = video zone wayfinding).
+    if(item.type==="photo"){
+        html+='<button class="detail-animate" id="d-animate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg><span>'+t("animate")+'</span></button>';
+    }
+
     // Compact action row right under the media (no scrolling to the bottom).
     html+='<div class="detail-actions">'+
         '<button class="dact" id="d-save"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span>'+t("detailSave")+'</span></button>'+
@@ -2175,6 +2180,8 @@ function showGenDetail(item){
         else { var ta=document.createElement("textarea"); ta.value=item.prompt||""; document.body.appendChild(ta); ta.select(); try{ document.execCommand("copy"); }catch(e){} document.body.removeChild(ta); done(); }
     });
 
+    var anBtn=document.getElementById("d-animate");
+    if(anBtn) anBtn.addEventListener("click",function(){ haptic.impact("medium"); animatePhoto(item); });
     var svBtn=document.getElementById("d-save");
     if(svBtn) svBtn.addEventListener("click",function(){ saveMediaToChat(item, svBtn); });
     var rpBtn=document.getElementById("d-repeat");
@@ -2270,6 +2277,30 @@ async function loadRefsForRepeat(references){
             uploadedFiles[key]=files;
         }
     }
+}
+
+// "Оживить": take a history PHOTO into the video flow — Create → Видео → Kling 3.0
+// with the photo pre-attached as the start frame, so the user only writes a prompt
+// and hits Generate. Reuses the same machinery as the repeat flow (urlToFile +
+// showSinglePreview into the v-start-frame slot).
+async function animatePhoto(item){
+    uploadedFiles={};
+    showPage("create");
+    setCreateType("video");
+    selectModel("video","Kling 3.0");
+    renderVideoSettings("Kling 3.0");
+    updateVideoCost();
+    var pe=document.getElementById("prompt-video");
+    if(pe) pe.value="";
+    urlToFile(item.url, function(file){
+        uploadedFiles["v-start-frame"]=file;
+        var fu=document.querySelector('.frame-up[data-uid="v-start-frame"]');
+        if(fu) showSinglePreview(fu);
+        updateVideoCost();
+        haptic.notify("success");
+        toast(t("animateReady"),"info");
+        if(pe) pe.focus();
+    });
 }
 
 var _tplRepeatItem = null;
