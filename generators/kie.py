@@ -41,13 +41,12 @@ VIDEO_MODELS = {
 }
 
 AUDIO_MODELS = {
-    "Suno V5": "V5",
-    "Suno V4.5": "V4_5",
+    "Suno V5.5": "V5_5",
 }
 
 DEFAULT_IMAGE_MODEL = "nano-banana-pro"
 DEFAULT_VIDEO_MODEL = "kling-3.0/motion-control"
-DEFAULT_AUDIO_MODEL = "V5"
+DEFAULT_AUDIO_MODEL = "V5_5"
 
 
 class KieGenerator(BaseGenerator):

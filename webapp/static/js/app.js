@@ -75,13 +75,13 @@ var MODEL_LOGO_IMG = {
     "NanoBanana PRO":"nanobanana-pro","NanoBanana 2":"nanobanana-2","GPT Image 2":"gpt-image-2",
     "Seedream 4.5":"seedream","Kling 3.0":"kling","Kling Motion 3.0":"kling-motion",
     "Grok Imagine 1.5":"grok","Veo 3.1 Fast":"veo","Seedance 2.0":"seedance",
-    "Suno V5":"suno","Suno V4.5":"suno"
+    "Suno V5.5":"suno"
 };
 // short brand monograms — fallback when no logo PNG is mapped
 var MODEL_LOGOS = {
     "NanoBanana PRO":"NB","NanoBanana 2":"N2","GPT Image 2":"G2","Seedream 4.5":"SD",
     "Kling Motion 3.0":"KL","Grok Imagine 1.5":"GK","Kling 3.0":"KL","Veo 3.1 Fast":"VO","Seedance 2.0":"S2",
-    "Suno V5":"SU","Suno V4.5":"SU"
+    "Suno V5.5":"SU"
 };
 function applyModelLogo(icoId, modelName){
     var el = document.getElementById(icoId); if (!el) return;
@@ -103,11 +103,11 @@ function updatePhotoCost(){
     refreshGenButtons();
 }
 // audio (Suno) — KIE credits × CREDIT_TO_TOKEN. ESTIMATE — confirm exact KIE Suno credit cost.
-var AUDIO_CREDITS = { "Suno V5": 16, "Suno V4.5": 12 };
+var AUDIO_CREDITS = { "Suno V5.5": 16 };
 function getActiveAudioModel(){
     var dd = document.getElementById("audio-model-dd");
     var a = dd ? dd.querySelector(".dd-item.active") : null;
-    return a ? a.dataset.model : "Suno V5";
+    return a ? a.dataset.model : "Suno V5.5";
 }
 function updateAudioCost(){
     var cr = AUDIO_CREDITS[getActiveAudioModel()];
@@ -1311,7 +1311,7 @@ setupModelDD("audio-model-btn","audio-model-dd","audio-model-name");
 // initial model logos
 applyModelLogo("photo-model-ico","NanoBanana PRO");
 applyModelLogo("video-model-ico","Kling 3.0");
-applyModelLogo("audio-model-ico","Suno V5");
+applyModelLogo("audio-model-ico","Suno V5.5");
 updateAudioCost();
 
 // close dropdowns on outside click

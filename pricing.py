@@ -8,7 +8,7 @@ client cannot forge a cheaper price. Wave 4 will unify both via /api/models.
 
 PHOTO_BASE_COST = 30            # photo: 30 W per image, any quality
 CREDIT_TO_TOKEN = 2.2          # KIE credit -> token fallback multiplier
-AUDIO_CREDITS = {"Suno V5": 16, "Suno V4.5": 12}
+AUDIO_CREDITS = {"Suno V5.5": 16}
 CHAT_COST = 1                  # tokens charged per chat reply
 
 # Trend templates are fixed-price products: the user sees one advertised price and

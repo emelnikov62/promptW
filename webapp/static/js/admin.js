@@ -426,7 +426,7 @@ function refreshTfThumb() {
 }
 
 // Known values for datalist suggestions (free-text still allowed).
-var TF_MODELS = ["NanoBanana PRO", "Seedance 2.0", "Grok Imagine 1.5", "Kling 3.0", "Kling Motion 3.0", "Suno V5", "Suno V4.5"];
+var TF_MODELS = ["NanoBanana PRO", "Seedance 2.0", "Grok Imagine 1.5", "Kling 3.0", "Kling Motion 3.0", "Suno V5.5"];
 var TF_RATIOS = ["9:16", "3:4", "1:1", "4:3", "16:9"];
 var TF_QUALS = ["480p", "720p", "1080p", "1K", "2K", "4K"];
 var _tfOrigDef = {};   // original definition, so unknown keys survive a save
