@@ -77,7 +77,10 @@ async def security_headers(request: web.Request, handler):
     # Telegram webview caches a stale page that still points at old ?v= assets, so
     # version bumps never take effect ("обновил — ничего не поменялось"). no-cache +
     # ETag means a cheap 304 when unchanged, fresh HTML the moment it changes.
-    elif resp.content_type == "text/html" and resp.status in (200, 304):
+    # NB: match by request.path — a FileResponse's content_type isn't set until
+    # prepare() runs (after this middleware), so checking resp.content_type here misses.
+    elif request.path in ("/", "/terms", "/privacy", "/offer", "/admin", "/admin/") \
+            and resp.status in (200, 304):
         resp.headers["Cache-Control"] = "no-cache"
     return resp
 
