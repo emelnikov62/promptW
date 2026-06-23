@@ -272,6 +272,15 @@ async function loadUserHistory() {
             });
             recomputePending();
             updateHistory();
+            // If the image-source picker is open on the History tab, refresh its grid too
+            // (e.g. after "show more") — keep the scroll position so it doesn't jump to top.
+            var ov = document.getElementById("imgsrc-overlay");
+            if (imgSrcView === "history" && ov && !ov.classList.contains("hidden")){
+                var sb = document.getElementById("imgsrc-body");
+                var sc = sb ? sb.scrollTop : 0;
+                imgSrcGrid("history");
+                if (sb) sb.scrollTop = sc;
+            }
             if (serverPending.length) pendingPoll();
         }
     } catch(e) { console.error("Failed to load history", e); }
@@ -782,8 +791,12 @@ function imgSrcGrid(kind){
     if (kind === "history"){
         title.textContent = t("imgSrcHistory");
         var photos = galleryItems.filter(function(g){ return g.type === "photo" && g.url; }).map(function(g){ return g.url; });
+        // Mirror the History page: the picker draws the same galleryItems window, so it
+        // needs its own "show more" to reach older photos (else scrolling dead-ends at the
+        // current limit and the gallery seems to stop loading).
         body.innerHTML = photos.length
             ? '<div class="imgsrc-grid">'+photos.map(imgSrcCell).join("")+'</div>'
+              + (historyHasMore ? '<button class="gal-more" id="imgsrc-more">'+t("loadMore")+'</button>' : "")
             : '<div class="imgsrc-empty">'+t("imgSrcEmptyHist")+'</div>';
         return;
     }
@@ -836,12 +849,19 @@ function openImageSource(onFile){
             pickFile("image/*", uploadReference);   // uploads, then renderAllRefLibs refreshes this grid
             return;
         }
+        var more = e.target.closest("#imgsrc-more");
+        if (more){
+            more.disabled = true; more.textContent = t("loading");
+            historyLimit += HISTORY_PAGE;
+            loadUserHistory();   // re-renders this grid on completion (see loadUserHistory)
+            return;
+        }
         var opt = e.target.closest(".imgsrc-opt");
         if (opt){
             var k = opt.dataset.src;
             haptic.select();
             if (k === "phone"){ var cb = imgSrcOnFile; imgSrcClose(); pickFile("image/*", cb); }
-            else if (k === "history"){ imgSrcGrid("history"); }
+            else if (k === "history"){ imgSrcGrid("history"); if (!galleryItems.length) loadUserHistory(); }
             else { imgSrcGrid("ref"); loadReferences().then(function(){ imgSrcGrid("ref"); }); }
             return;
         }
