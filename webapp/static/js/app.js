@@ -1763,6 +1763,17 @@ async function runGenerate(type, prompt){
         var res=await fetch("/api/generate/"+apiType, { method:"POST", headers:authHeaders(), body:fd });
         var data=await res.json();
         if(res.status===402){ applyBalanceDelta(genCost); removePendingGen(pendId); updateHistory(); genOvClose(); toast(t("errNoBalance"),"error"); haptic.notify("error"); showPage("topup"); return; }
+        if(res.status===202 || (data && data.pending)){
+            // Server kept the job running (foreground poll timed out / app was backgrounded
+            // mid-request). It's NOT a failure — the reconciler delivers it to History + TG.
+            // Keep the charge (still running), drop the local card, let the server row drive.
+            if(getTgId()){ loadUserHistory(); pendingPoll(); }
+            removePendingGen(pendId);
+            updateHistory();
+            if(genViewOpen) genOvClose();
+            toast(t("genStillRunning"),"info");
+            return;
+        }
         if(!res.ok) throw new Error(data.error||"Generation failed");
         if(data.balance!=null){ document.querySelectorAll(".user-balance").forEach(function(el){el.textContent=data.balance;}); if(currentUser) currentUser.balance=data.balance; refreshGenButtons(); }
         var mtype=data.media_type==="photo"?"photo":(data.media_type==="audio"?"audio":"video");
