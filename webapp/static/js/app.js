@@ -2451,7 +2451,11 @@ async function tplGenerate(tpl, btn, id) {
         // Always send tplId — the server charges the fixed template price by it (pricing.py
         // TEMPLATE_COST), so the charged amount matches the price shown in the UI.
         var settings = { ratio: (tplRatio || tpl.ratio), tplId: id };
-        if (tpl.quality) settings.quality = tpl.quality;
+        // Photo templates carry no explicit quality, so the server ran NanoBanana at its
+        // default and history showed no "Качество". Default to the Create-page quality (2K)
+        // so the gen is consistent AND the value is recorded for the history detail.
+        if (tpl.type === "photo") settings.quality = tpl.quality || quals[1];
+        else if (tpl.quality) settings.quality = tpl.quality;
         if (tpl.mode) settings.mode = tpl.mode;
         if (tpl.duration) settings.duration = tpl.duration;
         if (tpl.sound) settings.sound = true;
