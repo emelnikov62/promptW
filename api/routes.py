@@ -35,6 +35,8 @@ from db.queries import (
     list_chat_dialogs, get_chat_dialog, append_chat_turn, delete_chat_dialog,
     list_templates_public, get_template_public,
     claim_reward, claimed_rewards,
+    get_or_create_support_ticket, add_support_message,
+    get_support_messages, get_support_ticket_for_user, close_support_ticket,
 )
 import payments_gw as pg
 import storage
@@ -44,6 +46,7 @@ logger = logging.getLogger(__name__)
 routes = web.RouteTableDef()
 generator: Optional[BaseGenerator] = None
 _bot: Optional[Bot] = None
+_support_bot: Optional[Bot] = None
 
 MEDIA_DIR = os.getenv("MEDIA_DIR", "/tmp")
 
@@ -417,9 +420,10 @@ def _get_bot() -> Bot:
     return _bot
 
 
-def setup(gen: BaseGenerator):
-    global generator
+def setup(gen: BaseGenerator, support_bot: Optional[Bot] = None):
+    global generator, _support_bot
     generator = gen
+    _support_bot = support_bot
 
 
 def _serialize(obj):
@@ -1833,6 +1837,57 @@ async def api_callback(request: web.Request):
     except Exception:
         pass
     logger.debug("KIE callback received")
+    return web.json_response({"ok": True})
+
+
+# ── Support chat ─────────────────────────────────────────────────────
+
+@routes.post("/api/support/send")
+async def api_support_send(request: web.Request):
+    tg_id = _authed_id(request)
+    if not tg_id:
+        return web.json_response({"error": "unauthorized"}, status=401)
+    if not _rate_ok("support:" + str(tg_id), 5, 60):
+        return _too_many()
+    try:
+        data = await request.json()
+    except Exception:
+        return web.json_response({"error": "bad_request"}, status=400)
+    text = (data.get("text") or "").strip()
+    if not text or len(text) > 2000:
+        return web.json_response({"error": "invalid_text"}, status=400)
+    ticket = await get_or_create_support_ticket(tg_id)
+    msg = await add_support_message(ticket["id"], "user", text)
+    if _support_bot:
+        from bot.support_bot import notify_agents
+        asyncio.ensure_future(notify_agents(ticket["id"], tg_id, text, _support_bot))
+    return web.json_response(_row_to_json(msg))
+
+
+@routes.get("/api/support/messages")
+async def api_support_messages(request: web.Request):
+    tg_id = _authed_id(request)
+    if not tg_id:
+        return web.json_response({"error": "unauthorized"}, status=401)
+    ticket = await get_support_ticket_for_user(tg_id)
+    if not ticket:
+        return web.json_response({"messages": [], "ticket": None})
+    after_id = _int_or_none(request.query.get("after_id")) or 0
+    messages = await get_support_messages(ticket["id"], after_id)
+    return web.json_response({
+        "ticket": _row_to_json(ticket),
+        "messages": [_row_to_json(m) for m in messages],
+    })
+
+
+@routes.post("/api/support/close")
+async def api_support_close(request: web.Request):
+    tg_id = _authed_id(request)
+    if not tg_id:
+        return web.json_response({"error": "unauthorized"}, status=401)
+    ticket = await get_support_ticket_for_user(tg_id)
+    if ticket:
+        await close_support_ticket(ticket["id"])
     return web.json_response({"ok": True})
 
 

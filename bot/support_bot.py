@@ -1,0 +1,178 @@
+import logging
+from typing import Optional, Dict
+
+from aiogram import Router, F, Bot
+from aiogram.filters import CommandStart
+from aiogram.types import (
+    Message, CallbackQuery,
+    InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo,
+)
+
+from bot.config import SUPPORT_AGENT_IDS
+from db.queries import (
+    get_support_ticket_by_id, assign_support_ticket,
+    add_support_message, close_support_ticket, get_user,
+)
+
+logger = logging.getLogger(__name__)
+router = Router()
+
+_main_bot: Optional[Bot] = None
+_webapp_url: str = ""
+
+_agent_active: Dict[int, int] = {}
+
+
+def setup(main_bot: Bot, webapp_url: str):
+    global _main_bot, _webapp_url
+    _main_bot = main_bot
+    _webapp_url = webapp_url
+
+
+@router.message(CommandStart())
+async def cmd_start(message: Message):
+    uid = message.from_user.id
+    if uid not in SUPPORT_AGENT_IDS:
+        await message.answer("Нет доступа.")
+        return
+    await message.answer(
+        "Бот поддержки PromptW.\n"
+        "Тикеты от пользователей придут сюда автоматически.\n"
+        "Нажмите «Ответить» чтобы взять тикет."
+    )
+
+
+@router.callback_query(F.data.startswith("sup:take:"))
+async def cb_take(callback: CallbackQuery):
+    uid = callback.from_user.id
+    if uid not in SUPPORT_AGENT_IDS:
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+    ticket_id = int(callback.data.split(":")[2])
+    name = callback.from_user.full_name or str(uid)
+    result = await assign_support_ticket(ticket_id, uid, name)
+    if result is None:
+        ticket = await get_support_ticket_by_id(ticket_id)
+        who = ticket.get("agent_name", "другой агент") if ticket else "другой агент"
+        await callback.answer(f"Уже работает: {who}", show_alert=True)
+        return
+    _agent_active[uid] = ticket_id
+    await callback.answer("Тикет назначен вам. Пишите ответ текстом.")
+    try:
+        await callback.message.edit_reply_markup(
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text=f"Взял: {name}", callback_data="noop"),
+                InlineKeyboardButton(text="Закрыть", callback_data=f"sup:close:{ticket_id}"),
+            ]])
+        )
+    except Exception:
+        pass
+
+
+@router.callback_query(F.data.startswith("sup:close:"))
+async def cb_close(callback: CallbackQuery):
+    uid = callback.from_user.id
+    if uid not in SUPPORT_AGENT_IDS:
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+    ticket_id = int(callback.data.split(":")[2])
+    ok = await close_support_ticket(ticket_id)
+    if _agent_active.get(uid) == ticket_id:
+        del _agent_active[uid]
+    await callback.answer("Тикет закрыт" if ok else "Уже закрыт")
+    try:
+        await callback.message.edit_reply_markup(reply_markup=None)
+        await callback.message.edit_text(
+            callback.message.text + "\n\n✅ Закрыт: " + (callback.from_user.full_name or str(uid))
+        )
+    except Exception:
+        pass
+
+
+@router.callback_query(F.data == "noop")
+async def cb_noop(callback: CallbackQuery):
+    await callback.answer()
+
+
+@router.message(F.text)
+async def on_agent_reply(message: Message):
+    uid = message.from_user.id
+    if uid not in SUPPORT_AGENT_IDS:
+        return
+    ticket_id = _agent_active.get(uid)
+    if not ticket_id:
+        await message.answer(
+            "Нет активного тикета. Нажмите «Ответить» на тикете выше."
+        )
+        return
+    ticket = await get_support_ticket_by_id(ticket_id)
+    if not ticket or ticket["status"] == "closed":
+        del _agent_active[uid]
+        await message.answer("Тикет уже закрыт.")
+        return
+    text = message.text.strip()
+    if not text:
+        return
+    await add_support_message(ticket_id, "agent", text)
+    await message.answer("Ответ отправлен ✓")
+    await _notify_user(ticket["user_tg_id"])
+
+
+async def _notify_user(user_tg_id: int):
+    if not _main_bot or not _webapp_url:
+        return
+    try:
+        sep = "&" if "?" in _webapp_url else "?"
+        kb = InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(
+                text="Открыть чат поддержки",
+                web_app=WebAppInfo(url=_webapp_url + sep + "p=support"),
+            )
+        ]])
+        await _main_bot.send_message(
+            user_tg_id,
+            "Вам ответила поддержка. Откройте чат, чтобы прочитать.",
+            reply_markup=kb,
+        )
+    except Exception:
+        logger.exception("failed to notify user %s", user_tg_id)
+
+
+async def notify_agents(ticket_id: int, user_tg_id: int, text: str,
+                        support_bot: Bot):
+    ticket = await get_support_ticket_by_id(ticket_id)
+    if not ticket:
+        return
+    user = await get_user(user_tg_id)
+    uname = ""
+    if user:
+        uname = user.get("username") or ""
+        if uname:
+            uname = f"@{uname}"
+        fname = user.get("first_name") or ""
+        if fname:
+            uname = f"{fname} ({uname})" if uname else fname
+
+    header = (
+        f"Тикет #{ticket_id}\n"
+        f"От: {uname or user_tg_id} (ID {user_tg_id})\n"
+        f"───\n"
+        f"{text[:1500]}"
+    )
+
+    if ticket["status"] == "assigned" and ticket.get("agent_tg_id"):
+        try:
+            await support_bot.send_message(ticket["agent_tg_id"], header)
+        except Exception:
+            logger.exception("notify assigned agent %s", ticket["agent_tg_id"])
+        return
+
+    kb = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="Ответить", callback_data=f"sup:take:{ticket_id}"),
+        InlineKeyboardButton(text="Закрыть", callback_data=f"sup:close:{ticket_id}"),
+    ]])
+    for agent_id in SUPPORT_AGENT_IDS:
+        try:
+            await support_bot.send_message(agent_id, header, reply_markup=kb)
+        except Exception:
+            logger.exception("notify agent %s", agent_id)

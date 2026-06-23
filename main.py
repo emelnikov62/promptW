@@ -7,10 +7,11 @@ from aiohttp import web
 from aiogram import Bot, Dispatcher
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 
-from bot.config import BOT_TOKEN
+from bot.config import BOT_TOKEN, SUPPORT_BOT_TOKEN
 from bot.handlers import router, setup as setup_bot
 from api.routes import routes, setup as setup_api, auth_middleware, start_reconciler
 from api.admin_routes import admin_routes
+from bot.support_bot import router as support_router, setup as setup_support
 from db.database import init_db, close_db
 import storage
 
@@ -74,12 +75,12 @@ async def security_headers(request: web.Request, handler):
     return resp
 
 
-def create_app() -> web.Application:
+def create_app(support_bot=None) -> web.Application:
     app = web.Application(middlewares=[security_headers, auth_middleware])
 
     gen = _create_generator()
     setup_bot(gen)
-    setup_api(gen)
+    setup_api(gen, support_bot=support_bot)
 
     # Surface the active file-storage backend so a misconfigured prod (silent
     # fallback to local /tmp) is obvious in the logs at boot.
@@ -158,7 +159,16 @@ async def main():
         except Exception as e:
             logging.warning("set_chat_menu_button failed: %s", e)
 
-    app = create_app()
+    support_bot = None
+    support_dp = None
+    if SUPPORT_BOT_TOKEN:
+        support_bot = Bot(token=SUPPORT_BOT_TOKEN)
+        support_dp = Dispatcher()
+        support_dp.include_router(support_router)
+        setup_support(main_bot=bot, webapp_url=webapp_url)
+        logging.info("Support bot enabled")
+
+    app = create_app(support_bot=support_bot)
 
     # Recover generations whose in-flight task was killed by a previous restart
     # (re-poll KIE by the persisted task id), then keep sweeping periodically.
@@ -176,6 +186,13 @@ async def main():
         await bot.set_webhook(f"{WEBHOOK_URL}{webhook_path}", secret_token=webhook_secret)
         SimpleRequestHandler(dispatcher=dp, bot=bot, secret_token=webhook_secret).register(app, path=webhook_path)
         setup_application(app, dp, bot=bot)
+        if support_bot and support_dp:
+            sup_path = "/webhook-support"
+            sup_secret = hashlib.sha256(
+                ("whsec:" + SUPPORT_BOT_TOKEN).encode()).hexdigest()
+            await support_bot.set_webhook(f"{WEBHOOK_URL}{sup_path}", secret_token=sup_secret)
+            SimpleRequestHandler(dispatcher=support_dp, bot=support_bot, secret_token=sup_secret).register(app, path=sup_path)
+            setup_application(app, support_dp, bot=support_bot)
         runner = web.AppRunner(app)
         await runner.setup()
         site = web.TCPSite(runner, WEBAPP_HOST, WEBAPP_PORT)
@@ -188,7 +205,13 @@ async def main():
         site = web.TCPSite(runner, WEBAPP_HOST, WEBAPP_PORT)
         await site.start()
         logging.info(f"WebApp running at http://{WEBAPP_HOST}:{WEBAPP_PORT}")
-        await dp.start_polling(bot)
+        if support_dp and support_bot:
+            await asyncio.gather(
+                dp.start_polling(bot),
+                support_dp.start_polling(support_bot),
+            )
+        else:
+            await dp.start_polling(bot)
 
     await close_db()
 

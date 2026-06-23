@@ -250,6 +250,27 @@ async def _create_tables():
                 created_at TIMESTAMPTZ DEFAULT NOW(),
                 UNIQUE(user_tg_id, reward_id)
             );
+
+            CREATE TABLE IF NOT EXISTS support_tickets (
+                id BIGSERIAL PRIMARY KEY,
+                user_tg_id BIGINT NOT NULL REFERENCES users(tg_id),
+                status VARCHAR(20) DEFAULT 'open',
+                agent_tg_id BIGINT,
+                agent_name VARCHAR(255),
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                updated_at TIMESTAMPTZ DEFAULT NOW(),
+                closed_at TIMESTAMPTZ
+            );
+            CREATE INDEX IF NOT EXISTS idx_support_tickets_user ON support_tickets(user_tg_id, created_at DESC);
+
+            CREATE TABLE IF NOT EXISTS support_messages (
+                id BIGSERIAL PRIMARY KEY,
+                ticket_id BIGINT NOT NULL REFERENCES support_tickets(id) ON DELETE CASCADE,
+                sender VARCHAR(12) NOT NULL,
+                content TEXT NOT NULL,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS idx_support_messages_ticket ON support_messages(ticket_id, id);
         """)
 
 

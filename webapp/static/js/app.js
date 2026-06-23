@@ -376,7 +376,7 @@ if (NATIVE_UI) {
     try { tg.MainButton && tg.MainButton.hide(); tg.BackButton && tg.BackButton.hide(); } catch (e) {}
 }
 
-var SUB_PAGES = ["topup","partner","info","gen-detail","tpl-detail","rewards","refguide","stats","terms","privacy","offer"];
+var SUB_PAGES = ["topup","partner","info","gen-detail","tpl-detail","rewards","refguide","stats","terms","privacy","offer","support"];
 var subOrigin = "home";   // page to return to when leaving a header-opened sub-page
 function showPage(name) {
     if (typeof genViewOpen !== "undefined" && genViewOpen) genOvClose();
@@ -406,6 +406,8 @@ function showPage(name) {
     if (name === "partner") loadPartner();
     if (name === "text") initChat();
     if (name === "rewards") loadRewards();
+    if (name === "support") initSupport();
+    if (name !== "support" && supPollTimer) { clearInterval(supPollTimer); supPollTimer = null; }
     if (NATIVE_UI && tg.BackButton) { if (isSub) tg.BackButton.show(); else tg.BackButton.hide(); }
     window.scrollTo(0,0);
 }
@@ -2861,7 +2863,7 @@ loadRewards();   // server-authoritative; also drives the header dot pulse on ho
         if (!p) return;
         if (p === "image" || p === "video" || p === "audio") {
             showPage("create"); setCreateType(p);
-        } else if (["home","history","topup","partner","info","text","profile","stats","rewards"].indexOf(p) >= 0) {
+        } else if (["home","history","topup","partner","info","text","profile","stats","rewards","support"].indexOf(p) >= 0) {
             showPage(p);
         }
     } catch (e) {}
@@ -2929,4 +2931,123 @@ function fixObBonus(){
     try { dl = new URLSearchParams(location.search).get("p") || (tg.initDataUnsafe && tg.initDataUnsafe.start_param); } catch(e){}
     if (dl) return;   // honor the deep-link this time; onboarding will show on a later plain launch
     if (typeof window.showOnboarding === "function") window.showOnboarding();
+})();
+
+// ── Support Chat ──────────────────────────────────────────────────
+var supMessages = [];
+var supPollTimer = null;
+var supLastId = 0;
+var supBusy = false;
+
+function initSupport() {
+    supMessages = [];
+    supLastId = 0;
+    supRender();
+    supLoadMessages();
+    clearInterval(supPollTimer);
+    supPollTimer = setInterval(function() {
+        var pg = document.querySelector(".page.active");
+        if (pg && pg.id === "page-support") supPollNew();
+    }, 5000);
+}
+
+function supRender() {
+    var list = document.getElementById("sup-list");
+    var empty = document.getElementById("sup-empty");
+    if (!list) return;
+    if (!supMessages.length) {
+        if (empty) empty.classList.remove("hidden");
+        list.innerHTML = "";
+        return;
+    }
+    if (empty) empty.classList.add("hidden");
+    list.innerHTML = supMessages.map(function(m, i) {
+        var prev = supMessages[i - 1];
+        var grouped = prev && prev.sender === m.sender;
+        var cls = "msg " + (m.sender === "user" ? "user" : "bot") +
+                  (grouped ? " grouped" : "");
+        return '<div class="' + cls + '"><div class="msg-c">' +
+               escHtml(m.content) +
+               '</div><span class="msg-t">' + chatTime(m.created_at) +
+               '</span></div>';
+    }).join("");
+    window.scrollTo({ top: document.body.scrollHeight });
+}
+
+async function supLoadMessages() {
+    if (!getTgId()) return;
+    try {
+        var res = await fetch("/api/support/messages", { headers: authHeaders() });
+        if (!res.ok) return;
+        var data = await res.json();
+        if (data.messages && data.messages.length) {
+            supMessages = data.messages;
+            supLastId = supMessages[supMessages.length - 1].id;
+        }
+        supRender();
+    } catch (e) {}
+}
+
+async function supPollNew() {
+    if (!getTgId()) return;
+    try {
+        var res = await fetch("/api/support/messages?after_id=" + supLastId,
+                              { headers: authHeaders() });
+        if (!res.ok) return;
+        var data = await res.json();
+        if (data.messages && data.messages.length) {
+            supMessages = supMessages.concat(data.messages);
+            supLastId = supMessages[supMessages.length - 1].id;
+            supRender();
+            if (typeof haptic !== "undefined" && haptic.notify) haptic.notify("success");
+        }
+    } catch (e) {}
+}
+
+async function supSend() {
+    if (supBusy) return;
+    var input = document.getElementById("sup-input");
+    if (!input) return;
+    var text = input.value.trim();
+    if (!text) return;
+    supMessages.push({ sender: "user", content: text, created_at: new Date().toISOString() });
+    input.value = "";
+    chatGrow(input);
+    supRender();
+    supBusy = true;
+    if (typeof haptic !== "undefined" && haptic.impact) haptic.impact("light");
+    var btn = document.getElementById("sup-send");
+    if (btn) btn.disabled = true;
+    try {
+        var res = await fetch("/api/support/send", {
+            method: "POST",
+            headers: authHeaders({ "Content-Type": "application/json" }),
+            body: JSON.stringify({ text: text })
+        });
+        if (!res.ok) {
+            var err = await res.json().catch(function(){ return {}; });
+            toast(err.error || t("supError"), "error");
+        } else {
+            var msg = await res.json();
+            supMessages[supMessages.length - 1] = msg;
+            if (msg.id > supLastId) supLastId = msg.id;
+        }
+    } catch (e) {
+        toast(t("supError"), "error");
+    }
+    supBusy = false;
+    if (btn) btn.disabled = false;
+    supRender();
+}
+
+(function() {
+    var sendBtn = document.getElementById("sup-send");
+    if (sendBtn) sendBtn.addEventListener("click", supSend);
+    var input = document.getElementById("sup-input");
+    if (input) {
+        input.addEventListener("input", function() { chatGrow(input); });
+        input.addEventListener("keydown", function(e) {
+            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); supSend(); }
+        });
+    }
 })();

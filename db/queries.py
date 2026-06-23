@@ -917,3 +917,93 @@ async def admin_delete_template(tpl_id: str) -> bool:
     pool = await get_pool()
     res = await pool.execute("DELETE FROM templates WHERE id = $1", tpl_id)
     return res.endswith("1")
+
+
+# ── Support tickets ──────────────────────────────────────────────────
+
+async def get_or_create_support_ticket(tg_id: int) -> dict:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("""
+            SELECT id, user_tg_id, status, agent_tg_id, agent_name, created_at, updated_at
+            FROM support_tickets
+            WHERE user_tg_id = $1 AND status IN ('open', 'assigned')
+            ORDER BY created_at DESC LIMIT 1
+        """, tg_id)
+        if row:
+            return dict(row)
+        row = await conn.fetchrow("""
+            INSERT INTO support_tickets (user_tg_id)
+            VALUES ($1) RETURNING id, user_tg_id, status, agent_tg_id, agent_name, created_at, updated_at
+        """, tg_id)
+        return dict(row)
+
+
+async def get_support_ticket_for_user(tg_id: int) -> Optional[dict]:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("""
+            SELECT id, user_tg_id, status, agent_tg_id, agent_name, created_at, updated_at
+            FROM support_tickets
+            WHERE user_tg_id = $1 AND status IN ('open', 'assigned')
+            ORDER BY created_at DESC LIMIT 1
+        """, tg_id)
+        return dict(row) if row else None
+
+
+async def get_support_ticket_by_id(ticket_id: int) -> Optional[dict]:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT * FROM support_tickets WHERE id = $1", ticket_id)
+        return dict(row) if row else None
+
+
+async def add_support_message(ticket_id: int, sender: str, content: str) -> dict:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            row = await conn.fetchrow("""
+                INSERT INTO support_messages (ticket_id, sender, content)
+                VALUES ($1, $2, $3) RETURNING id, ticket_id, sender, content, created_at
+            """, ticket_id, sender, content)
+            await conn.execute(
+                "UPDATE support_tickets SET updated_at = NOW() WHERE id = $1",
+                ticket_id)
+            return dict(row)
+
+
+async def get_support_messages(ticket_id: int, after_id: int = 0) -> List[dict]:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT id, ticket_id, sender, content, created_at
+            FROM support_messages
+            WHERE ticket_id = $1 AND id > $2
+            ORDER BY id
+        """, ticket_id, after_id)
+        return [dict(r) for r in rows]
+
+
+async def assign_support_ticket(ticket_id: int, agent_tg_id: int,
+                                agent_name: str) -> Optional[dict]:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("""
+            UPDATE support_tickets
+            SET status = 'assigned', agent_tg_id = $2, agent_name = $3, updated_at = NOW()
+            WHERE id = $1 AND status = 'open'
+            RETURNING id, user_tg_id, status, agent_tg_id, agent_name
+        """, ticket_id, agent_tg_id, agent_name)
+        return dict(row) if row else None
+
+
+async def close_support_ticket(ticket_id: int) -> bool:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        res = await conn.execute("""
+            UPDATE support_tickets
+            SET status = 'closed', closed_at = NOW(), updated_at = NOW()
+            WHERE id = $1 AND status IN ('open', 'assigned')
+        """, ticket_id)
+        return res.endswith("1")
