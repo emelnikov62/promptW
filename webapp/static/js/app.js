@@ -2519,12 +2519,12 @@ function tplTrendBadge(tt) {
 function tplTrendCard(tt) {
     var media = tt.type === "video"
         ? '<video class="trend-media" src="' + escHtml(tt.preview) + '" autoplay muted loop playsinline preload="metadata"></video>'
-        : '<img class="trend-media" src="' + escHtml(tt.preview) + '" alt="">';
+        : '<img class="trend-media" src="' + escHtml(tt.preview) + '" alt="" loading="lazy">';
     return '<div class="trend-t has-media" data-tpl="' + escHtml(tt.id) + '">' + media + tplTrendBadge(tt) + '<span class="trend-cap">' + tplCap(tt) + '</span></div>';
 }
 
 function tplThumbCard(tt) {
-    return '<div class="tpl-thumb has-media" data-tpl="' + escHtml(tt.id) + '"><img src="' + escHtml(tt.preview) + '" alt=""><span class="tpl-thumb-cap">' + tplCap(tt) + '</span></div>';
+    return '<div class="tpl-thumb has-media" data-tpl="' + escHtml(tt.id) + '"><img src="' + escHtml(tt.preview) + '" alt="" loading="lazy"><span class="tpl-thumb-cap">' + tplCap(tt) + '</span></div>';
 }
 
 function renderTrendsGrid() {

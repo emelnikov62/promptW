@@ -63,6 +63,14 @@ async def security_headers(request: web.Request, handler):
     # Stop browsers from MIME-sniffing user-uploaded media into executable types.
     if request.path.startswith("/media/"):
         resp.headers["X-Content-Type-Options"] = "nosniff"
+    # Cache static assets so the Telegram webview stops re-downloading them on every
+    # reopen. Versioned JS/CSS (?v=N busts the URL) can cache forever; preview images
+    # change in place without a version bump, so they get a short cache instead.
+    elif request.path.startswith("/static/") and resp.status in (200, 206):
+        if request.path.startswith(("/static/js/", "/static/css/")):
+            resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        else:
+            resp.headers.setdefault("Cache-Control", "public, max-age=3600")
     return resp
 
 
