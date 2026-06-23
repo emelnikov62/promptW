@@ -14721,8 +14721,7 @@
         "en": "Upload your photo — the face is kept from the reference. Choose gender, outfit and scene details with the animal below; the rest is assembled automatically.",
         "es": "Sube tu foto — la cara se mantiene de la referencia. Elige género, ropa y detalles de la escena con el animal; el resto se arma automáticamente."
       }
-    },
-    "featured": true
+    }
   },
   {
     "id": "animal-lion",
@@ -17120,8 +17119,7 @@
         "en": "Upload your photo — the face is kept from the reference. Choose gender, outfit and scene details with the animal below; the rest is assembled automatically.",
         "es": "Sube tu foto — la cara se mantiene de la referencia. Elige género, ropa y detalles de la escena con el animal; el resto se arma automáticamente."
       }
-    },
-    "featured": true
+    }
   },
   {
     "id": "animal-retriever-beach",
