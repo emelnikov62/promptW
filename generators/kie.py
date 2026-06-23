@@ -76,10 +76,10 @@ class KieGenerator(BaseGenerator):
             async with session.post(url, json=body,
                                     headers=self._headers()) as resp:
                 data = await resp.json()
-                logger.error("createTask response: %s", data)
+                logger.debug("createTask response: %s", data)
                 if data.get("code") != 200:
                     raise RuntimeError(
-                        f"KIE createTask failed: {data}")
+                        f"KIE createTask failed: {data.get('msg', data)}")
                 task_id = (data.get("data") or {}).get("taskId")
                 if not task_id:
                     raise RuntimeError(f"KIE createTask: no taskId in response: {data}")
@@ -451,12 +451,12 @@ class KieGenerator(BaseGenerator):
                 input_data["resolution"] = resolution
 
         elif model_name == "Kling 3.0":
-            # First frame is image_urls (array); optional end frame is tail_image_url (str).
-            # Both duration and resolution are required by KIE.
+            # KIE requires prompt + aspect_ratio + duration + resolution for kling-3.0/video.
             if first_url:
                 input_data["image_urls"] = [first_url]
             if last_url:
                 input_data["tail_image_url"] = last_url
+            input_data["aspect_ratio"] = kwargs.get("aspect_ratio") or "16:9"
             input_data["duration"] = str(duration) if duration else "5"
             input_data["resolution"] = resolution if resolution else "720p"
             if sound is not None:
