@@ -1238,11 +1238,33 @@ function chatRender(keepScroll){
         var prev = curMessages[i-1];
         var grouped = prev && prev.role === m.role;   // tighten gap for same-sender runs
         var cls = "msg " + (m.role === "user" ? "user" : "bot") + (grouped ? " grouped" : "") + (m.err ? " err" : "");
-        return '<div class="' + cls + '"><div class="msg-c">' + chatRenderContent(m.content) + '</div>' +
-               '<span class="msg-t">' + chatTime(m.ts) + '</span></div>';
+        var showCopy = m.role !== "user" && !m.err;
+        var foot = showCopy
+            ? '<div class="msg-foot"><button type="button" class="msg-copy" data-i="' + i + '" aria-label="' + t("copy") + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>' + t("copy") + '</span></button><span class="msg-t">' + chatTime(m.ts) + '</span></div>'
+            : '<span class="msg-t">' + chatTime(m.ts) + '</span>';
+        return '<div class="' + cls + '"><div class="msg-c">' + chatRenderContent(m.content) + '</div>' + foot + '</div>';
     }).join("");
     if(!keepScroll) chatScrollBottom();
 }
+// Copy a bot message to clipboard (native selection is unreliable in the TG webview).
+function chatCopyFallback(txt){
+    var ta = document.createElement("textarea");
+    ta.value = txt; ta.style.position = "fixed"; ta.style.opacity = "0"; ta.style.top = "0";
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try { document.execCommand("copy"); } catch(e){}
+    document.body.removeChild(ta);
+}
+document.addEventListener("click", function(e){
+    var btn = e.target.closest && e.target.closest(".msg-copy");
+    if(!btn) return;
+    var m = curMessages[Number(btn.dataset.i)];
+    if(!m) return;
+    var txt = m.content || "";
+    function done(){ haptic.notify("success"); toast(t("copied"), "success"); }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(txt).then(done).catch(function(){ chatCopyFallback(txt); done(); });
+    } else { chatCopyFallback(txt); done(); }
+});
 function chatTyping(on){
     var list = document.getElementById("chat-list");
     var tp = document.getElementById("chat-typing");
