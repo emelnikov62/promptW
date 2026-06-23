@@ -617,6 +617,44 @@ async def set_withdrawal_status(wd_id: int, status: str) -> Optional[dict]:
             return dict(wd)
 
 
+# ── Rewards ("Награды") ───────────────────────────────────────────────
+
+async def claimed_rewards(tg_id: int) -> set:
+    """Reward ids this user has already claimed (server source of truth)."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT reward_id FROM reward_claims WHERE user_tg_id = $1", tg_id)
+        return {r["reward_id"] for r in rows}
+
+
+async def claim_reward(tg_id: int, reward_id: str, amount: int) -> dict:
+    """Idempotently credit a reward once. ON CONFLICT makes a concurrent double-tap
+    a no-op (returns already) instead of double-crediting. Returns
+    {credited, balance} on first claim, {already: True, balance} otherwise."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            inserted = await conn.fetchval("""
+                INSERT INTO reward_claims (user_tg_id, reward_id, amount)
+                VALUES ($1, $2, $3)
+                ON CONFLICT (user_tg_id, reward_id) DO NOTHING
+                RETURNING id
+            """, tg_id, reward_id, amount)
+            if inserted is None:
+                bal = await conn.fetchval("SELECT balance FROM users WHERE tg_id = $1", tg_id)
+                return {"already": True, "balance": bal}
+            await conn.execute(
+                "UPDATE users SET balance = balance + $1, updated_at = NOW() WHERE tg_id = $2",
+                amount, tg_id)
+            await conn.execute("""
+                INSERT INTO transactions (user_tg_id, amount, tx_type, description)
+                VALUES ($1, $2, 'bonus', $3)
+            """, tg_id, amount, f"reward:{reward_id}")
+            bal = await conn.fetchval("SELECT balance FROM users WHERE tg_id = $1", tg_id)
+            return {"credited": amount, "balance": bal}
+
+
 # ── Saved reference photos ("Мой референс") ──
 
 MAX_REFERENCES = 6
