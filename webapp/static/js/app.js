@@ -148,6 +148,7 @@ function refreshGenButtons(){
 var currentLang = "ru";
 var currentUser = null;
 var currentVideoModel = "Kling 3.0";
+var animateMode = false;   // focused "Оживить" screen (Seedance 2.0, photo-driven)
 var currentVideoDuration = null;
 var currentVideoQuality = null;
 var motionVideoRawSec = null;   // measured length of the uploaded motion clip (sec)
@@ -417,6 +418,12 @@ var SUB_PAGES = ["topup","partner","info","gen-detail","tpl-detail","rewards","r
 var subOrigin = "home";   // page to return to when leaving a header-opened sub-page
 function showPage(name) {
     if (typeof genViewOpen !== "undefined" && genViewOpen) genOvClose();
+    // Leaving the focused "Оживить" screen -> drop the mode and restore the full video form.
+    if (animateMode) {
+        animateMode = false;
+        document.body.classList.remove("animate-mode");
+        renderVideoSettings(currentVideoModel);
+    }
     var isSub = SUB_PAGES.indexOf(name) >= 0;
     // Remember which main page we came from so Back returns there, not always Profile.
     if (isSub) {
@@ -1015,6 +1022,30 @@ function renderVideoSettings(model) {
     currentVideoModel = model;
     var container = document.getElementById("video-settings");
     var html = "";
+
+    // Focused "Оживить" screen: only the essentials. Reuses the same element ids
+    // (vm-qual / vm-dur / vm-sound / prompt-video) so cost + getSettings + generate
+    // all keep working; the rest of the video form is intentionally hidden.
+    if (animateMode) {
+        currentVideoQuality = cfg.qualities[0];        // 480p
+        currentVideoDuration = cfg.duration.default;   // 4s
+        html += '<div class="animate-head"><button type="button" class="animate-back" id="animate-back" aria-label="back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button><span class="animate-title">' + t("animateTitle") + '</span></div>';
+        html += '<div class="ccard"><div class="frames-row"><div class="frame-col"><span class="frame-title">' + t("startFrame") + '</span><span class="frame-hint">' + t("ratioByPhotoHint") + '</span><div class="frame-up" data-uid="v-start-frame" data-accept="image/*" data-lbl="' + t("addPhoto") + '">' + plusSvg + '<span>' + t("addPhoto") + '</span></div></div></div></div>';
+        html += '<div class="ccard">';
+        html += '<div class="set-row">' + vmPickCol("vm-qual", t(cfg.qualityLabel || "quality"), currentVideoQuality) + '<div class="set-div"></div>' + vmPickCol("vm-dur", t("duration"), cfg.duration.default + " " + t("sec")) + '</div>';
+        html += '<div class="sound-row"><span>' + t("sound") + '</span><label class="switch"><input type="checkbox" id="vm-sound" checked><span class="slider-toggle"></span></label><span class="muted" id="vm-sound-label">' + t("soundOn") + '</span></div>';
+        html += '<div class="vm-mode" style="display:none"><button type="button" class="pill active" data-v="Standard">Standard</button></div>';
+        html += '<div class="field"><textarea id="prompt-video" class="field-area" rows="4" placeholder=" "></textarea><label class="field-label" for="prompt-video">' + t("prompt") + '</label></div>';
+        html += '<span class="field-hint">' + t("promptVideoPlc") + '</span>';
+        html += '</div>';
+        container.innerHTML = html;
+        var ab = document.getElementById("animate-back");
+        if (ab) ab.addEventListener("click", function(){ haptic.impact("light"); showPage("history"); });
+        bindVideoSettingsEvents(cfg);
+        initUploads();
+        updateVideoCost();
+        return;
+    }
 
     if (cfg.desc) {
         html += '<div class="ccard vm-desc" style="color:var(--tx2);font-size:13px;line-height:1.45">💡 ' + t(cfg.desc) + '</div>';
@@ -2305,17 +2336,18 @@ async function loadRefsForRepeat(references){
     }
 }
 
-// "Оживить": take a history PHOTO into the video flow — Create → Видео → Kling 3.0
-// with the photo pre-attached as the start frame, so the user only writes a prompt
-// and hits Generate. Reuses the same machinery as the repeat flow (urlToFile +
-// showSinglePreview into the v-start-frame slot).
-async function animatePhoto(item){
+// "Оживить": focused screen — Seedance 2.0 with the history PHOTO as the start frame,
+// format locked to the photo, sound on, 480p (selectable), duration + prompt + generate.
+// Reuses the video form's ids/machinery (urlToFile + showSinglePreview into v-start-frame),
+// but renderVideoSettings draws a trimmed layout while animateMode is on.
+function animatePhoto(item){
+    showPage("create");                 // clears any prior animate state first
     uploadedFiles={};
-    showPage("create");
+    animateMode=true;
+    document.body.classList.add("animate-mode");
     setCreateType("video");
-    selectModel("video","Kling 3.0");
-    renderVideoSettings("Kling 3.0");
-    updateVideoCost();
+    selectModel("video","Seedance 2.0");
+    renderVideoSettings("Seedance 2.0");   // trimmed (animateMode)
     var pe=document.getElementById("prompt-video");
     if(pe) pe.value="";
     urlToFile(item.url, function(file){
@@ -2324,9 +2356,9 @@ async function animatePhoto(item){
         if(fu) showSinglePreview(fu);
         updateVideoCost();
         haptic.notify("success");
-        toast(t("animateReady"),"info");
         if(pe) pe.focus();
     });
+    window.scrollTo(0,0);
 }
 
 var _tplRepeatItem = null;
