@@ -288,6 +288,13 @@ async def _run_generation(gen_id, tg_id, cost: int, label: str, build):
     async def _runner():
         try:
             return await build()
+        except TimeoutError:
+            # The foreground poll gave up, but the provider task is still alive and its id
+            # is persisted — let the reconciler recover it instead of killing + refunding a
+            # job that may still finish (long Suno songs, or a backgrounded webview). The
+            # row stays 'pending'; no refund. (asyncio.TimeoutError is builtin TimeoutError.)
+            logger.warning("Generation foreground timeout (%s) — leaving row pending for reconciler", label)
+            return {"__pending__": True}
         except Exception:
             logger.exception("Generation failed (%s)", label)
             # Guarded flip so the refund happens exactly once even if the
@@ -1829,8 +1836,12 @@ async def generate_image(request: web.Request):
         )
 
     resp = await _run_generation(gen_id, tg_id, cost, f"photo:{model}", _build)
-    if resp.get("__error__") or resp.get("__superseded__"):
+    if resp.get("__error__"):
         return web.json_response({"error": "generation_failed"}, status=500)
+    if resp.get("__pending__") or resp.get("__superseded__"):
+        # Still running (foreground timed out) or already delivered by the reconciler —
+        # not a failure. Client shows "still running" and History/TG surface the result.
+        return web.json_response({"pending": True}, status=202)
     await _notify_gen_ready(tg_id, "photo", len(resp.get("file_urls") or []))
     return web.json_response(resp)
 
@@ -1896,8 +1907,12 @@ async def generate_video(request: web.Request):
         }
 
     resp = await _run_generation(gen_id, tg_id, cost, f"video:{model}", _build)
-    if resp.get("__error__") or resp.get("__superseded__"):
+    if resp.get("__error__"):
         return web.json_response({"error": "generation_failed"}, status=500)
+    if resp.get("__pending__") or resp.get("__superseded__"):
+        # Still running (foreground timed out) or already delivered by the reconciler —
+        # not a failure. Client shows "still running" and History/TG surface the result.
+        return web.json_response({"pending": True}, status=202)
     await _notify_gen_ready(tg_id, "video")
     return web.json_response(resp)
 
@@ -1955,8 +1970,12 @@ async def generate_audio(request: web.Request):
         }
 
     resp = await _run_generation(gen_id, tg_id, cost, f"audio:{model}", _build)
-    if resp.get("__error__") or resp.get("__superseded__"):
+    if resp.get("__error__"):
         return web.json_response({"error": "generation_failed"}, status=500)
+    if resp.get("__pending__") or resp.get("__superseded__"):
+        # Still running (foreground timed out) or already delivered by the reconciler —
+        # not a failure. Client shows "still running" and History/TG surface the result.
+        return web.json_response({"pending": True}, status=202)
     await _notify_gen_ready(tg_id, "audio")
     return web.json_response(resp)
 
