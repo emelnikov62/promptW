@@ -274,15 +274,23 @@ async function loadUserHistory() {
             });
             recomputePending();
             updateHistory();
-            // If the image-source picker is open on the History tab, refresh its grid too
-            // (e.g. after "show more") — keep the scroll position so it doesn't jump to top.
+            // If the image-source picker is open on the History tab, APPEND the newly
+            // loaded photos to the existing grid instead of re-rendering it. A full
+            // re-render recreates every <img>, which flashes black while they re-decode
+            // and looks like the whole gallery reloads. Appending leaves drawn images alone.
             var ov = document.getElementById("imgsrc-overlay");
             if (imgSrcView === "history" && ov && !ov.classList.contains("hidden")){
-                var og = document.querySelector("#imgsrc-body .imgsrc-grid");
-                var sc = og ? og.scrollTop : 0;
-                imgSrcGrid("history");
-                var ng = document.querySelector("#imgsrc-body .imgsrc-grid");
-                if (ng) ng.scrollTop = sc;   // keep position after appending the next window
+                var grid = document.querySelector("#imgsrc-body .imgsrc-grid");
+                var photos = galleryItems.filter(function(g){ return g.type === "photo" && g.url; }).map(function(g){ return g.url; });
+                var have = grid ? grid.querySelectorAll(".imgsrc-cell").length : -1;
+                if (grid && photos.length >= have){
+                    if (photos.length > have) grid.insertAdjacentHTML("beforeend", photos.slice(have).map(imgSrcCell).join(""));
+                    var more = document.getElementById("imgsrc-more");
+                    if (!historyHasMore){ if (more) more.remove(); }
+                    else if (more){ more.textContent = ""; }   // clear "loading", keep sentinel
+                } else {
+                    imgSrcGrid("history");   // unexpected shape (e.g. list shrank) → safe rebuild
+                }
             }
             if (serverPending.length) pendingPoll();
         }
