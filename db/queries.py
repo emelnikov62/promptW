@@ -1003,12 +1003,19 @@ async def assign_support_ticket(ticket_id: int, agent_tg_id: int,
 async def close_support_ticket(ticket_id: int) -> bool:
     pool = await get_pool()
     async with pool.acquire() as conn:
-        res = await conn.execute("""
-            UPDATE support_tickets
-            SET status = 'closed', closed_at = NOW(), updated_at = NOW()
-            WHERE id = $1 AND status IN ('open', 'assigned')
-        """, ticket_id)
-        return res.endswith("1")
+        async with conn.transaction():
+            res = await conn.execute("""
+                UPDATE support_tickets
+                SET status = 'closed', closed_at = NOW(), updated_at = NOW()
+                WHERE id = $1 AND status IN ('open', 'assigned')
+            """, ticket_id)
+            if res.endswith("1"):
+                await conn.execute("""
+                    INSERT INTO support_messages (ticket_id, sender, content)
+                    VALUES ($1, 'system', 'Обращение закрыто. Рады были помочь! Если появятся вопросы — пишите.')
+                """, ticket_id)
+                return True
+            return False
 
 
 # ── Support agents (dynamic) ──

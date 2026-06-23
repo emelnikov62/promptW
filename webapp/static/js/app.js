@@ -2967,7 +2967,7 @@ function supRender() {
     list.innerHTML = supMessages.map(function(m, i) {
         var prev = supMessages[i - 1];
         var grouped = prev && prev.sender === m.sender;
-        var cls = "msg " + (m.sender === "user" ? "user" : "bot") +
+        var cls = "msg " + (m.sender === "user" ? "user" : (m.sender === "system" ? "system" : "bot")) +
                   (grouped ? " grouped" : "");
         var img = "";
         if (m.image_url) {
@@ -2978,7 +2978,8 @@ function supRender() {
                '</div><span class="msg-t">' + chatTime(m.created_at) +
                '</span></div>';
     }).join("");
-    window.scrollTo({ top: document.body.scrollHeight });
+    var scroll = document.getElementById("sup-scroll");
+    if (scroll) scroll.scrollTop = scroll.scrollHeight;
 }
 
 function supShowPreview(file) {
