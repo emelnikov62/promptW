@@ -451,16 +451,24 @@ class KieGenerator(BaseGenerator):
                 input_data["resolution"] = resolution
 
         elif model_name == "Kling 3.0":
-            # KIE requires prompt + aspect_ratio + duration + resolution for kling-3.0/video.
+            # kling-3.0/video required fields: prompt + duration (str) + mode + multi_shots.
+            # image_urls is a 1-2 item array (first, optional last frame) — there is NO
+            # separate tail_image_url field. Quality is `mode` (std/pro/4K), NOT `resolution`:
+            # sending resolution and omitting mode/multi_shots => "This field is required".
+            imgs = []
             if first_url:
-                input_data["image_urls"] = [first_url]
+                imgs.append(first_url)
             if last_url:
-                input_data["tail_image_url"] = last_url
+                imgs.append(last_url)
+            if imgs:
+                input_data["image_urls"] = imgs
             input_data["aspect_ratio"] = kwargs.get("aspect_ratio") or "16:9"
             input_data["duration"] = str(duration) if duration else "5"
-            input_data["resolution"] = resolution if resolution else "720p"
+            res = str(resolution or "720p").lower()
+            input_data["mode"] = "4K" if "4k" in res else ("pro" if "1080" in res else "std")
+            input_data["multi_shots"] = False
             if sound is not None:
-                input_data["sound"] = sound
+                input_data["sound"] = bool(sound)
 
         elif model_name == "Kling Motion 3.0":
             # Character-driven motion control: subject photo + driving video.
