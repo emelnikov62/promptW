@@ -573,6 +573,38 @@ class KieGenerator(BaseGenerator):
         successFlag 2/3) — that's the signal to fail+refund the row now."""
         ext = {"photo": "png", "image": "png", "audio": "mp3"}.get(gen_type, "mp4")
 
+        if gen_type == "audio":
+            # Suno lives on its own endpoint/shape (generate/record-info -> response.sunoData),
+            # NOT the generic jobs/recordInfo below — so audio MUST be handled here or every
+            # recover returns None and a finished song spins until the give-up refund.
+            url = f"{API_BASE}/api/v1/generate/record-info"
+            try:
+                async with aiohttp.ClientSession(timeout=_API_TIMEOUT) as session:
+                    async with session.get(url, params={"taskId": task_id},
+                                           headers=self._headers()) as resp:
+                        data = await resp.json()
+            except Exception as e:
+                logger.warning("recover audio %s: transient API error (%s) — will retry", task_id, e)
+                return None
+            if data.get("code") != 200:
+                logger.warning("recover audio %s: code=%s (%s) — transient, will retry",
+                               task_id, data.get("code"), data.get("msg"))
+                return None
+            d = data.get("data") or {}
+            status = str(d.get("status") or "").upper()
+            if any(k in status for k in ("FAIL", "ERROR", "EXCEPTION")):
+                raise RuntimeError(f"Suno task failed: {d.get('errorMessage') or status}")
+            response = d.get("response") or {}
+            suno_data = response.get("sunoData") or []
+            urls = [item["audioUrl"] for item in suno_data if item.get("audioUrl")]
+            if not urls:
+                return None
+            try:
+                return await self._download_file(urls[0], ext)
+            except Exception as e:
+                logger.warning("recover audio %s: download failed (%s) — will retry", task_id, e)
+                return None
+
         if model == "Veo 3.1 Fast":
             url = f"{API_BASE}/api/v1/veo/record-info"
             try:
