@@ -479,8 +479,8 @@ async def _engagement_once():
     # bonus-unspent: new users sitting on tokens who never created
     try:
         for u in await eligible_bonus_unspent(_ENGAGE_BATCH):
-            notif.notify_bg(u["tg_id"], "bonusUnspentTg", btn_key="createBtn",
-                            page="create", n=u["balance"])
+            notif.notify_bg(u["tg_id"], "bonusUnspentTg", btn_key="seeTemplatesBtn",
+                            page="home", n=u["balance"])
             await log_sent(u["tg_id"], "bonusUnspent")
     except Exception:
         logger.exception("engagement: bonusUnspent pass failed")
