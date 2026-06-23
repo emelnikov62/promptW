@@ -1826,6 +1826,31 @@ bindGen("gen-audio","prompt-audio","audio");
     if(c) c.addEventListener("click", genOvClose);
 })();
 
+// Keyboard handling: when a text field is focused the on-screen keyboard opens and iOS
+// repositions the fixed bottom nav ABOVE the keyboard, where it overlaps the input the
+// user is typing into. Hide the bottom nav (body.kb-open) while any text field is focused.
+(function(){
+    function isTextField(el){
+        if(!el) return false;
+        if(el.tagName==="TEXTAREA" || el.isContentEditable) return true;
+        if(el.tagName==="INPUT"){
+            var ty=(el.getAttribute("type")||"text").toLowerCase();
+            return ["text","search","url","email","tel","number","password",""].indexOf(ty)>=0;
+        }
+        return false;
+    }
+    document.addEventListener("focusin", function(e){
+        if(isTextField(e.target)) document.body.classList.add("kb-open");
+    });
+    document.addEventListener("focusout", function(){
+        // Defer: moving focus between two text fields fires focusout→focusin; only clear
+        // once focus has actually left every text field (keyboard dismissed).
+        setTimeout(function(){
+            if(!isTextField(document.activeElement)) document.body.classList.remove("kb-open");
+        }, 60);
+    });
+})();
+
 // In-progress generations shown as animated placeholder cards at the top of History.
 // Two sources, merged so a single job never shows twice:
 //  - serverPending: rows with status 'pending' from /history (authoritative; survive a
