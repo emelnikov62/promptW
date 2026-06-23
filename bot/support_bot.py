@@ -199,8 +199,12 @@ async def notify_agents(ticket_id: int, user_tg_id: int, text: str,
     )
 
     if ticket["status"] == "assigned" and ticket.get("agent_tg_id"):
+        close_kb = InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="Закрыть тикет", callback_data=f"sup:close:{ticket_id}"),
+        ]])
         try:
-            await support_bot.send_message(ticket["agent_tg_id"], header)
+            await support_bot.send_message(ticket["agent_tg_id"], header,
+                                           reply_markup=close_kb)
         except Exception:
             logger.exception("notify assigned agent %s", ticket["agent_tg_id"])
         return
