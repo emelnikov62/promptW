@@ -12,6 +12,7 @@ from generators.base import BaseGenerator
 from db.queries import upsert_user, create_referral, get_user
 from bot.config import BOT_TOKEN
 from bot.auth import make_auth_token
+from bot import notify as notif
 
 router = Router()
 generator: Optional[BaseGenerator] = None
@@ -87,16 +88,19 @@ async def cmd_start(message: Message):
 
     if referrer_id:
         await create_referral(referrer_id, user.id)
+        # Tell the referrer someone joined (fail-safe, fire-and-forget).
+        notif.notify_bg(referrer_id, "refNewTg", btn_key="partnerBtn", page="partner")
 
     if WEBAPP_URL:
         # Per-user fallback auth token, embedded in every WebApp entry point so the
         # app works even where Telegram doesn't expose initData (Desktop).
         token = make_auth_token(user.id, BOT_TOKEN)
+        lang = notif.norm_lang(user.language_code)
+        welcome = notif.text("welcomeTg", lang, bonus=WELCOME_BONUS) or (
+            "Привет! 👋\n\nЭто PromptW — генерация фото, видео, музыки и текста через AI.\n"
+            "Выбери, что создать, в меню ниже 👇")
         await message.answer(
-            "Привет! 👋\n\n"
-            "Это <b>PromptW</b> — генерация фото, видео, музыки и текста через AI.\n"
-            "Выбери, что создать, в меню ниже 👇",
-            parse_mode="HTML",
+            welcome,
             reply_markup=main_menu_kb(token),
         )
         # Personalised blue menu button (carries the token; overrides the global one).

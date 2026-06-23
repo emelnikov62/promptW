@@ -2855,6 +2855,18 @@ loadUserProfile();
 loadUserHistory();
 loadRewards();   // server-authoritative; also drives the header dot pulse on home
 
+// ── Heartbeat ──
+// Lets the server know the user is in the app, so it can suppress TG-notification
+// duplicates of in-app toasts (e.g. "generation ready"). Fire-and-forget.
+function sendHeartbeat() {
+    var tgId = getTgId();
+    if (!tgId || document.hidden) return;
+    try { fetch("/api/heartbeat", { method: "POST", headers: authHeaders() }); } catch (e) {}
+}
+sendHeartbeat();
+setInterval(sendHeartbeat, 45000);
+document.addEventListener("visibilitychange", function(){ if (!document.hidden) sendHeartbeat(); });
+
 // Deep-link from the bot menu: open the requested page (?p=video / start_param).
 (function(){
     try {

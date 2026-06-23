@@ -108,6 +108,15 @@ async def update_user_lang(tg_id: int, lang: str):
         )
 
 
+async def touch_active(tg_id: int):
+    """Record a WebApp heartbeat — used to suppress duplicate TG notifications
+    while the user is actively in the app."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE users SET last_active_at = NOW() WHERE tg_id = $1", tg_id)
+
+
 async def update_balance(tg_id: int, amount: int, tx_type: str,
                          description: str = "") -> int:
     pool = await get_pool()
@@ -486,6 +495,7 @@ async def settle_payment(order_id: str, external_id: Optional[str] = None,
             """, buyer, total_tokens, desc)
             # 2) referral commissions up the chain (rubles)
             amount = pay["amount_rub"]
+            ref_credits = []   # [{tg_id, line, amount}] — for post-settle notifications
             l1 = await conn.fetchval("SELECT referrer_id FROM users WHERE tg_id = $1", buyer)
             for line, rate, who in (
                 (1, REF_L1_RATE, l1),
@@ -508,7 +518,10 @@ async def settle_payment(order_id: str, external_id: Optional[str] = None,
                     INSERT INTO ref_earnings (referrer_tg_id, referred_tg_id, line, amount_rub, payment_id)
                     VALUES ($1, $2, $3, $4, $5)
                 """, who, buyer, line, bonus, pay["id"])
-            return dict(pay)
+                ref_credits.append({"tg_id": who, "line": line, "amount": float(bonus)})
+            out = dict(pay)
+            out["ref_credits"] = ref_credits
+            return out
 
 
 async def get_partner_overview(tg_id: int) -> dict:
