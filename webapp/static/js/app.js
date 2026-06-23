@@ -61,6 +61,7 @@ var videoThumbPending = {};     // url -> true while a capture is in flight
 var HISTORY_PAGE = 30;          // how many more rows each "Показать ещё" reveals
 var historyLimit = HISTORY_PAGE; // current window size requested from the server
 var historyHasMore = false;     // server returned a full window → older rows may exist
+var historyLoading = false;     // a /history fetch is in flight (guards infinite-scroll)
 var ratios = ["1:1","3:4","4:3","9:16","16:9"];
 var quals = ["1K","2K","4K"];
 var state = { pRatio:1, pQual:1 };
@@ -235,6 +236,7 @@ async function setNotifMarketing(on) {
 async function loadUserHistory() {
     var tgId = getTgId();
     if (!tgId) return;
+    historyLoading = true;
     try {
         var res = await fetch("/api/user/" + tgId + "/history?limit=" + historyLimit, { headers: authHeaders() });
         if (res.ok) {
@@ -276,14 +278,16 @@ async function loadUserHistory() {
             // (e.g. after "show more") — keep the scroll position so it doesn't jump to top.
             var ov = document.getElementById("imgsrc-overlay");
             if (imgSrcView === "history" && ov && !ov.classList.contains("hidden")){
-                var sb = document.getElementById("imgsrc-body");
-                var sc = sb ? sb.scrollTop : 0;
+                var og = document.querySelector("#imgsrc-body .imgsrc-grid");
+                var sc = og ? og.scrollTop : 0;
                 imgSrcGrid("history");
-                if (sb) sb.scrollTop = sc;
+                var ng = document.querySelector("#imgsrc-body .imgsrc-grid");
+                if (ng) ng.scrollTop = sc;   // keep position after appending the next window
             }
             if (serverPending.length) pendingPoll();
         }
     } catch(e) { console.error("Failed to load history", e); }
+    finally { historyLoading = false; }
 }
 
 // ── Transactions / statistics ──
@@ -796,7 +800,7 @@ function imgSrcGrid(kind){
         // current limit and the gallery seems to stop loading).
         body.innerHTML = photos.length
             ? '<div class="imgsrc-grid">'+photos.map(imgSrcCell).join("")+'</div>'
-              + (historyHasMore ? '<button class="gal-more" id="imgsrc-more">'+t("loadMore")+'</button>' : "")
+              + (historyHasMore ? '<div class="imgsrc-loadmore" id="imgsrc-more">'+(historyLoading ? t("loading") : "")+'</div>' : "")
             : '<div class="imgsrc-empty">'+t("imgSrcEmptyHist")+'</div>';
         return;
     }
@@ -843,17 +847,24 @@ function openImageSource(onFile){
     var o = document.getElementById("imgsrc-overlay"); if (!o) return;
     o.addEventListener("click", function(e){ if (e.target === o) imgSrcClose(); });
     document.getElementById("imgsrc-back").addEventListener("click", imgSrcMenu);
+    // Infinite scroll for the History grid: pull the next window as the user nears the
+    // bottom (no manual "show more"). The scroll happens on the inner .imgsrc-grid
+    // (overflow-y), and scroll events don't bubble — so listen in the CAPTURE phase.
+    // historyLoading guards against duplicate fetches.
+    document.getElementById("imgsrc-body").addEventListener("scroll", function(e){
+        if (imgSrcView !== "history" || !historyHasMore || historyLoading) return;
+        var b = e.target;
+        if (!b || !b.classList || !b.classList.contains("imgsrc-grid")) return;
+        if (b.scrollTop + b.clientHeight >= b.scrollHeight - 160){
+            historyLimit += HISTORY_PAGE;
+            var more = document.getElementById("imgsrc-more"); if (more) more.textContent = t("loading");
+            loadUserHistory();   // re-renders this grid on completion, keeping scroll
+        }
+    }, true);
     document.getElementById("imgsrc-body").addEventListener("click", function(e){
         if (e.target.closest("[data-imgsrc-add]")){
             if ((referenceList || []).length >= REF_MAX){ toast(t("refLimit"), "info"); return; }
             pickFile("image/*", uploadReference);   // uploads, then renderAllRefLibs refreshes this grid
-            return;
-        }
-        var more = e.target.closest("#imgsrc-more");
-        if (more){
-            more.disabled = true; more.textContent = t("loading");
-            historyLimit += HISTORY_PAGE;
-            loadUserHistory();   // re-renders this grid on completion (see loadUserHistory)
             return;
         }
         var opt = e.target.closest(".imgsrc-opt");
