@@ -959,14 +959,16 @@ async def get_support_ticket_by_id(ticket_id: int) -> Optional[dict]:
         return dict(row) if row else None
 
 
-async def add_support_message(ticket_id: int, sender: str, content: str) -> dict:
+async def add_support_message(ticket_id: int, sender: str, content: str,
+                              image_url: Optional[str] = None) -> dict:
     pool = await get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
             row = await conn.fetchrow("""
-                INSERT INTO support_messages (ticket_id, sender, content)
-                VALUES ($1, $2, $3) RETURNING id, ticket_id, sender, content, created_at
-            """, ticket_id, sender, content)
+                INSERT INTO support_messages (ticket_id, sender, content, image_url)
+                VALUES ($1, $2, $3, $4)
+                RETURNING id, ticket_id, sender, content, image_url, created_at
+            """, ticket_id, sender, content, image_url)
             await conn.execute(
                 "UPDATE support_tickets SET updated_at = NOW() WHERE id = $1",
                 ticket_id)
@@ -977,7 +979,7 @@ async def get_support_messages(ticket_id: int, after_id: int = 0) -> List[dict]:
     pool = await get_pool()
     async with pool.acquire() as conn:
         rows = await conn.fetch("""
-            SELECT id, ticket_id, sender, content, created_at
+            SELECT id, ticket_id, sender, content, image_url, created_at
             FROM support_messages
             WHERE ticket_id = $1 AND id > $2
             ORDER BY id

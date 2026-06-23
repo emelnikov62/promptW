@@ -268,9 +268,12 @@ async def _create_tables():
                 ticket_id BIGINT NOT NULL REFERENCES support_tickets(id) ON DELETE CASCADE,
                 sender VARCHAR(12) NOT NULL,
                 content TEXT NOT NULL,
+                image_url TEXT,
                 created_at TIMESTAMPTZ DEFAULT NOW()
             );
             CREATE INDEX IF NOT EXISTS idx_support_messages_ticket ON support_messages(ticket_id, id);
+
+            ALTER TABLE support_messages ADD COLUMN IF NOT EXISTS image_url TEXT;
         """)
 
 

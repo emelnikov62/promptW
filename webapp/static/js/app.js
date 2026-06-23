@@ -2938,10 +2938,13 @@ var supMessages = [];
 var supPollTimer = null;
 var supLastId = 0;
 var supBusy = false;
+var supFile = null;
 
 function initSupport() {
     supMessages = [];
     supLastId = 0;
+    supFile = null;
+    supHidePreview();
     supRender();
     supLoadMessages();
     clearInterval(supPollTimer);
@@ -2966,12 +2969,35 @@ function supRender() {
         var grouped = prev && prev.sender === m.sender;
         var cls = "msg " + (m.sender === "user" ? "user" : "bot") +
                   (grouped ? " grouped" : "");
+        var img = "";
+        if (m.image_url) {
+            img = '<img class="sup-msg-img" src="' + escHtml(m.image_url) + '" loading="lazy">';
+        }
         return '<div class="' + cls + '"><div class="msg-c">' +
-               escHtml(m.content) +
+               (m.content ? escHtml(m.content) : "") + img +
                '</div><span class="msg-t">' + chatTime(m.created_at) +
                '</span></div>';
     }).join("");
     window.scrollTo({ top: document.body.scrollHeight });
+}
+
+function supShowPreview(file) {
+    var pv = document.getElementById("sup-preview");
+    if (!pv) return;
+    var url = URL.createObjectURL(file);
+    pv.innerHTML = '<img src="' + url + '"><div class="sup-rm" id="sup-rm-btn">&times;</div>';
+    pv.classList.remove("hidden");
+    document.getElementById("sup-rm-btn").addEventListener("click", function() {
+        supFile = null;
+        supHidePreview();
+        var fi = document.getElementById("sup-file");
+        if (fi) fi.value = "";
+    });
+}
+
+function supHidePreview() {
+    var pv = document.getElementById("sup-preview");
+    if (pv) { pv.innerHTML = ""; pv.classList.add("hidden"); }
 }
 
 async function supLoadMessages() {
@@ -3009,8 +3035,10 @@ async function supSend() {
     var input = document.getElementById("sup-input");
     if (!input) return;
     var text = input.value.trim();
-    if (!text) return;
-    supMessages.push({ sender: "user", content: text, created_at: new Date().toISOString() });
+    if (!text && !supFile) return;
+    var optimistic = { sender: "user", content: text, created_at: new Date().toISOString() };
+    if (supFile) optimistic.image_url = URL.createObjectURL(supFile);
+    supMessages.push(optimistic);
     input.value = "";
     chatGrow(input);
     supRender();
@@ -3019,11 +3047,23 @@ async function supSend() {
     var btn = document.getElementById("sup-send");
     if (btn) btn.disabled = true;
     try {
-        var res = await fetch("/api/support/send", {
-            method: "POST",
-            headers: authHeaders({ "Content-Type": "application/json" }),
-            body: JSON.stringify({ text: text })
-        });
+        var res;
+        if (supFile) {
+            var fd = new FormData();
+            fd.append("text", text);
+            fd.append("image", supFile);
+            res = await fetch("/api/support/send", {
+                method: "POST",
+                headers: authHeaders(),
+                body: fd
+            });
+        } else {
+            res = await fetch("/api/support/send", {
+                method: "POST",
+                headers: authHeaders({ "Content-Type": "application/json" }),
+                body: JSON.stringify({ text: text })
+            });
+        }
         if (!res.ok) {
             var err = await res.json().catch(function(){ return {}; });
             toast(err.error || t("supError"), "error");
@@ -3035,6 +3075,10 @@ async function supSend() {
     } catch (e) {
         toast(t("supError"), "error");
     }
+    supFile = null;
+    supHidePreview();
+    var fi = document.getElementById("sup-file");
+    if (fi) fi.value = "";
     supBusy = false;
     if (btn) btn.disabled = false;
     supRender();
@@ -3050,4 +3094,11 @@ async function supSend() {
             if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); supSend(); }
         });
     }
+    var fileInput = document.getElementById("sup-file");
+    if (fileInput) fileInput.addEventListener("change", function() {
+        if (fileInput.files && fileInput.files[0]) {
+            supFile = fileInput.files[0];
+            supShowPreview(supFile);
+        }
+    });
 })();

@@ -1849,18 +1849,55 @@ async def api_support_send(request: web.Request):
         return web.json_response({"error": "unauthorized"}, status=401)
     if not _rate_ok("support:" + str(tg_id), 5, 60):
         return _too_many()
-    try:
-        data = await request.json()
-    except Exception:
-        return web.json_response({"error": "bad_request"}, status=400)
-    text = (data.get("text") or "").strip()
-    if not text or len(text) > 2000:
+    text = ""
+    image_url = None
+    ct = request.content_type or ""
+    if "multipart" in ct:
+        reader = await request.multipart()
+        while True:
+            part = await reader.next()
+            if part is None:
+                break
+            if part.name == "text":
+                text = (await part.text()).strip()
+            elif part.name == "image" and part.filename:
+                ext = os.path.splitext(part.filename)[1].lower()
+                if ext not in (".jpg", ".jpeg", ".png", ".webp", ".gif"):
+                    ext = ".jpg"
+                fname = uuid.uuid4().hex + ext
+                fpath = os.path.join(MEDIA_DIR, fname)
+                size = 0
+                with open(fpath, "wb") as f:
+                    while True:
+                        chunk = await part.read_chunk()
+                        if not chunk:
+                            break
+                        size += len(chunk)
+                        if size > 10 * 1024 * 1024:
+                            f.close()
+                            os.remove(fpath)
+                            return web.json_response({"error": "file_too_large"}, status=400)
+                        f.write(chunk)
+                if WEBAPP_URL:
+                    image_url = WEBAPP_URL.rstrip("/") + "/media/" + fname
+                else:
+                    image_url = "/media/" + fname
+    else:
+        try:
+            data = await request.json()
+        except Exception:
+            return web.json_response({"error": "bad_request"}, status=400)
+        text = (data.get("text") or "").strip()
+    if not text and not image_url:
+        return web.json_response({"error": "empty_message"}, status=400)
+    if len(text) > 2000:
         return web.json_response({"error": "invalid_text"}, status=400)
     ticket = await get_or_create_support_ticket(tg_id)
-    msg = await add_support_message(ticket["id"], "user", text)
+    msg = await add_support_message(ticket["id"], "user", text or "", image_url)
     if _support_bot:
         from bot.support_bot import notify_agents
-        asyncio.ensure_future(notify_agents(ticket["id"], tg_id, text, _support_bot))
+        asyncio.ensure_future(notify_agents(
+            ticket["id"], tg_id, text or "", _support_bot, image_url=image_url))
     return web.json_response(_row_to_json(msg))
 
 

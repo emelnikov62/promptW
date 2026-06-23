@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=Unbounded:wght@500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css?v=137">
+    <link rel="stylesheet" href="/static/css/style.css?v=138">
 </head>
 <body>
 <div id="app">
@@ -611,7 +611,10 @@
             </div>
             <div id="sup-list"></div>
         </div>
+        <div id="sup-preview" class="sup-preview hidden"></div>
         <div class="chat-input-bar sup-input-bar">
+            <label class="sup-attach" for="sup-file"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></label>
+            <input type="file" id="sup-file" accept="image/*" class="hidden">
             <textarea id="sup-input" class="chat-input" rows="1" data-i18n-placeholder="supPlaceholder" placeholder="Сообщение…"></textarea>
             <button class="chat-send sup-send" id="sup-send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
         </div>
@@ -720,6 +723,6 @@
 </div>
 
 <script src="/static/js/i18n.js?v=111"></script>
-<script src="/static/js/app.js?v=159"></script>
+<script src="/static/js/app.js?v=160"></script>
 </body>
 </html>

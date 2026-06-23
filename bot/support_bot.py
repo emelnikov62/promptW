@@ -177,7 +177,8 @@ async def _notify_user(user_tg_id: int):
 
 
 async def notify_agents(ticket_id: int, user_tg_id: int, text: str,
-                        support_bot: Bot):
+                        support_bot: Bot, *, image_url: str = None):
+    from aiogram.types import URLInputFile
     ticket = await get_support_ticket_by_id(ticket_id)
     if not ticket:
         return
@@ -198,13 +199,23 @@ async def notify_agents(ticket_id: int, user_tg_id: int, text: str,
         f"{text[:1500]}"
     )
 
+    async def _send_to(chat_id: int, kb):
+        if image_url:
+            try:
+                await support_bot.send_photo(
+                    chat_id, URLInputFile(image_url),
+                    caption=header[:1024], reply_markup=kb)
+                return
+            except Exception:
+                logger.warning("photo send failed, falling back to text")
+        await support_bot.send_message(chat_id, header, reply_markup=kb)
+
     if ticket["status"] == "assigned" and ticket.get("agent_tg_id"):
         close_kb = InlineKeyboardMarkup(inline_keyboard=[[
             InlineKeyboardButton(text="Закрыть тикет", callback_data=f"sup:close:{ticket_id}"),
         ]])
         try:
-            await support_bot.send_message(ticket["agent_tg_id"], header,
-                                           reply_markup=close_kb)
+            await _send_to(ticket["agent_tg_id"], close_kb)
         except Exception:
             logger.exception("notify assigned agent %s", ticket["agent_tg_id"])
         return
@@ -215,6 +226,6 @@ async def notify_agents(ticket_id: int, user_tg_id: int, text: str,
     ]])
     for agent_id in SUPPORT_AGENT_IDS:
         try:
-            await support_bot.send_message(agent_id, header, reply_markup=kb)
+            await _send_to(agent_id, kb)
         except Exception:
             logger.exception("notify agent %s", agent_id)
