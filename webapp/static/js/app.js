@@ -1058,7 +1058,7 @@ function renderVideoSettings(model) {
     }
 
     var settingCols = [];
-    if (cfg.ratios) settingCols.push(vmPickCol("vm-ratio", t("aspectRatio"), cfg.ratios[0]));
+    if (cfg.ratios) settingCols.push(vmPickCol("vm-ratio", t("ratioShort"), cfg.ratios[0]));
     if (cfg.qualities) {
         currentVideoQuality = cfg.qualities[0];
         settingCols.push(vmPickCol("vm-qual", t(cfg.qualityLabel || "quality"), currentVideoQuality));

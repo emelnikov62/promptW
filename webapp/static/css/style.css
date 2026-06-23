@@ -245,7 +245,7 @@ body.scrolled .header{border-bottom-color:var(--brd)}
 .set-div{width:1px;height:36px;background:var(--brd);margin:0 14px}
 .set-lbl{font-family:var(--font-mono);font-size:9px;font-weight:700;letter-spacing:.5px;color:var(--tx3);display:block;margin-bottom:4px}
 .set-ctrl{display:flex;align-items:center;gap:8px}
-.set-val{font-size:18px;font-weight:700;font-family:var(--font-mono);color:var(--tx)}
+.set-val{font-size:18px;font-weight:700;font-family:var(--font-mono);color:var(--tx);white-space:nowrap}
 /* tappable ratio/quality picker (opens bottom sheet) */
 .set-pick{border:none;background:none;text-align:left;cursor:pointer;font-family:inherit;display:block;color:var(--tx)}
 .set-pick:active{opacity:.7}
