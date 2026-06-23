@@ -2523,7 +2523,10 @@ function renderTplUploads(tpl) {
     area.innerHTML = html;
     var add = document.getElementById("tpl-up-add");
     if (add) add.addEventListener("click", function() {
-        openImageSource(function(file) { tplFiles.push(file); renderTplUploads(tpl); });
+        openImageSource(function(file) {
+            if (tplFiles.length >= max) return;
+            tplFiles.push(file); renderTplUploads(tpl);
+        }, { multi: true, remaining: max - tplFiles.length });
     });
     area.querySelectorAll(".tpl-up-x").forEach(function(b) {
         b.addEventListener("click", function(e) {
