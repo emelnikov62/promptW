@@ -1995,14 +1995,13 @@ async def api_send_media(request: web.Request):
 
     bot = _get_bot()
     try:
-        if media_type == "video":
-            await bot.send_video(tg_id, src)
-        elif media_type == "audio":
+        if media_type == "audio":
             await bot.send_audio(tg_id, src)
         else:
-            # Send the image as a document, NOT send_photo — Telegram re-compresses
-            # photos (JPEG, downscaled) and would degrade the generated result. A
-            # document preserves the original file (full resolution, no recompression).
+            # "Сохранить" должно отдавать ОРИГИНАЛ файлом. Inline-медиа Telegram
+            # портит: send_photo пережимает JPEG/даунскейлит, а send_video
+            # переэнкодит и плющит соотношение сторон (без width/height). send_document
+            # сохраняет исходный файл 1:1 — и для фото, и для видео.
             await bot.send_document(tg_id, src)
         return web.json_response({"ok": True})
     except Exception:
