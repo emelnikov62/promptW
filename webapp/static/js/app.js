@@ -2646,7 +2646,7 @@ async function rwdClaim(rid, btn){
     if(btn) btn.disabled=false;
 }
 function rwdShareStory(rid, btn){
-    var mediaUrl = location.origin + "/static/img/share-story.jpg";
+    var mediaUrl = location.origin + "/static/img/share-story.jpg?v=2";
     var shared=false;
     try {
         if(tg && tg.shareToStory){
