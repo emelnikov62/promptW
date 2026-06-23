@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=Unbounded:wght@500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css?v=141">
+    <link rel="stylesheet" href="/static/css/style.css?v=142">
 </head>
 <body>
 <div id="app">
@@ -111,24 +111,8 @@
                 <div class="model-dropdown hidden" id="audio-model-dd"><div class="dd-item active" data-model="Suno V5.5">✓ Suno V5.5</div></div>
             </div>
             <div class="ccard">
-                <span class="prm-lbl" data-i18n="audioStyleLabel">Стиль</span>
-                <select id="prompt-audio" class="field-select">
-                    <option value="Energetic pop song with catchy melody, upbeat rhythm, feel-good summer vibes">Pop — летний, энергичный</option>
-                    <option value="Atmospheric lo-fi hip-hop beat, mellow piano, warm vinyl crackle, relaxing study mood">Lo-Fi — спокойный, для учёбы</option>
-                    <option value="Epic cinematic orchestral soundtrack, dramatic strings, powerful brass, heroic theme">Кинематограф — эпичный оркестр</option>
-                    <option value="Smooth R&B with soulful vocals, groovy bassline, romantic night atmosphere">R&B — романтичный, soulful</option>
-                    <option value="Hard-hitting trap beat, heavy 808 bass, dark hi-hats, aggressive energy">Trap — агрессивный бит</option>
-                    <option value="Acoustic folk ballad, warm guitar fingerpicking, gentle vocals, nostalgic autumn mood">Folk — тёплая акустика</option>
-                    <option value="Deep house electronic track, pulsing bassline, dreamy synth pads, club atmosphere">Deep House — клубный, глубокий</option>
-                    <option value="Chill indie dream-pop, reverb guitars, soft ethereal vocals, pastel sunset aesthetic">Indie — мечтательный dream-pop</option>
-                    <option value="Powerful rock anthem, distorted electric guitars, driving drums, stadium energy">Рок — мощный, стадионный</option>
-                    <option value="Jazzy bossa nova, smooth saxophone, gentle rhythm guitar, evening café ambiance">Jazz — вечерний bossa nova</option>
-                    <option value="Dark synthwave, retro 80s synths, neon-lit atmosphere, cyberpunk driving beat">Synthwave — ретро 80-х, неон</option>
-                    <option value="Classical piano sonata, elegant and emotional, flowing arpeggios, concert hall resonance">Классика — фортепианная соната</option>
-                    <option value="Reggaeton party track, Latin rhythm, infectious dembow beat, tropical summer club">Reggaeton — латинский, танцевальный</option>
-                    <option value="Ambient meditation music, soft drones, nature textures, peaceful and calming atmosphere">Ambient — медитативный, спокойный</option>
-                    <option value="Funky disco groove, slap bass, wah guitar, retro 70s dance floor energy">Disco/Funk — танцевальный ретро</option>
-                </select>
+                <input type="hidden" id="prompt-audio" value="Energetic pop song with catchy melody, upbeat rhythm, feel-good summer vibes">
+                <button class="set-pick style-pick" id="audio-style-btn"><span class="set-lbl" data-i18n="audioStyleLabel">СТИЛЬ МУЗЫКИ</span><div class="set-ctrl"><span class="set-val" id="audio-style-val">Pop — летний, энергичный</span><svg class="set-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div></button>
             </div>
             <div class="ccard">
                 <span class="prm-lbl" data-i18n="mode">Режим</span>
@@ -746,6 +730,6 @@
 </div>
 
 <script src="/static/js/i18n.js?v=113"></script>
-<script src="/static/js/app.js?v=164"></script>
+<script src="/static/js/app.js?v=165"></script>
 </body>
 </html>

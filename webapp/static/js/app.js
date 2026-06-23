@@ -1323,6 +1323,36 @@ setupModelDD("video-model-btn","video-model-dd","video-model-name", function(mod
     renderVideoSettings(model);
 });
 setupModelDD("audio-model-btn","audio-model-dd","audio-model-name");
+// audio style picker (bottom sheet, same UX as model/ratio pickers)
+var AUDIO_STYLES=[
+{v:"Energetic pop song with catchy melody, upbeat rhythm, feel-good summer vibes",l:"Pop — летний, энергичный"},
+{v:"Atmospheric lo-fi hip-hop beat, mellow piano, warm vinyl crackle, relaxing study mood",l:"Lo-Fi — спокойный, для учёбы"},
+{v:"Epic cinematic orchestral soundtrack, dramatic strings, powerful brass, heroic theme",l:"Кинематограф — эпичный оркестр"},
+{v:"Smooth R&B with soulful vocals, groovy bassline, romantic night atmosphere",l:"R&B — романтичный, soulful"},
+{v:"Hard-hitting trap beat, heavy 808 bass, dark hi-hats, aggressive energy",l:"Trap — агрессивный бит"},
+{v:"Acoustic folk ballad, warm guitar fingerpicking, gentle vocals, nostalgic autumn mood",l:"Folk — тёплая акустика"},
+{v:"Deep house electronic track, pulsing bassline, dreamy synth pads, club atmosphere",l:"Deep House — клубный, глубокий"},
+{v:"Chill indie dream-pop, reverb guitars, soft ethereal vocals, pastel sunset aesthetic",l:"Indie — мечтательный dream-pop"},
+{v:"Powerful rock anthem, distorted electric guitars, driving drums, stadium energy",l:"Рок — мощный, стадионный"},
+{v:"Jazzy bossa nova, smooth saxophone, gentle rhythm guitar, evening café ambiance",l:"Jazz — вечерний bossa nova"},
+{v:"Dark synthwave, retro 80s synths, neon-lit atmosphere, cyberpunk driving beat",l:"Synthwave — ретро 80-х, неон"},
+{v:"Classical piano sonata, elegant and emotional, flowing arpeggios, concert hall resonance",l:"Классика — фортепианная соната"},
+{v:"Reggaeton party track, Latin rhythm, infectious dembow beat, tropical summer club",l:"Reggaeton — латинский, танцевальный"},
+{v:"Ambient meditation music, soft drones, nature textures, peaceful and calming atmosphere",l:"Ambient — медитативный, спокойный"},
+{v:"Funky disco groove, slap bass, wah guitar, retro 70s dance floor energy",l:"Disco/Funk — танцевальный ретро"}
+];
+(function(){
+var btn=document.getElementById("audio-style-btn");
+if(!btn) return;
+btn.addEventListener("click",function(){
+    var cur=document.getElementById("prompt-audio").value;
+    openSheet(t("audioStyleLabel"),AUDIO_STYLES.map(function(s){return{value:s.v,label:s.l}}),cur,function(val){
+        document.getElementById("prompt-audio").value=val;
+        var s=AUDIO_STYLES.find(function(x){return x.v===val;});
+        document.getElementById("audio-style-val").textContent=s?s.l:val;
+    });
+});
+})();
 // initial model logos
 applyModelLogo("photo-model-ico","NanoBanana PRO");
 applyModelLogo("video-model-ico","Kling 3.0");
