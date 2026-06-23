@@ -603,7 +603,7 @@ var I18N = {
             // 💬 сообщения бота (+ Btn = подпись кнопки)
             payTg: "Оплата прошла ✅\n+{n} токенов уже на балансе — это примерно {k} фото. Пора творить!",
             payBtn: "Создать",
-            welcomeTg: "Привет! Я PromptW 👋\nДарю тебе {bonus} токенов на старт — это пара трендовых фото бесплатно. Жми «Создать», выбирай шаблон, остальное я беру на себя ✨",
+            welcomeTg: "Привет! Я PromptW 👋\nДарю тебе {bonus} токенов на старт — это пара трендовых фото бесплатно. Открой приложение, выбери шаблон на главной — остальное я беру на себя ✨",
             welcomeBtn: "Открыть PromptW",
             photoTg: "Твоё фото готово 🔥 Залетай смотреть — по-моему, огонь.",
             photosTgN: "Готово {n} фото 🔥 Выбирай лучшее!",
@@ -625,7 +625,7 @@ var I18N = {
             ticketClosedTg: "Обращение закрыто ✅ Рады были помочь! Если что — пиши снова, я рядом.",
             reengageTg: "Соскучился по тебе 🥺 Завезли свежие трендовые шаблоны — глянешь? Пара кликов, и новый образ готов.",
             seeTemplatesBtn: "Посмотреть шаблоны",
-            bonusUnspentTg: "У тебя {n} токенов лежат без дела 👀 Это бесплатное фото — выбери шаблон, я всё сделаю.",
+            bonusUnspentTg: "У тебя {n} токенов лежат без дела 👀 Это бесплатное фото — открой главную, выбери шаблон, я всё сделаю.",
             createBtn: "Создать",
             weeklyTg: "Новинки недели 🆕 Добавил свежие шаблоны — твой следующий образ уже ждёт."
         }
@@ -1215,7 +1215,7 @@ var I18N = {
             // 💬 bot messages (+ Btn = button label)
             payTg: "Payment received ✅\n+{n} tokens are on your balance — about {k} photos. Let's create!",
             payBtn: "Create",
-            welcomeTg: "Hey! I'm PromptW 👋\nHere are {bonus} tokens to start — a couple of trendy photos on the house. Tap 'Create', pick a template, I'll handle the rest ✨",
+            welcomeTg: "Hey! I'm PromptW 👋\nHere are {bonus} tokens to start — a couple of trendy photos on the house. Open the app, pick a template on the home screen — I'll handle the rest ✨",
             welcomeBtn: "Open PromptW",
             photoTg: "Your photo is ready 🔥 Come take a look — fire, if you ask me.",
             photosTgN: "{n} photos are ready 🔥 Pick your favorite!",
@@ -1237,7 +1237,7 @@ var I18N = {
             ticketClosedTg: "Ticket closed ✅ Glad to help! Need anything else — just write, I'm here.",
             reengageTg: "Missed you 🥺 Fresh trending templates just dropped — wanna peek? A couple of taps and a new look is ready.",
             seeTemplatesBtn: "See templates",
-            bonusUnspentTg: "You've got {n} tokens just sitting there 👀 That's a free photo — pick a template, I'll do the rest.",
+            bonusUnspentTg: "You've got {n} tokens just sitting there 👀 That's a free photo — open the home screen, pick a template, I'll do the rest.",
             createBtn: "Create",
             weeklyTg: "This week's drops 🆕 Added fresh templates — your next look is waiting."
         }
@@ -1827,7 +1827,7 @@ var I18N = {
             // 💬 mensajes del bot (+ Btn = texto del botón)
             payTg: "Pago recibido ✅\n+{n} tokens en tu saldo, unas {k} fotos. ¡A crear!",
             payBtn: "Crear",
-            welcomeTg: "¡Hola! Soy PromptW 👋\nTe regalo {bonus} tokens para empezar — un par de fotos de moda gratis. Pulsa 'Crear', elige una plantilla y yo me encargo ✨",
+            welcomeTg: "¡Hola! Soy PromptW 👋\nTe regalo {bonus} tokens para empezar — un par de fotos de moda gratis. Abre la app, elige una plantilla en la pantalla principal — yo me encargo ✨",
             welcomeBtn: "Abrir PromptW",
             photoTg: "Tu foto está lista 🔥 Ven a verla — quedó genial, te lo digo.",
             photosTgN: "{n} fotos listas 🔥 ¡Elige tu favorita!",
@@ -1849,7 +1849,7 @@ var I18N = {
             ticketClosedTg: "Caso cerrado ✅ ¡Encantados de ayudar! Si necesitas algo, escríbeme, aquí estoy.",
             reengageTg: "Te extrañé 🥺 Llegaron nuevas plantillas de moda — ¿les echas un ojo? Un par de clics y tienes un nuevo look.",
             seeTemplatesBtn: "Ver plantillas",
-            bonusUnspentTg: "Tienes {n} tokens sin usar 👀 Es una foto gratis — elige una plantilla y yo hago el resto.",
+            bonusUnspentTg: "Tienes {n} tokens sin usar 👀 Es una foto gratis — abre la pantalla principal, elige una plantilla y yo hago el resto.",
             createBtn: "Crear",
             weeklyTg: "Novedades de la semana 🆕 Nuevas plantillas listas — tu próximo look te espera."
         }
