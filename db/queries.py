@@ -117,6 +117,24 @@ async def touch_active(tg_id: int):
             "UPDATE users SET last_active_at = NOW() WHERE tg_id = $1", tg_id)
 
 
+# ── App settings (generic key/value) ─────────────────────────────────────────
+
+async def get_setting(key: str, default: Optional[str] = None) -> Optional[str]:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        v = await conn.fetchval("SELECT value FROM app_settings WHERE key = $1", key)
+        return v if v is not None else default
+
+
+async def set_setting(key: str, value: str):
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            INSERT INTO app_settings (key, value, updated_at) VALUES ($1, $2, NOW())
+            ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = NOW()
+        """, key, value)
+
+
 # ── Engagement notifications (Phase 2): opt-out, send-log, eligibility ─────────
 
 async def set_notif_marketing(tg_id: int, on: bool):

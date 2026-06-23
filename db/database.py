@@ -217,6 +217,14 @@ async def _create_tables():
             CREATE INDEX IF NOT EXISTS idx_notif_sends_user_kind
                 ON notification_sends(user_tg_id, kind, sent_at DESC);
 
+            -- Generic key/value app settings (admin-toggleable flags, e.g. the
+            -- engagement-sweep kill switch).
+            CREATE TABLE IF NOT EXISTS app_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT,
+                updated_at TIMESTAMPTZ DEFAULT NOW()
+            );
+
             -- Generation templates ("тренды"). Light columns for the gallery list +
             -- a `definition` JSONB holding the heavy prompt/params/settings payload.
             CREATE TABLE IF NOT EXISTS templates (
