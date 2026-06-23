@@ -274,6 +274,12 @@ async def _create_tables():
             CREATE INDEX IF NOT EXISTS idx_support_messages_ticket ON support_messages(ticket_id, id);
 
             ALTER TABLE support_messages ADD COLUMN IF NOT EXISTS image_url TEXT;
+
+            CREATE TABLE IF NOT EXISTS support_agents (
+                tg_id BIGINT PRIMARY KEY,
+                name VARCHAR(255),
+                added_at TIMESTAMPTZ DEFAULT NOW()
+            );
         """)
 
 

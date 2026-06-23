@@ -831,20 +831,82 @@ function deletePromo(id,code){
 
 // ── Support ──
 var supStatusFilter = "open";
+var supShowAgents = false;
+
+function loadSupportAgents() {
+    var box = document.getElementById("sup-agents-box");
+    if (!box) return;
+    box.innerHTML = '<p style="color:var(--tx2)">Загрузка агентов...</p>';
+    api("/api/admin/support/agents").then(function(d) {
+        var rows = (d.items || []).map(function(a) {
+            return '<tr><td>' + a.tg_id + '</td><td>' + esc(a.name || "—") + '</td><td>' + fmtDate(a.added_at) + '</td>' +
+                '<td><button class="btn btn-outline btn-sm" onclick="editAgent(' + a.tg_id + ',\'' + escA(a.name || "") + '\')">Изм.</button> ' +
+                '<button class="btn btn-danger btn-sm" onclick="deleteAgent(' + a.tg_id + ')">Удал.</button></td></tr>';
+        }).join("");
+        box.innerHTML = '<div style="margin-bottom:12px"><button class="btn btn-primary btn-sm" onclick="addAgent()">+ Добавить агента</button></div>' +
+            '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>TG ID</th><th>Имя</th><th>Добавлен</th><th>Действия</th></tr></thead><tbody>' +
+            (rows || '<tr><td colspan="4" style="text-align:center;color:var(--tx3)">Нет агентов</td></tr>') +
+            '</tbody></table></div>';
+    });
+}
+
+function addAgent() {
+    var tgId = prompt("Telegram ID агента:");
+    if (!tgId) return;
+    var name = prompt("Имя (необязательно):");
+    api("/api/admin/support/agents", {
+        method: "POST",
+        body: JSON.stringify({tg_id: parseInt(tgId, 10), name: name || null})
+    }).then(function(d) {
+        if (d.ok) loadSupportAgents();
+        else alert("Ошибка: " + (d.error || "unknown"));
+    });
+}
+
+function editAgent(tgId, currentName) {
+    var name = prompt("Новое имя:", currentName);
+    if (name === null) return;
+    api("/api/admin/support/agents/" + tgId, {
+        method: "PUT",
+        body: JSON.stringify({name: name})
+    }).then(function(d) {
+        if (d.ok) loadSupportAgents();
+        else alert("Ошибка: " + (d.error || "unknown"));
+    });
+}
+
+function deleteAgent(tgId) {
+    if (!confirm("Удалить агента " + tgId + "?")) return;
+    api("/api/admin/support/agents/" + tgId, {method: "DELETE"}).then(function(d) {
+        if (d.ok) loadSupportAgents();
+        else alert("Ошибка: " + (d.error || "unknown"));
+    });
+}
+
+function toggleAgentsPanel() {
+    supShowAgents = !supShowAgents;
+    var box = document.getElementById("sup-agents-box");
+    if (!box) return;
+    box.style.display = supShowAgents ? "block" : "none";
+    if (supShowAgents) loadSupportAgents();
+}
 
 function loadSupport(status, offset) {
     supStatusFilter = status || "open";
     var mc = document.getElementById("main-content");
     mc.innerHTML = '<p style="color:var(--tx2)">Загрузка...</p>';
     api("/api/admin/support?status=" + supStatusFilter + "&limit=" + PAGE_SIZE + "&offset=" + offset).then(function(d) {
-        var tabs = '<div style="display:flex;gap:8px;margin-bottom:16px">' +
+        var agentsBtn = '<button class="btn btn-outline btn-sm" onclick="toggleAgentsPanel()" style="margin-left:auto">' + (supShowAgents ? "Скрыть агентов" : "Агенты поддержки") + '</button>';
+        var tabs = '<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">' +
             ["open","assigned","closed","all"].map(function(s) {
                 var label = {open:"Новые",assigned:"В работе",closed:"Закрытые",all:"Все"}[s];
                 var cls = s === supStatusFilter ? "btn btn-primary btn-sm" : "btn btn-outline btn-sm";
                 return '<button class="' + cls + '" onclick="loadSupport(\'' + s + '\',0)">' + label + '</button>';
-            }).join("") + '</div>';
+            }).join("") + agentsBtn + '</div>' +
+            '<div id="sup-agents-box" style="display:' + (supShowAgents ? "block" : "none") + ';margin-bottom:20px;padding:16px;background:var(--card);border-radius:12px;border:1px solid var(--brd)"></div>';
         if (!d.items.length) {
             mc.innerHTML = tabs + '<p style="color:var(--tx3);text-align:center;padding:40px 0">Нет тикетов</p>';
+            if (supShowAgents) loadSupportAgents();
             return;
         }
         var rows = d.items.map(function(t) {
@@ -862,6 +924,7 @@ function loadSupport(status, offset) {
             '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>#</th><th>Пользователь</th><th>Статус</th><th>Агент</th><th>Сообщ.</th><th>Обновлён</th></tr></thead><tbody>' +
             rows + '</tbody></table></div>' +
             pagination(d.total, offset, "_supPage");
+        if (supShowAgents) loadSupportAgents();
     });
 }
 

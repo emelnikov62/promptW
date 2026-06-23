@@ -1009,3 +1009,59 @@ async def close_support_ticket(ticket_id: int) -> bool:
             WHERE id = $1 AND status IN ('open', 'assigned')
         """, ticket_id)
         return res.endswith("1")
+
+
+# ── Support agents (dynamic) ──
+
+async def list_support_agents() -> List[dict]:
+    pool = await get_pool()
+    rows = await pool.fetch(
+        "SELECT tg_id, name, added_at FROM support_agents ORDER BY added_at")
+    return [dict(r) for r in rows]
+
+
+async def add_support_agent(tg_id: int, name: Optional[str] = None) -> bool:
+    pool = await get_pool()
+    res = await pool.execute("""
+        INSERT INTO support_agents (tg_id, name) VALUES ($1, $2)
+        ON CONFLICT (tg_id) DO UPDATE SET name = COALESCE(EXCLUDED.name, support_agents.name)
+    """, tg_id, name)
+    return True
+
+
+async def update_support_agent(tg_id: int, name: str) -> bool:
+    pool = await get_pool()
+    res = await pool.execute(
+        "UPDATE support_agents SET name = $2 WHERE tg_id = $1", tg_id, name)
+    return res.endswith("1")
+
+
+async def remove_support_agent(tg_id: int) -> bool:
+    pool = await get_pool()
+    res = await pool.execute(
+        "DELETE FROM support_agents WHERE tg_id = $1", tg_id)
+    return res.endswith("1")
+
+
+async def is_support_agent(tg_id: int) -> bool:
+    pool = await get_pool()
+    return bool(await pool.fetchval(
+        "SELECT 1 FROM support_agents WHERE tg_id = $1", tg_id))
+
+
+async def get_support_agent_ids() -> set:
+    pool = await get_pool()
+    rows = await pool.fetch("SELECT tg_id FROM support_agents")
+    return {r["tg_id"] for r in rows}
+
+
+async def seed_support_agents(agent_ids: set):
+    if not agent_ids:
+        return
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        for aid in agent_ids:
+            await conn.execute("""
+                INSERT INTO support_agents (tg_id) VALUES ($1)
+                ON CONFLICT (tg_id) DO NOTHING
+            """, aid)

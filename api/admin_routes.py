@@ -742,6 +742,65 @@ async def admin_support_list(request):
     return web.json_response({"items": [_row(dict(r)) for r in rows], "total": total})
 
 
+# ── Support agents management (registered before {ticket_id} routes) ──
+
+@admin_routes.get("/api/admin/support/agents")
+async def admin_support_agents_list(request):
+    _require_admin(request)
+    from db.queries import list_support_agents
+    agents = await list_support_agents()
+    return web.json_response({"items": [_row(a) for a in agents]})
+
+
+@admin_routes.post("/api/admin/support/agents")
+async def admin_support_agent_add(request):
+    admin_id = _require_admin(request)
+    data = await _json_body(request)
+    tg_id = data.get("tg_id")
+    name = (data.get("name") or "").strip() or None
+    if not tg_id:
+        return web.json_response({"error": "tg_id required"}, status=400)
+    try:
+        tg_id = int(tg_id)
+    except (ValueError, TypeError):
+        return web.json_response({"error": "invalid tg_id"}, status=400)
+    from db.queries import add_support_agent
+    await add_support_agent(tg_id, name)
+    await _audit(admin_id, "support_agent_add", "support_agent", tg_id,
+                 None, {"tg_id": tg_id, "name": name}, None, _client_ip(request))
+    return web.json_response({"ok": True})
+
+
+@admin_routes.put("/api/admin/support/agents/{agent_tg_id}")
+async def admin_support_agent_update(request):
+    admin_id = _require_admin(request)
+    agent_tg_id = int(request.match_info["agent_tg_id"])
+    data = await _json_body(request)
+    name = (data.get("name") or "").strip()
+    from db.queries import update_support_agent
+    ok = await update_support_agent(agent_tg_id, name or None)
+    if not ok:
+        return web.json_response({"error": "not_found"}, status=404)
+    await _audit(admin_id, "support_agent_update", "support_agent", agent_tg_id,
+                 None, {"name": name}, None, _client_ip(request))
+    return web.json_response({"ok": True})
+
+
+@admin_routes.delete("/api/admin/support/agents/{agent_tg_id}")
+async def admin_support_agent_delete(request):
+    admin_id = _require_admin(request)
+    agent_tg_id = int(request.match_info["agent_tg_id"])
+    from db.queries import remove_support_agent
+    ok = await remove_support_agent(agent_tg_id)
+    if not ok:
+        return web.json_response({"error": "not_found"}, status=404)
+    await _audit(admin_id, "support_agent_remove", "support_agent", agent_tg_id,
+                 None, None, None, _client_ip(request))
+    return web.json_response({"ok": True})
+
+
+# ── Support ticket detail (after /agents to avoid {ticket_id} capturing "agents") ──
+
 @admin_routes.get("/api/admin/support/{ticket_id}")
 async def admin_support_detail(request):
     _require_admin(request)

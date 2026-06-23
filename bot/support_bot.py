@@ -8,10 +8,10 @@ from aiogram.types import (
     InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo,
 )
 
-from bot.config import SUPPORT_AGENT_IDS
 from db.queries import (
     get_support_ticket_by_id, assign_support_ticket,
     add_support_message, close_support_ticket, get_user,
+    is_support_agent, get_support_agent_ids,
 )
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ def setup(main_bot: Bot, webapp_url: str):
 @router.message(CommandStart())
 async def cmd_start(message: Message):
     uid = message.from_user.id
-    if uid not in SUPPORT_AGENT_IDS:
+    if not await is_support_agent(uid):
         await message.answer("Нет доступа.")
         return
     await message.answer(
@@ -69,7 +69,7 @@ async def _close_and_notify(ticket_id: int):
 @router.message(Command("close"))
 async def cmd_close(message: Message):
     uid = message.from_user.id
-    if uid not in SUPPORT_AGENT_IDS:
+    if not await is_support_agent(uid):
         return
     ticket_id = _agent_active.get(uid)
     if not ticket_id:
@@ -83,7 +83,7 @@ async def cmd_close(message: Message):
 @router.callback_query(F.data.startswith("sup:take:"))
 async def cb_take(callback: CallbackQuery):
     uid = callback.from_user.id
-    if uid not in SUPPORT_AGENT_IDS:
+    if not await is_support_agent(uid):
         await callback.answer("Нет доступа", show_alert=True)
         return
     ticket_id = int(callback.data.split(":")[2])
@@ -110,7 +110,7 @@ async def cb_take(callback: CallbackQuery):
 @router.callback_query(F.data.startswith("sup:close:"))
 async def cb_close(callback: CallbackQuery):
     uid = callback.from_user.id
-    if uid not in SUPPORT_AGENT_IDS:
+    if not await is_support_agent(uid):
         await callback.answer("Нет доступа", show_alert=True)
         return
     ticket_id = int(callback.data.split(":")[2])
@@ -135,7 +135,7 @@ async def cb_noop(callback: CallbackQuery):
 @router.message(F.text)
 async def on_agent_reply(message: Message):
     uid = message.from_user.id
-    if uid not in SUPPORT_AGENT_IDS:
+    if not await is_support_agent(uid):
         return
     ticket_id = _agent_active.get(uid)
     if not ticket_id:
@@ -224,7 +224,8 @@ async def notify_agents(ticket_id: int, user_tg_id: int, text: str,
         InlineKeyboardButton(text="Ответить", callback_data=f"sup:take:{ticket_id}"),
         InlineKeyboardButton(text="Закрыть", callback_data=f"sup:close:{ticket_id}"),
     ]])
-    for agent_id in SUPPORT_AGENT_IDS:
+    agent_ids = await get_support_agent_ids()
+    for agent_id in agent_ids:
         try:
             await _send_to(agent_id, kb)
         except Exception:

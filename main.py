@@ -7,7 +7,7 @@ from aiohttp import web
 from aiogram import Bot, Dispatcher
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 
-from bot.config import BOT_TOKEN, SUPPORT_BOT_TOKEN
+from bot.config import BOT_TOKEN, SUPPORT_BOT_TOKEN, SUPPORT_AGENT_IDS
 from bot.handlers import router, setup as setup_bot
 from api.routes import routes, setup as setup_api, auth_middleware, start_reconciler
 from api.admin_routes import admin_routes
@@ -121,6 +121,11 @@ async def main():
             "local development.")
     await init_db(DATABASE_URL)
     logging.info("Database connected")
+
+    if SUPPORT_AGENT_IDS:
+        from db.queries import seed_support_agents
+        await seed_support_agents(SUPPORT_AGENT_IDS)
+        logging.info("Seeded %d support agent(s) from env", len(SUPPORT_AGENT_IDS))
 
     # Load server-authoritative template prices from the DB into the pricing cache.
     # Falls back to the hardcoded defaults in pricing.py if this fails.
