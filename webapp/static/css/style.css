@@ -138,7 +138,7 @@ body.scrolled .header{border-bottom-color:var(--brd)}
 #page-text .chat-input:focus{border-color:var(--z)}
 #page-text .chat-send{background:var(--z);color:var(--zink);box-shadow:0 4px 16px -3px var(--z)}
 #page-support{--z:var(--gold);--zdim:rgba(255,203,107,.13);--zbrd:rgba(255,203,107,.34);--zink:#3A2606}
-#page-support .sup-ico{color:var(--z)}
+.sup-logo{width:120px;height:120px;margin-bottom:8px;border-radius:50%}
 #page-support .msg.user{background:var(--z);color:var(--zink);box-shadow:0 2px 12px -2px var(--z)}
 #page-support .msg.user .msg-t{color:rgba(58,38,6,.6)}
 #page-support .msg.user code{background:rgba(58,38,6,.12)}
