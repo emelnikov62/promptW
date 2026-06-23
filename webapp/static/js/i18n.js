@@ -146,6 +146,7 @@ var I18N = {
         grokRefPhoto: "Фото-референс",
         grokRefPhotoHint: "Обязательно 1 фото-референс. Это не гарантированный стартовый кадр, а визуальная опора для видео.",
         // Audio
+        audioStyleLabel: "Стиль музыки",
         promptAudioPlc: "Опиши музыку — стиль, жанр, настроение",
         mode: "Режим",
         modeSimple: "Простой",
@@ -768,6 +769,7 @@ var I18N = {
         motionDurDetected: "Video length:",
         grokRefPhoto: "Photo reference",
         grokRefPhotoHint: "Required: 1 photo reference. Not a guaranteed start frame, but a visual anchor for the video.",
+        audioStyleLabel: "Music style",
         promptAudioPlc: "Describe the music — style, genre, mood",
         mode: "Mode",
         modeSimple: "Simple",
@@ -1380,6 +1382,7 @@ var I18N = {
         motionDurDetected: "Duración del video:",
         grokRefPhoto: "Foto de referencia",
         grokRefPhotoHint: "Obligatorio: 1 foto de referencia. No es un fotograma inicial garantizado, sino un ancla visual para el video.",
+        audioStyleLabel: "Estilo de música",
         promptAudioPlc: "Describe la música — estilo, género, estado de ánimo",
         mode: "Modo",
         modeSimple: "Simple",

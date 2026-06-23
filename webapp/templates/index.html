@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=Unbounded:wght@500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css?v=140">
+    <link rel="stylesheet" href="/static/css/style.css?v=141">
 </head>
 <body>
 <div id="app">
@@ -111,8 +111,24 @@
                 <div class="model-dropdown hidden" id="audio-model-dd"><div class="dd-item active" data-model="Suno V5.5">✓ Suno V5.5</div></div>
             </div>
             <div class="ccard">
-                <div class="field"><textarea id="prompt-audio" class="field-area" rows="4" placeholder=" "></textarea><label class="field-label" for="prompt-audio" data-i18n="prompt">Промпт</label></div>
-                <span class="field-hint" data-i18n="promptAudioPlc">Опишите музыку — стиль, жанр, настроение</span>
+                <span class="prm-lbl" data-i18n="audioStyleLabel">Стиль</span>
+                <select id="prompt-audio" class="field-select">
+                    <option value="Energetic pop song with catchy melody, upbeat rhythm, feel-good summer vibes">Pop — летний, энергичный</option>
+                    <option value="Atmospheric lo-fi hip-hop beat, mellow piano, warm vinyl crackle, relaxing study mood">Lo-Fi — спокойный, для учёбы</option>
+                    <option value="Epic cinematic orchestral soundtrack, dramatic strings, powerful brass, heroic theme">Кинематограф — эпичный оркестр</option>
+                    <option value="Smooth R&B with soulful vocals, groovy bassline, romantic night atmosphere">R&B — романтичный, soulful</option>
+                    <option value="Hard-hitting trap beat, heavy 808 bass, dark hi-hats, aggressive energy">Trap — агрессивный бит</option>
+                    <option value="Acoustic folk ballad, warm guitar fingerpicking, gentle vocals, nostalgic autumn mood">Folk — тёплая акустика</option>
+                    <option value="Deep house electronic track, pulsing bassline, dreamy synth pads, club atmosphere">Deep House — клубный, глубокий</option>
+                    <option value="Chill indie dream-pop, reverb guitars, soft ethereal vocals, pastel sunset aesthetic">Indie — мечтательный dream-pop</option>
+                    <option value="Powerful rock anthem, distorted electric guitars, driving drums, stadium energy">Рок — мощный, стадионный</option>
+                    <option value="Jazzy bossa nova, smooth saxophone, gentle rhythm guitar, evening café ambiance">Jazz — вечерний bossa nova</option>
+                    <option value="Dark synthwave, retro 80s synths, neon-lit atmosphere, cyberpunk driving beat">Synthwave — ретро 80-х, неон</option>
+                    <option value="Classical piano sonata, elegant and emotional, flowing arpeggios, concert hall resonance">Классика — фортепианная соната</option>
+                    <option value="Reggaeton party track, Latin rhythm, infectious dembow beat, tropical summer club">Reggaeton — латинский, танцевальный</option>
+                    <option value="Ambient meditation music, soft drones, nature textures, peaceful and calming atmosphere">Ambient — медитативный, спокойный</option>
+                    <option value="Funky disco groove, slap bass, wah guitar, retro 70s dance floor energy">Disco/Funk — танцевальный ретро</option>
+                </select>
             </div>
             <div class="ccard">
                 <span class="prm-lbl" data-i18n="mode">Режим</span>
@@ -729,7 +745,7 @@
   </div>
 </div>
 
-<script src="/static/js/i18n.js?v=112"></script>
+<script src="/static/js/i18n.js?v=113"></script>
 <script src="/static/js/app.js?v=164"></script>
 </body>
 </html>
