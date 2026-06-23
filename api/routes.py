@@ -31,7 +31,7 @@ from db.queries import (
     create_payment, set_payment_external, settle_payment, get_payment,
     get_latest_pending_payment,
     create_withdrawal, list_withdrawals, set_withdrawal_status, has_pending_withdrawal,
-    touch_active, set_notif_marketing, was_sent, log_sent,
+    touch_active, set_notif_marketing, was_sent, log_sent, get_setting,
     eligible_bonus_unspent, eligible_reengage, eligible_reward_avail, eligible_weekly,
     list_references, add_reference, delete_reference,
     list_chat_dialogs, get_chat_dialog, append_chat_turn, delete_chat_dialog,
@@ -451,8 +451,30 @@ def _reward_avail_tokens() -> int:
     return sum(REWARDS[k]["amount"] for k in ("tg", "prompts") if REWARDS[k].get("chat"))
 
 
+ENGAGEMENT_FLAG = "engagement_enabled"   # app_settings key; '0' = kill switch on
+
+
+async def engagement_enabled() -> bool:
+    return (await get_setting(ENGAGEMENT_FLAG, "1")) != "0"
+
+
+async def run_weekly_broadcast(limit: int = 1000) -> int:
+    """Send the 'new templates this week' nudge to eligible users (opted-in, active
+    <30d, not sent in 7d). Throttled ~20/s. Returns the number sent. Shared by the
+    public admin endpoint and the admin panel."""
+    sent = 0
+    for tid in await eligible_weekly(limit):
+        notif.notify_bg(tid, "weeklyTg", btn_key="viewBtn", page="home")
+        await log_sent(tid, "weekly")
+        sent += 1
+        await asyncio.sleep(0.05)
+    return sent
+
+
 async def _engagement_once():
     if _in_quiet_hours():
+        return
+    if not await engagement_enabled():   # admin kill switch
         return
     # bonus-unspent: new users sitting on tokens who never created
     try:
@@ -1351,15 +1373,11 @@ async def api_admin_notify_weekly(request: web.Request):
         return web.json_response({"ok": False, "reason": "quiet_hours", "sent": 0})
     data, _ = await _parse_request(request)
     limit = max(1, min(2000, _int_or_none(data.get("limit")) or 1000))
-    sent = 0
     try:
-        for tid in await eligible_weekly(limit):
-            notif.notify_bg(tid, "weeklyTg", btn_key="viewBtn", page="home")
-            await log_sent(tid, "weekly")
-            sent += 1
-            await asyncio.sleep(0.05)   # ~20/s — stay under Telegram's broadcast limits
+        sent = await run_weekly_broadcast(limit)
     except Exception:
-        logger.exception("weekly broadcast failed after %d sends", sent)
+        logger.exception("weekly broadcast failed")
+        sent = 0
     return web.json_response({"ok": True, "sent": sent})
 
 

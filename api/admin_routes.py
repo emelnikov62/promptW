@@ -861,3 +861,82 @@ async def admin_support_reply(request):
         import asyncio
         asyncio.ensure_future(_notify_user(ticket["user_tg_id"]))
     return web.json_response(_row(msg))
+
+
+# ── Notifications management ──
+
+@admin_routes.get("/api/admin/notif/overview")
+async def admin_notif_overview(request):
+    _require_admin(request)
+    from api.routes import engagement_enabled
+    pool = await get_pool()
+    total = await pool.fetchval("SELECT COUNT(*) FROM users")
+    opted_out = await pool.fetchval("SELECT COUNT(*) FROM users WHERE notif_marketing = FALSE")
+    rows = await pool.fetch("""
+        SELECT kind,
+               COUNT(*) FILTER (WHERE sent_at >= NOW() - INTERVAL '7 days')  AS d7,
+               COUNT(*) FILTER (WHERE sent_at >= NOW() - INTERVAL '30 days') AS d30
+        FROM notification_sends GROUP BY kind ORDER BY kind
+    """)
+    weekly_eligible = await pool.fetchval("""
+        SELECT COUNT(*) FROM users u
+        WHERE u.notif_marketing = TRUE
+          AND u.last_active_at IS NOT NULL
+          AND u.last_active_at > NOW() - INTERVAL '30 days'
+          AND NOT EXISTS (SELECT 1 FROM notification_sends n
+                          WHERE n.user_tg_id = u.tg_id AND n.kind = 'weekly'
+                            AND n.sent_at >= NOW() - INTERVAL '7 days')
+    """)
+    return web.json_response({
+        "enabled": await engagement_enabled(),
+        "total_users": total,
+        "opted_out": opted_out,
+        "weekly_eligible": weekly_eligible,
+        "sends": [{"kind": r["kind"], "d7": r["d7"], "d30": r["d30"]} for r in rows],
+    })
+
+
+@admin_routes.post("/api/admin/notif/toggle")
+async def admin_notif_toggle(request):
+    admin_id = _require_admin(request)
+    from api.routes import engagement_enabled, ENGAGEMENT_FLAG
+    from db.queries import set_setting
+    data = await _json_body(request)
+    on = bool(data.get("on"))
+    before = await engagement_enabled()
+    await set_setting(ENGAGEMENT_FLAG, "1" if on else "0")
+    await _audit(admin_id, "engagement_toggle", "setting", ENGAGEMENT_FLAG,
+                 {"enabled": before}, {"enabled": on}, "", _client_ip(request))
+    return web.json_response({"ok": True, "enabled": on})
+
+
+@admin_routes.post("/api/admin/notif/weekly")
+async def admin_notif_weekly(request):
+    admin_id = _require_admin(request)
+    from api.routes import run_weekly_broadcast, _in_quiet_hours
+    if _in_quiet_hours():
+        return web.json_response({"ok": False, "reason": "quiet_hours", "sent": 0})
+    data = await _json_body(request)
+    try:
+        limit = max(1, min(2000, int(data.get("limit"))))
+    except (TypeError, ValueError):
+        limit = 1000
+    sent = await run_weekly_broadcast(limit)
+    await _audit(admin_id, "weekly_broadcast", "notification", "weekly",
+                 None, {"sent": sent}, "", _client_ip(request))
+    return web.json_response({"ok": True, "sent": sent})
+
+
+@admin_routes.get("/api/admin/notif/log")
+async def admin_notif_log(request):
+    _require_admin(request)
+    pool = await get_pool()
+    limit = _qint(request, "limit", 50, 1, 200)
+    offset = _qint(request, "offset", 0, 0)
+    rows = await pool.fetch("""
+        SELECT ns.id, ns.user_tg_id, ns.kind, ns.sent_at, u.username
+        FROM notification_sends ns LEFT JOIN users u ON ns.user_tg_id = u.tg_id
+        ORDER BY ns.sent_at DESC LIMIT $1 OFFSET $2
+    """, limit, offset)
+    total = await pool.fetchval("SELECT COUNT(*) FROM notification_sends")
+    return web.json_response({"items": [_row(r) for r in rows], "total": total})

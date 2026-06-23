@@ -91,7 +91,7 @@ function logout() {
 
 // ── Navigation ──
 var navItems = document.querySelectorAll(".nav-item");
-var sectionTitles = {dashboard:"Dashboard",users:"Пользователи",generations:"Генерации",payments:"Платежи",withdrawals:"Выводы",templates:"Шаблоны",promos:"Промокоды",support:"Поддержка",face:"Сходство лиц",audit:"Аудит-лог"};
+var sectionTitles = {dashboard:"Dashboard",users:"Пользователи",generations:"Генерации",payments:"Платежи",withdrawals:"Выводы",templates:"Шаблоны",promos:"Промокоды",support:"Поддержка",face:"Сходство лиц",notif:"Уведомления",audit:"Аудит-лог"};
 
 navItems.forEach(function(btn) {
     btn.addEventListener("click", function() {
@@ -123,9 +123,79 @@ function showSection(name) {
         promos: function() { loadPromos(0); },
         support: function() { loadSupport("open", 0); },
         face: function() { loadFace(facePeriod); },
+        notif: function() { loadNotif(0); },
         audit: function() { loadAudit(0); }
     };
     if (loaders[name]) loaders[name]();
+}
+
+// ── Notifications section ──
+function statCard(label, val) {
+    return '<div class="card" style="padding:14px;min-width:130px;flex:1"><div style="font-size:24px;font-weight:700">' + val + '</div><div style="color:var(--tx3);font-size:12px">' + label + '</div></div>';
+}
+
+function loadNotif(offset) {
+    var mc = document.getElementById("main-content");
+    mc.innerHTML = '<p style="color:var(--tx2)">Загрузка...</p>';
+    api("/api/admin/notif/overview").then(function(d) {
+        var kinds = (d.sends || []).map(function(s) {
+            return '<tr><td>' + esc(s.kind) + '</td><td>' + s.d7 + '</td><td>' + s.d30 + '</td></tr>';
+        }).join("") || '<tr><td colspan="3" style="text-align:center;color:var(--tx3)">Пока ничего не отправлено</td></tr>';
+        var toggleBtn = d.enabled
+            ? '<button class="btn btn-danger btn-sm" onclick="notifToggle(false)">Выключить</button>'
+            : '<button class="btn btn-primary btn-sm" onclick="notifToggle(true)">Включить</button>';
+        var statusTxt = d.enabled
+            ? '<span style="color:var(--success,#3DD68C)">включена</span>'
+            : '<span style="color:var(--danger,#FF6B5C)">выключена</span>';
+        mc.innerHTML =
+            '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">' +
+                statCard("Всего юзеров", d.total_users) +
+                statCard("Отписались", d.opted_out) +
+                statCard("Получат «Новинки»", d.weekly_eligible) +
+            '</div>' +
+            '<div class="card" style="padding:14px;margin-bottom:14px">' +
+                '<b>Авто-рассылка вовлекающих:</b> ' + statusTxt + ' &nbsp; ' + toggleBtn +
+                '<p style="color:var(--tx3);font-size:12px;margin:8px 0 0">Стоп-кран для ежечасного sweep (bonusUnspent / reengage / rewardAvail). Транзакционные и ручная рассылка не зависят.</p>' +
+            '</div>' +
+            '<div class="card" style="padding:14px;margin-bottom:16px">' +
+                '<b>Новинки недели</b>' +
+                '<p style="color:var(--tx3);font-size:12px;margin:6px 0 10px">Разошлёт «добавили свежие шаблоны» активным подписанным юзерам (1×/7д, окно 10–22 МСК). Сейчас получателей: ' + d.weekly_eligible + '.</p>' +
+                '<button class="btn btn-primary btn-sm" onclick="notifWeekly()">Разослать новинки</button>' +
+            '</div>' +
+            '<h3 style="margin:18px 0 8px;font-size:15px">Отправки по типам</h3>' +
+            '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Тип</th><th>7 дней</th><th>30 дней</th></tr></thead><tbody>' + kinds + '</tbody></table></div>' +
+            '<h3 style="margin:18px 0 8px;font-size:15px">Последние отправки</h3>' +
+            '<div id="notif-log"><p style="color:var(--tx2)">Загрузка...</p></div>';
+        loadNotifLog(offset || 0);
+    });
+}
+
+function loadNotifLog(offset) {
+    var el = document.getElementById("notif-log");
+    if (!el) return;
+    api("/api/admin/notif/log?limit=" + PAGE_SIZE + "&offset=" + offset).then(function(d) {
+        var rows = d.items.map(function(n) {
+            return '<tr><td>' + n.user_tg_id + (n.username ? " (@" + esc(n.username) + ")" : "") + '</td><td>' + esc(n.kind) + '</td><td>' + fmtDate(n.sent_at) + '</td></tr>';
+        }).join("") || '<tr><td colspan="3" style="text-align:center;color:var(--tx3)">Нет данных</td></tr>';
+        el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Пользователь</th><th>Тип</th><th>Когда</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+            pagination(d.total, offset, "loadNotifLog");
+    });
+}
+
+function notifToggle(on) {
+    if (!confirm(on ? "Включить авто-рассылку?" : "Выключить авто-рассылку вовлекающих?")) return;
+    api("/api/admin/notif/toggle", { method: "POST", body: JSON.stringify({ on: on }) }).then(function(d) {
+        if (d.ok) loadNotif(0); else alert("Ошибка");
+    });
+}
+
+function notifWeekly() {
+    if (!confirm("Разослать «Новинки недели» сейчас?")) return;
+    api("/api/admin/notif/weekly", { method: "POST", body: JSON.stringify({}) }).then(function(d) {
+        if (d.ok) { alert("Отправлено: " + d.sent); loadNotif(0); }
+        else if (d.reason === "quiet_hours") alert("Тихие часы (22–10 МСК) — попробуй днём.");
+        else alert("Ошибка: " + (d.error || "unknown"));
+    });
 }
 
 // ── Helpers ──
