@@ -91,7 +91,7 @@ function logout() {
 
 // ── Navigation ──
 var navItems = document.querySelectorAll(".nav-item");
-var sectionTitles = {dashboard:"Dashboard",users:"Пользователи",generations:"Генерации",payments:"Платежи",withdrawals:"Выводы",templates:"Шаблоны",promos:"Промокоды",face:"Сходство лиц",audit:"Аудит-лог"};
+var sectionTitles = {dashboard:"Dashboard",users:"Пользователи",generations:"Генерации",payments:"Платежи",withdrawals:"Выводы",templates:"Шаблоны",promos:"Промокоды",support:"Поддержка",face:"Сходство лиц",audit:"Аудит-лог"};
 
 navItems.forEach(function(btn) {
     btn.addEventListener("click", function() {
@@ -121,6 +121,7 @@ function showSection(name) {
         withdrawals: function() { loadWithdrawals(0); },
         templates: function() { loadTemplates(0); },
         promos: function() { loadPromos(0); },
+        support: function() { loadSupport("open", 0); },
         face: function() { loadFace(facePeriod); },
         audit: function() { loadAudit(0); }
     };
@@ -826,6 +827,101 @@ function deletePromo(id,code){
         if(d.ok)loadPromos(0);
         else alert("Ошибка: "+(d.error||"unknown"));
     });
+}
+
+// ── Support ──
+var supStatusFilter = "open";
+
+function loadSupport(status, offset) {
+    supStatusFilter = status || "open";
+    var mc = document.getElementById("main-content");
+    mc.innerHTML = '<p style="color:var(--tx2)">Загрузка...</p>';
+    api("/api/admin/support?status=" + supStatusFilter + "&limit=" + PAGE_SIZE + "&offset=" + offset).then(function(d) {
+        var tabs = '<div style="display:flex;gap:8px;margin-bottom:16px">' +
+            ["open","assigned","closed","all"].map(function(s) {
+                var label = {open:"Новые",assigned:"В работе",closed:"Закрытые",all:"Все"}[s];
+                var cls = s === supStatusFilter ? "btn btn-primary btn-sm" : "btn btn-outline btn-sm";
+                return '<button class="' + cls + '" onclick="loadSupport(\'' + s + '\',0)">' + label + '</button>';
+            }).join("") + '</div>';
+        if (!d.items.length) {
+            mc.innerHTML = tabs + '<p style="color:var(--tx3);text-align:center;padding:40px 0">Нет тикетов</p>';
+            return;
+        }
+        var rows = d.items.map(function(t) {
+            var user = esc(t.first_name || "") + (t.username ? " @" + esc(t.username) : "") + " (" + t.user_tg_id + ")";
+            var agent = t.agent_name ? esc(t.agent_name) : '<span style="color:var(--tx3)">—</span>';
+            return '<tr style="cursor:pointer" onclick="openTicket(' + t.id + ')">' +
+                '<td>#' + t.id + '</td>' +
+                '<td>' + user + '</td>' +
+                '<td>' + badge(t.status) + '</td>' +
+                '<td>' + agent + '</td>' +
+                '<td>' + (t.msg_count || 0) + '</td>' +
+                '<td>' + fmtDate(t.updated_at) + '</td></tr>';
+        }).join("");
+        mc.innerHTML = tabs +
+            '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>#</th><th>Пользователь</th><th>Статус</th><th>Агент</th><th>Сообщ.</th><th>Обновлён</th></tr></thead><tbody>' +
+            rows + '</tbody></table></div>' +
+            pagination(d.total, offset, "_supPage");
+    });
+}
+
+function _supPage(off) { loadSupport(supStatusFilter, off); }
+
+function openTicket(id) {
+    api("/api/admin/support/" + id).then(function(t) {
+        var user = esc(t.first_name || "") + (t.username ? " @" + esc(t.username) : "") + " (ID " + t.user_tg_id + ")";
+        var msgs = (t.messages || []).map(function(m) {
+            var cls = m.sender === "user" ? "color:var(--gold)" : "color:var(--success)";
+            var img = m.image_url ? '<br><img src="' + esc(m.image_url) + '" style="max-width:300px;border-radius:8px;margin-top:4px">' : "";
+            return '<div style="margin-bottom:12px"><span style="font-weight:600;' + cls + '">' + esc(m.sender) + '</span> <span style="color:var(--tx3);font-size:12px">' + fmtDate(m.created_at) + '</span><div style="margin-top:4px;white-space:pre-wrap">' + esc(m.content) + img + '</div></div>';
+        }).join("");
+        var actions = '';
+        if (t.status === "open") {
+            actions += '<button class="btn btn-primary btn-sm" onclick="assignTicket(' + t.id + ')">Взять себе</button> ';
+        }
+        if (t.status !== "closed") {
+            actions += '<button class="btn btn-outline btn-sm" onclick="closeTicket(' + t.id + ')">Закрыть</button> ';
+        }
+        if (t.status !== "closed") {
+            actions += '<div style="display:flex;gap:8px;margin-top:12px"><input class="form-input" id="sup-reply-text" placeholder="Ответ..." style="flex:1"><button class="btn btn-primary btn-sm" onclick="replyTicket(' + t.id + ')">Отправить</button></div>';
+        }
+        openModal(
+            '<h3 style="margin-bottom:4px">Тикет #' + t.id + ' ' + badge(t.status) + '</h3>' +
+            '<p style="color:var(--tx2);margin-bottom:16px">' + user + '</p>' +
+            '<div style="max-height:400px;overflow-y:auto;margin-bottom:16px;padding-right:8px">' + (msgs || '<p style="color:var(--tx3)">Нет сообщений</p>') + '</div>' +
+            actions
+        );
+    });
+}
+
+function assignTicket(id) {
+    api("/api/admin/support/" + id + "/assign", {method:"POST"}).then(function(d) {
+        if (d.ok) { closeModal(); loadSupport(supStatusFilter, 0); }
+        else { alert(d.error || "Ошибка"); }
+    });
+}
+
+function closeTicket(id) {
+    api("/api/admin/support/" + id + "/close", {method:"POST"}).then(function(d) {
+        if (d.ok) { closeModal(); loadSupport(supStatusFilter, 0); }
+        else { alert(d.error || "Ошибка"); }
+    });
+}
+
+function replyTicket(id) {
+    var input = document.getElementById("sup-reply-text");
+    if (!input) return;
+    var text = input.value.trim();
+    if (!text) return;
+    input.disabled = true;
+    api("/api/admin/support/" + id + "/reply", {
+        method: "POST",
+        body: JSON.stringify({text: text})
+    }).then(function(d) {
+        input.disabled = false;
+        if (d.id) { openTicket(id); }
+        else { alert(d.error || "Ошибка"); }
+    }).catch(function() { input.disabled = false; });
 }
 
 // ── Audit ──

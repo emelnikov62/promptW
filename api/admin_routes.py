@@ -708,3 +708,97 @@ async def admin_audit_log(request):
     """, limit, offset)
     total = await pool.fetchval("SELECT COUNT(*) FROM admin_audit_log")
     return web.json_response({"items": [_row(r) for r in rows], "total": total})
+
+
+# ── Support tickets ──
+
+@admin_routes.get("/api/admin/support")
+async def admin_support_list(request):
+    _require_admin(request)
+    pool = await get_pool()
+    status = request.query.get("status", "open")
+    limit = _qint(request, "limit", 50, 1, 200)
+    offset = _qint(request, "offset", 0, 0)
+    if status == "all":
+        rows = await pool.fetch("""
+            SELECT t.*, u.username, u.first_name,
+                   (SELECT COUNT(*) FROM support_messages WHERE ticket_id = t.id) AS msg_count
+            FROM support_tickets t
+            LEFT JOIN users u ON u.tg_id = t.user_tg_id
+            ORDER BY t.updated_at DESC LIMIT $1 OFFSET $2
+        """, limit, offset)
+        total = await pool.fetchval("SELECT COUNT(*) FROM support_tickets")
+    else:
+        rows = await pool.fetch("""
+            SELECT t.*, u.username, u.first_name,
+                   (SELECT COUNT(*) FROM support_messages WHERE ticket_id = t.id) AS msg_count
+            FROM support_tickets t
+            LEFT JOIN users u ON u.tg_id = t.user_tg_id
+            WHERE t.status = $1
+            ORDER BY t.updated_at DESC LIMIT $2 OFFSET $3
+        """, status, limit, offset)
+        total = await pool.fetchval(
+            "SELECT COUNT(*) FROM support_tickets WHERE status = $1", status)
+    return web.json_response({"items": [_row(dict(r)) for r in rows], "total": total})
+
+
+@admin_routes.get("/api/admin/support/{ticket_id}")
+async def admin_support_detail(request):
+    _require_admin(request)
+    pool = await get_pool()
+    tid = int(request.match_info["ticket_id"])
+    ticket = await pool.fetchrow("""
+        SELECT t.*, u.username, u.first_name
+        FROM support_tickets t
+        LEFT JOIN users u ON u.tg_id = t.user_tg_id
+        WHERE t.id = $1
+    """, tid)
+    if not ticket:
+        return web.json_response({"error": "not_found"}, status=404)
+    messages = await pool.fetch("""
+        SELECT id, sender, content, image_url, created_at
+        FROM support_messages WHERE ticket_id = $1 ORDER BY id
+    """, tid)
+    d = _row(dict(ticket))
+    d["messages"] = [_row(dict(m)) for m in messages]
+    return web.json_response(d)
+
+
+@admin_routes.post("/api/admin/support/{ticket_id}/assign")
+async def admin_support_assign(request):
+    admin_id = _require_admin(request)
+    tid = int(request.match_info["ticket_id"])
+    from db.queries import assign_support_ticket
+    result = await assign_support_ticket(tid, admin_id, "admin")
+    if not result:
+        return web.json_response({"error": "already_assigned"}, status=409)
+    return web.json_response({"ok": True})
+
+
+@admin_routes.post("/api/admin/support/{ticket_id}/close")
+async def admin_support_close(request):
+    admin_id = _require_admin(request)
+    tid = int(request.match_info["ticket_id"])
+    from db.queries import close_support_ticket
+    ok = await close_support_ticket(tid)
+    if not ok:
+        return web.json_response({"error": "already_closed"}, status=409)
+    return web.json_response({"ok": True})
+
+
+@admin_routes.post("/api/admin/support/{ticket_id}/reply")
+async def admin_support_reply(request):
+    admin_id = _require_admin(request)
+    tid = int(request.match_info["ticket_id"])
+    data = await _json_body(request)
+    text = (data.get("text") or "").strip()
+    if not text or len(text) > 2000:
+        return web.json_response({"error": "invalid_text"}, status=400)
+    from db.queries import add_support_message, get_support_ticket_by_id
+    msg = await add_support_message(tid, "agent", text)
+    ticket = await get_support_ticket_by_id(tid)
+    if ticket:
+        from bot.support_bot import _notify_user
+        import asyncio
+        asyncio.ensure_future(_notify_user(ticket["user_tg_id"]))
+    return web.json_response(_row(msg))
