@@ -76,10 +76,10 @@ class KieGenerator(BaseGenerator):
             async with session.post(url, json=body,
                                     headers=self._headers()) as resp:
                 data = await resp.json()
-                logger.debug("createTask response: %s", data)
+                logger.error("createTask response: %s", data)
                 if data.get("code") != 200:
                     raise RuntimeError(
-                        f"KIE createTask failed: {data.get('msg', data)}")
+                        f"KIE createTask failed: {data}")
                 task_id = (data.get("data") or {}).get("taskId")
                 if not task_id:
                     raise RuntimeError(f"KIE createTask: no taskId in response: {data}")
