@@ -517,9 +517,10 @@ var VIDEO_MODELS = {
     "Kling 3.0": {
         cost: 90,
         desc: "vmDescKling",
+        // Kling 3.0 не поддерживает конечный кадр — с двумя кадрами не генерит вовсе,
+        // поэтому показываем только стартовый (см. kie.py: шлём один image_urls).
         uploads: [
-            { id: "v-start-frame", title: "startFrame", hint: "startFrameHint", type: "image", label: "addPhoto" },
-            { id: "v-end-frame", title: "endFrame", hint: "endFrameHint", type: "image", label: "addFrame" }
+            { id: "v-start-frame", title: "startFrame", hint: "startFrameHint", type: "image", label: "addPhoto" }
         ],
         ratios: ["16:9", "9:16", "1:1"],
         qualities: ["720p", "1080p"],
