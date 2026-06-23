@@ -522,7 +522,8 @@ var VIDEO_MODELS = {
         uploads: [
             { id: "v-start-frame", title: "startFrame", hint: "startFrameHint", type: "image", label: "addPhoto" }
         ],
-        ratios: ["16:9", "9:16", "1:1"],
+        // Без выбора соотношения сторон: Kling берёт формат видео из стартового кадра,
+        // поэтому селектор только путал. Без кадра сервер шлёт дефолт 16:9.
         qualities: ["720p", "1080p"],
         duration: { min: 3, max: 15, default: 5 },
         sound: true,
@@ -614,6 +615,7 @@ function showSinglePreview(el) {
         var reader = new FileReader();
         reader.onload = function(e) {
             el.innerHTML = '<img src="' + e.target.result + '" class="up-thumb"><button class="up-x">×</button>';
+            el.classList.add("has-img");   // show the WHOLE frame (contain), not a cropped zoom
         };
         reader.readAsDataURL(file);
     } else {
@@ -655,6 +657,7 @@ function initUploads() {
             var up = e.target.closest(".frame-up[data-uid]");
             if (up) {
                 delete uploadedFiles[up.dataset.uid];
+                up.classList.remove("has-img");
                 up.innerHTML = plusSvg + '<span>' + up.dataset.lbl + '</span>';
                 if (up.dataset.uid === "v-motion-video") { motionVideoRawSec = null; updateMotionDuration(); }
             }
