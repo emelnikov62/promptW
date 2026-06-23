@@ -11,7 +11,7 @@ from aiogram.types import (
 from db.queries import (
     get_support_ticket_by_id, assign_support_ticket,
     add_support_message, close_support_ticket, get_user,
-    is_support_agent, get_support_agent_ids,
+    is_support_agent, get_support_agent_ids, get_agent_tickets,
 )
 
 logger = logging.getLogger(__name__)
@@ -20,13 +20,32 @@ router = Router()
 _main_bot: Optional[Bot] = None
 _webapp_url: str = ""
 
-_agent_active: Dict[int, int] = {}
+# agent_tg_id → ticket_id they're currently focused on (text messages go here)
+_agent_focus: Dict[int, int] = {}
 
 
 def setup(main_bot: Bot, webapp_url: str):
     global _main_bot, _webapp_url
     _main_bot = main_bot
     _webapp_url = webapp_url
+
+
+async def _auto_focus(uid: int):
+    """After closing/losing a ticket, switch focus to another assigned ticket if any."""
+    tickets = await get_agent_tickets(uid)
+    if tickets:
+        _agent_focus[uid] = tickets[0]["id"]
+        return tickets[0]["id"]
+    _agent_focus.pop(uid, None)
+    return None
+
+
+def _user_label(t):
+    name = t.get("first_name") or ""
+    uname = t.get("username") or ""
+    if uname:
+        name = f"{name} @{uname}".strip()
+    return name or str(t["user_tg_id"])
 
 
 @router.message(CommandStart())
@@ -39,8 +58,37 @@ async def cmd_start(message: Message):
         "Бот поддержки PromptW.\n"
         "Тикеты от пользователей придут сюда автоматически.\n"
         "Нажмите «Ответить» чтобы взять тикет.\n\n"
+        "/tickets — мои тикеты\n"
         "/close — закрыть текущий тикет"
     )
+
+
+@router.message(Command("tickets"))
+async def cmd_tickets(message: Message):
+    uid = message.from_user.id
+    if not await is_support_agent(uid):
+        return
+    tickets = await get_agent_tickets(uid)
+    if not tickets:
+        await message.answer("У вас нет активных тикетов.")
+        return
+    focused = _agent_focus.get(uid)
+    lines = []
+    buttons = []
+    for t in tickets:
+        marker = "▸ " if t["id"] == focused else "  "
+        lines.append(f"{marker}#{t['id']} — {_user_label(t)}")
+        row = []
+        if t["id"] != focused:
+            row.append(InlineKeyboardButton(
+                text=f"Выбрать #{t['id']}", callback_data=f"sup:focus:{t['id']}"))
+        row.append(InlineKeyboardButton(
+            text=f"Закрыть #{t['id']}", callback_data=f"sup:close:{t['id']}"))
+        buttons.append(row)
+    text = "Ваши тикеты:\n\n" + "\n".join(lines)
+    if focused:
+        text += f"\n\n✏️ Фокус → #{focused} (текст пойдёт туда)"
+    await message.answer(text, reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
 
 
 async def _close_and_notify(ticket_id: int):
@@ -71,13 +119,16 @@ async def cmd_close(message: Message):
     uid = message.from_user.id
     if not await is_support_agent(uid):
         return
-    ticket_id = _agent_active.get(uid)
+    ticket_id = _agent_focus.get(uid)
     if not ticket_id:
-        await message.answer("Нет активного тикета.")
+        await message.answer("Нет активного тикета. /tickets — список.")
         return
     ok = await _close_and_notify(ticket_id)
-    del _agent_active[uid]
-    await message.answer(f"Тикет #{ticket_id} закрыт ✓" if ok else "Тикет уже был закрыт.")
+    next_id = await _auto_focus(uid)
+    msg = f"Тикет #{ticket_id} закрыт ✓" if ok else "Тикет уже был закрыт."
+    if next_id:
+        msg += f"\nФокус переключён → #{next_id}"
+    await message.answer(msg)
 
 
 @router.callback_query(F.data.startswith("sup:take:"))
@@ -94,8 +145,13 @@ async def cb_take(callback: CallbackQuery):
         who = ticket.get("agent_name", "другой агент") if ticket else "другой агент"
         await callback.answer(f"Уже работает: {who}", show_alert=True)
         return
-    _agent_active[uid] = ticket_id
-    await callback.answer("Тикет назначен вам. Пишите ответ текстом.")
+    _agent_focus[uid] = ticket_id
+    prev_focus = _agent_focus.get(uid)
+    note = ""
+    if prev_focus and prev_focus != ticket_id:
+        note = f" (фокус переключён с #{prev_focus})"
+    _agent_focus[uid] = ticket_id
+    await callback.answer(f"Тикет #{ticket_id} назначен вам{note}. Пишите ответ текстом.")
     try:
         await callback.message.edit_reply_markup(
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
@@ -107,6 +163,21 @@ async def cb_take(callback: CallbackQuery):
         pass
 
 
+@router.callback_query(F.data.startswith("sup:focus:"))
+async def cb_focus(callback: CallbackQuery):
+    uid = callback.from_user.id
+    if not await is_support_agent(uid):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+    ticket_id = int(callback.data.split(":")[2])
+    ticket = await get_support_ticket_by_id(ticket_id)
+    if not ticket or ticket["status"] != "assigned" or ticket.get("agent_tg_id") != uid:
+        await callback.answer("Тикет не назначен вам или уже закрыт.", show_alert=True)
+        return
+    _agent_focus[uid] = ticket_id
+    await callback.answer(f"Фокус → #{ticket_id}. Текст пойдёт туда.")
+
+
 @router.callback_query(F.data.startswith("sup:close:"))
 async def cb_close(callback: CallbackQuery):
     uid = callback.from_user.id
@@ -115,9 +186,13 @@ async def cb_close(callback: CallbackQuery):
         return
     ticket_id = int(callback.data.split(":")[2])
     ok = await _close_and_notify(ticket_id)
-    if _agent_active.get(uid) == ticket_id:
-        del _agent_active[uid]
-    await callback.answer("Тикет закрыт" if ok else "Уже закрыт")
+    if _agent_focus.get(uid) == ticket_id:
+        await _auto_focus(uid)
+    next_id = _agent_focus.get(uid)
+    msg = "Тикет закрыт" if ok else "Уже закрыт"
+    if next_id and next_id != ticket_id:
+        msg += f" · фокус → #{next_id}"
+    await callback.answer(msg)
     try:
         await callback.message.edit_reply_markup(reply_markup=None)
         await callback.message.edit_text(
@@ -137,22 +212,25 @@ async def on_agent_reply(message: Message):
     uid = message.from_user.id
     if not await is_support_agent(uid):
         return
-    ticket_id = _agent_active.get(uid)
+    ticket_id = _agent_focus.get(uid)
     if not ticket_id:
         await message.answer(
-            "Нет активного тикета. Нажмите «Ответить» на тикете выше."
+            "Нет активного тикета. Нажмите «Ответить» на тикете или /tickets."
         )
         return
     ticket = await get_support_ticket_by_id(ticket_id)
     if not ticket or ticket["status"] == "closed":
-        del _agent_active[uid]
-        await message.answer("Тикет уже закрыт.")
+        next_id = await _auto_focus(uid)
+        if next_id:
+            await message.answer(f"Тикет #{ticket_id} уже закрыт. Фокус → #{next_id}")
+        else:
+            await message.answer("Тикет уже закрыт. Нет других активных тикетов.")
         return
     text = message.text.strip()
     if not text:
         return
     await add_support_message(ticket_id, "agent", text)
-    await message.answer("Ответ отправлен ✓")
+    await message.answer(f"Ответ → тикет #{ticket_id} ✓")
     await _notify_user(ticket["user_tg_id"])
 
 
@@ -211,13 +289,16 @@ async def notify_agents(ticket_id: int, user_tg_id: int, text: str,
         await support_bot.send_message(chat_id, header, reply_markup=kb)
 
     if ticket["status"] == "assigned" and ticket.get("agent_tg_id"):
-        close_kb = InlineKeyboardMarkup(inline_keyboard=[[
-            InlineKeyboardButton(text="Закрыть тикет", callback_data=f"sup:close:{ticket_id}"),
-        ]])
+        agent_id = ticket["agent_tg_id"]
+        buttons = [[
+            InlineKeyboardButton(text=f"Выбрать #{ticket_id}", callback_data=f"sup:focus:{ticket_id}"),
+            InlineKeyboardButton(text="Закрыть", callback_data=f"sup:close:{ticket_id}"),
+        ]]
+        kb = InlineKeyboardMarkup(inline_keyboard=buttons)
         try:
-            await _send_to(ticket["agent_tg_id"], close_kb)
+            await _send_to(agent_id, kb)
         except Exception:
-            logger.exception("notify assigned agent %s", ticket["agent_tg_id"])
+            logger.exception("notify assigned agent %s", agent_id)
         return
 
     kb = InlineKeyboardMarkup(inline_keyboard=[[

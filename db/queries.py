@@ -1000,6 +1000,18 @@ async def assign_support_ticket(ticket_id: int, agent_tg_id: int,
         return dict(row) if row else None
 
 
+async def get_agent_tickets(agent_tg_id: int) -> List[dict]:
+    pool = await get_pool()
+    rows = await pool.fetch("""
+        SELECT t.id, t.user_tg_id, t.status, t.updated_at, u.username, u.first_name
+        FROM support_tickets t
+        LEFT JOIN users u ON u.tg_id = t.user_tg_id
+        WHERE t.agent_tg_id = $1 AND t.status = 'assigned'
+        ORDER BY t.updated_at DESC
+    """, agent_tg_id)
+    return [dict(r) for r in rows]
+
+
 async def close_support_ticket(ticket_id: int) -> bool:
     pool = await get_pool()
     async with pool.acquire() as conn:
