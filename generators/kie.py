@@ -144,8 +144,8 @@ class KieGenerator(BaseGenerator):
         return task_id
 
     async def _poll_task(self, task_id: str, timeout: int = 300,
-                         interval: int = 5) -> dict:
-        url = f"{API_BASE}/api/v1/jobs/recordInfo"
+                         interval: int = 5, poll_url: str = None) -> dict:
+        url = poll_url or f"{API_BASE}/api/v1/jobs/recordInfo"
         deadline = asyncio.get_event_loop().time() + timeout
 
         async with aiohttp.ClientSession(timeout=_API_TIMEOUT) as session:
@@ -489,16 +489,41 @@ class KieGenerator(BaseGenerator):
             task_id=task_id, urls=urls,
         )
 
+    async def _poll_audio_task(self, task_id: str, timeout: int = 300,
+                               interval: int = 8) -> list:
+        url = f"{API_BASE}/api/v1/generate/record-info"
+        deadline = asyncio.get_event_loop().time() + timeout
+
+        async with aiohttp.ClientSession(timeout=_API_TIMEOUT) as session:
+            while asyncio.get_event_loop().time() < deadline:
+                async with session.get(
+                    url, params={"taskId": task_id},
+                    headers=self._headers()
+                ) as resp:
+                    data = await resp.json()
+
+                if data.get("code") != 200:
+                    await asyncio.sleep(interval)
+                    continue
+
+                response = (data.get("data") or {}).get("response") or {}
+                suno_data = response.get("sunoData") or []
+                if suno_data and suno_data[0].get("audioUrl"):
+                    return [item["audioUrl"] for item in suno_data if item.get("audioUrl")]
+
+                await asyncio.sleep(interval)
+
+        raise TimeoutError(f"Audio task {task_id} did not complete in {timeout}s")
+
     async def generate_audio(self, prompt: str, **kwargs) -> GenerationResult:
         model_name = kwargs.pop("model", None)
         model = AUDIO_MODELS.get(model_name, DEFAULT_AUDIO_MODEL)
 
         task_id = await self._create_audio_task(prompt, model=model, **kwargs)
-        task = await self._poll_task(task_id, timeout=300, interval=8)
-        urls = self._parse_result_urls(task)
+        urls = await self._poll_audio_task(task_id, timeout=300, interval=8)
 
         if not urls:
-            raise RuntimeError("No result URLs in completed task")
+            raise RuntimeError("No result URLs in completed audio task")
 
         filepath = await self._download_file(urls[0], "mp3")
         return GenerationResult(
