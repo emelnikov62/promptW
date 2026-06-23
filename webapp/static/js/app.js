@@ -213,8 +213,23 @@ async function loadUserProfile() {
             if (currentUser.lang && currentUser.lang !== currentLang) {
                 applyLang(currentUser.lang);
             }
+            var nm = document.getElementById("notif-marketing-tg");
+            if (nm) nm.checked = currentUser.notif_marketing !== false;
         }
     } catch(e) { console.error("Failed to load profile", e); }
+}
+
+async function setNotifMarketing(on) {
+    var tgId = getTgId();
+    if (!tgId) return;
+    try {
+        await fetch("/api/user/" + tgId + "/notif", {
+            method: "POST",
+            headers: authHeaders({ "Content-Type": "application/json" }),
+            body: JSON.stringify({ on: on }),
+        });
+        if (currentUser) currentUser.notif_marketing = on;
+    } catch(e) { console.error("Failed to set notif pref", e); }
 }
 
 async function loadUserHistory() {
@@ -2867,6 +2882,11 @@ sendHeartbeat();
 setInterval(sendHeartbeat, 45000);
 document.addEventListener("visibilitychange", function(){ if (!document.hidden) sendHeartbeat(); });
 
+(function(){
+    var nm = document.getElementById("notif-marketing-tg");
+    if (nm) nm.addEventListener("change", function(){ setNotifMarketing(nm.checked); });
+})();
+
 // Deep-link from the bot menu: open the requested page (?p=video / start_param).
 (function(){
     try {
@@ -2875,7 +2895,7 @@ document.addEventListener("visibilitychange", function(){ if (!document.hidden) 
         if (!p) return;
         if (p === "image" || p === "video" || p === "audio") {
             showPage("create"); setCreateType(p);
-        } else if (["home","history","topup","partner","info","text","profile","stats","rewards","support"].indexOf(p) >= 0) {
+        } else if (["create","home","history","topup","partner","info","text","profile","stats","rewards","support"].indexOf(p) >= 0) {
             showPage(p);
         }
     } catch (e) {}

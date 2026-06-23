@@ -9,7 +9,8 @@ from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_applicati
 
 from bot.config import BOT_TOKEN, SUPPORT_BOT_TOKEN, SUPPORT_AGENT_IDS
 from bot.handlers import router, setup as setup_bot
-from api.routes import routes, setup as setup_api, auth_middleware, start_reconciler
+from api.routes import (routes, setup as setup_api, auth_middleware,
+                        start_reconciler, start_engagement_sweep)
 from api.admin_routes import admin_routes
 from bot.support_bot import router as support_router, setup as setup_support
 from db.database import init_db, close_db
@@ -178,6 +179,8 @@ async def main():
     # Recover generations whose in-flight task was killed by a previous restart
     # (re-poll KIE by the persisted task id), then keep sweeping periodically.
     start_reconciler(interval=60)
+    # Hourly engagement nudges (opt-out + quiet-hours + frequency-capped).
+    start_engagement_sweep(interval=3600)
 
     if WEBHOOK_URL:
         webhook_path = "/webhook"

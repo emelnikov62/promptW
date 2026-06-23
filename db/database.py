@@ -203,6 +203,20 @@ async def _create_tables():
             -- notifications while the user is actively in the app.
             ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMPTZ;
 
+            -- Marketing/engagement notification opt-out (transactional ones ignore it).
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_marketing BOOLEAN DEFAULT TRUE;
+
+            -- Log of engagement notifications sent — drives frequency caps / once-ever
+            -- dedup that survive restarts (state in DB, not memory).
+            CREATE TABLE IF NOT EXISTS notification_sends (
+                id BIGSERIAL PRIMARY KEY,
+                user_tg_id BIGINT NOT NULL REFERENCES users(tg_id),
+                kind VARCHAR(40) NOT NULL,
+                sent_at TIMESTAMPTZ DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS idx_notif_sends_user_kind
+                ON notification_sends(user_tg_id, kind, sent_at DESC);
+
             -- Generation templates ("тренды"). Light columns for the gallery list +
             -- a `definition` JSONB holding the heavy prompt/params/settings payload.
             CREATE TABLE IF NOT EXISTS templates (
