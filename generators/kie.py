@@ -467,6 +467,16 @@ class KieGenerator(BaseGenerator):
             res = str(resolution or "720p").lower()
             input_data["mode"] = "4K" if "4k" in res else ("pro" if "1080" in res else "std")
             input_data["multi_shots"] = False
+            # Single first frame, no last frame: Kling otherwise tends to "complete the
+            # story" — cutting to a second invented scene where the subject drifts/disappears.
+            # Steer it to one continuous shot that keeps the person from the first frame.
+            if first_url and not last_url:
+                input_data["prompt"] = (prompt or "").strip() + (
+                    " Один непрерывный план без смены сцен, монтажных склеек и резких "
+                    "переходов. На протяжении всего ролика остаётся тот же самый человек "
+                    "с первого кадра — то же лицо, внешность и одежда, без подмены и без "
+                    "исчезновения. Камера остаётся на нём, движение плавное и естественное."
+                )
             if sound is not None:
                 input_data["sound"] = bool(sound)
 
