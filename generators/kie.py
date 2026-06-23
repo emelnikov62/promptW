@@ -490,7 +490,7 @@ class KieGenerator(BaseGenerator):
         )
 
     async def generate_audio(self, prompt: str, **kwargs) -> GenerationResult:
-        model_name = kwargs.get("model")
+        model_name = kwargs.pop("model", None)
         model = AUDIO_MODELS.get(model_name, DEFAULT_AUDIO_MODEL)
 
         task_id = await self._create_audio_task(prompt, model=model, **kwargs)
