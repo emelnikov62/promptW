@@ -1504,6 +1504,8 @@ function wdValidate(){
                 note.className = "wd-note err"; note.textContent = t("wdTooMuch");
             } else if (res.status === 400 && d.min){
                 note.className = "wd-note err"; note.textContent = t("wdMinAmt").replace("{min}", d.min);
+            } else if (res.status === 409){
+                note.className = "wd-note err"; note.textContent = t("wdPending");
             } else {
                 note.className = "wd-note err"; note.textContent = t("wdError");
             }
