@@ -494,6 +494,7 @@ document.querySelectorAll(".tbtn").forEach(function(b){
 var VIDEO_MODELS = {
     "Kling 3.0": {
         cost: 90,
+        desc: "vmDescKling",
         uploads: [
             { id: "v-start-frame", title: "startFrame", hint: "startFrameHint", type: "image", label: "addPhoto" },
             { id: "v-end-frame", title: "endFrame", hint: "endFrameHint", type: "image", label: "addFrame" }
@@ -508,6 +509,7 @@ var VIDEO_MODELS = {
     },
     "Veo 3.1 Fast": {
         cost: 69,
+        desc: "vmDescVeo",
         uploads: [
             { id: "v-start-frame", title: "startFrame", hint: "startFrameHint", type: "image", label: "addPhoto" },
             { id: "v-end-frame", title: "endFrame", hint: "endFrameHint", type: "image", label: "addFrame" }
@@ -522,6 +524,7 @@ var VIDEO_MODELS = {
     },
     "Seedance 2.0": {
         cost: 48,
+        desc: "vmDescSeedance",
         uploads: [
             { id: "v-start-frame", title: "startFrame", hint: "startFrameHint", type: "image", label: "addPhoto" },
             { id: "v-end-frame", title: "endFrame", hint: "endFrameHint", type: "image", label: "addFrame" }
@@ -543,6 +546,7 @@ var VIDEO_MODELS = {
     },
     "Kling Motion 3.0": {
         cost: 139,
+        desc: "vmDescMotion",
         uploads: [
             { id: "v-char-photo", title: "charPhoto", hint: "charPhotoHint", type: "image", label: "addPhoto" },
             { id: "v-motion-video", title: "motionVideo", hint: "motionVideoHint", type: "video", label: "addVideo" }
@@ -556,6 +560,7 @@ var VIDEO_MODELS = {
     },
     "Grok Imagine 1.5": {
         cost: 132,
+        desc: "vmDescGrok",
         uploads: [
             { id: "v-grok15-photo", title: "grokRefPhoto", hint: "grokRefPhotoHint", type: "image", required: true, label: "addPhoto" }
         ],
@@ -962,6 +967,10 @@ function renderVideoSettings(model) {
     currentVideoModel = model;
     var container = document.getElementById("video-settings");
     var html = "";
+
+    if (cfg.desc) {
+        html += '<div class="ccard vm-desc" style="color:var(--tx2);font-size:13px;line-height:1.45">💡 ' + t(cfg.desc) + '</div>';
+    }
 
     if (cfg.uploads && cfg.uploads.length) {
         html += '<div class="ccard"><div class="frames-row">';
