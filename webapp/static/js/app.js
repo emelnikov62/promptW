@@ -1782,7 +1782,21 @@ async function runGenerate(type, prompt){
         // Face-verify: gentle, brand-voice nudge when similarity stayed low after retries.
         if(data.face_tip) setTimeout(function(){ toast(t(data.face_tip),"info"); }, 600);
     } catch(err){
-        applyBalanceDelta(genCost);   // generation failed — server refunds, restore the UI
+        // Transport error (not a server failure): the webview was backgrounded / lost
+        // connection mid-request — iOS Safari throws TypeError "Load failed". The job is
+        // still running server-side (charged, task_id persisted, sweep delivers it to
+        // History + Telegram), so DON'T refund or show the scary error. Reconcile instead.
+        var msg = (err && err.message) || "";
+        var transient = (err instanceof TypeError) || /load failed|failed to fetch|network/i.test(msg);
+        if(transient){
+            if(getTgId()){ loadUserHistory(); pendingPoll(); }   // server pending row drives the card
+            removePendingGen(pendId);   // drop the local optimistic card; server state takes over
+            updateHistory();
+            if(genViewOpen) genOvClose();
+            toast(t("genStillRunning"),"info");
+            return;
+        }
+        applyBalanceDelta(genCost);   // real failure — server refunds, restore the UI
         removePendingGen(pendId);
         updateHistory();
         haptic.notify("error");
