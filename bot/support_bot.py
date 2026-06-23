@@ -2,7 +2,7 @@ import logging
 from typing import Optional, Dict
 
 from aiogram import Router, F, Bot
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, Command
 from aiogram.types import (
     Message, CallbackQuery,
     InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo,
@@ -38,8 +38,23 @@ async def cmd_start(message: Message):
     await message.answer(
         "Бот поддержки PromptW.\n"
         "Тикеты от пользователей придут сюда автоматически.\n"
-        "Нажмите «Ответить» чтобы взять тикет."
+        "Нажмите «Ответить» чтобы взять тикет.\n\n"
+        "/close — закрыть текущий тикет"
     )
+
+
+@router.message(Command("close"))
+async def cmd_close(message: Message):
+    uid = message.from_user.id
+    if uid not in SUPPORT_AGENT_IDS:
+        return
+    ticket_id = _agent_active.get(uid)
+    if not ticket_id:
+        await message.answer("Нет активного тикета.")
+        return
+    ok = await close_support_ticket(ticket_id)
+    del _agent_active[uid]
+    await message.answer(f"Тикет #{ticket_id} закрыт ✓" if ok else "Тикет уже был закрыт.")
 
 
 @router.callback_query(F.data.startswith("sup:take:"))
