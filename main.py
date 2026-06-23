@@ -73,6 +73,12 @@ async def security_headers(request: web.Request, handler):
             resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
         else:
             resp.headers.setdefault("Cache-Control", "public, max-age=3600")
+    # HTML documents (index/admin/legal) must always revalidate, otherwise the
+    # Telegram webview caches a stale page that still points at old ?v= assets, so
+    # version bumps never take effect ("обновил — ничего не поменялось"). no-cache +
+    # ETag means a cheap 304 when unchanged, fresh HTML the moment it changes.
+    elif resp.content_type == "text/html" and resp.status in (200, 304):
+        resp.headers["Cache-Control"] = "no-cache"
     return resp
 
 
