@@ -117,6 +117,109 @@ async def touch_active(tg_id: int):
             "UPDATE users SET last_active_at = NOW() WHERE tg_id = $1", tg_id)
 
 
+# ── Engagement notifications (Phase 2): opt-out, send-log, eligibility ─────────
+
+async def set_notif_marketing(tg_id: int, on: bool):
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE users SET notif_marketing = $1 WHERE tg_id = $2", on, tg_id)
+
+
+async def was_sent(tg_id: int, kind: str, within: Optional[str] = None) -> bool:
+    """True if `kind` was already sent to this user — ever (within=None) or within an
+    interval like '7 days'. Backs the frequency caps / once-ever dedup."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        if within:
+            v = await conn.fetchval(
+                "SELECT 1 FROM notification_sends WHERE user_tg_id=$1 AND kind=$2 "
+                "AND sent_at >= NOW() - $3::interval LIMIT 1", tg_id, kind, within)
+        else:
+            v = await conn.fetchval(
+                "SELECT 1 FROM notification_sends WHERE user_tg_id=$1 AND kind=$2 LIMIT 1",
+                tg_id, kind)
+        return v is not None
+
+
+async def log_sent(tg_id: int, kind: str):
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "INSERT INTO notification_sends (user_tg_id, kind) VALUES ($1, $2)", tg_id, kind)
+
+
+async def eligible_bonus_unspent(limit: int = 100) -> List[dict]:
+    """Has tokens, account 1–30 days old, never generated → nudge to spend the bonus.
+    Once ever (excludes anyone already sent 'bonusUnspent')."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT u.tg_id, u.balance FROM users u
+            WHERE u.notif_marketing = TRUE AND u.balance > 0
+              AND u.created_at < NOW() - INTERVAL '1 day'
+              AND u.created_at > NOW() - INTERVAL '30 days'
+              AND NOT EXISTS (SELECT 1 FROM generations g WHERE g.user_tg_id = u.tg_id)
+              AND NOT EXISTS (SELECT 1 FROM notification_sends n
+                              WHERE n.user_tg_id = u.tg_id AND n.kind = 'bonusUnspent')
+            LIMIT $1
+        """, limit)
+        return [dict(r) for r in rows]
+
+
+async def eligible_reengage(limit: int = 100) -> List[int]:
+    """Was active before (>=1 generation) but quiet for 7–60 days. Max 1×/7 days."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT u.tg_id FROM users u
+            WHERE u.notif_marketing = TRUE
+              AND u.last_active_at IS NOT NULL
+              AND u.last_active_at < NOW() - INTERVAL '7 days'
+              AND u.last_active_at > NOW() - INTERVAL '60 days'
+              AND EXISTS (SELECT 1 FROM generations g WHERE g.user_tg_id = u.tg_id)
+              AND NOT EXISTS (SELECT 1 FROM notification_sends n
+                              WHERE n.user_tg_id = u.tg_id AND n.kind = 'reengage'
+                                AND n.sent_at >= NOW() - INTERVAL '7 days')
+            LIMIT $1
+        """, limit)
+        return [r["tg_id"] for r in rows]
+
+
+async def eligible_reward_avail(limit: int = 100) -> List[int]:
+    """Opted-in users who never claimed any reward → one-time nudge to grab free tokens.
+    (Sweep additionally gates this on RWD_* channels being configured.) Once ever."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT u.tg_id FROM users u
+            WHERE u.notif_marketing = TRUE
+              AND NOT EXISTS (SELECT 1 FROM reward_claims r WHERE r.user_tg_id = u.tg_id)
+              AND NOT EXISTS (SELECT 1 FROM notification_sends n
+                              WHERE n.user_tg_id = u.tg_id AND n.kind = 'rewardAvail')
+            LIMIT $1
+        """, limit)
+        return [r["tg_id"] for r in rows]
+
+
+async def eligible_weekly(limit: int = 1000) -> List[int]:
+    """For the manual weekly broadcast: opted-in, active in the last 30 days,
+    not already sent 'weekly' in the last 7 days."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT u.tg_id FROM users u
+            WHERE u.notif_marketing = TRUE
+              AND u.last_active_at IS NOT NULL
+              AND u.last_active_at > NOW() - INTERVAL '30 days'
+              AND NOT EXISTS (SELECT 1 FROM notification_sends n
+                              WHERE n.user_tg_id = u.tg_id AND n.kind = 'weekly'
+                                AND n.sent_at >= NOW() - INTERVAL '7 days')
+            LIMIT $1
+        """, limit)
+        return [r["tg_id"] for r in rows]
+
+
 async def update_balance(tg_id: int, amount: int, tx_type: str,
                          description: str = "") -> int:
     pool = await get_pool()

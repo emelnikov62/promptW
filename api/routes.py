@@ -31,7 +31,8 @@ from db.queries import (
     create_payment, set_payment_external, settle_payment, get_payment,
     get_latest_pending_payment,
     create_withdrawal, list_withdrawals, set_withdrawal_status, has_pending_withdrawal,
-    touch_active,
+    touch_active, set_notif_marketing, was_sent, log_sent,
+    eligible_bonus_unspent, eligible_reengage, eligible_reward_avail, eligible_weekly,
     list_references, add_reference, delete_reference,
     list_chat_dialogs, get_chat_dialog, append_chat_turn, delete_chat_dialog,
     list_templates_public, get_template_public,
@@ -425,6 +426,78 @@ def start_reconciler(interval: int = 60):
     global _RECONCILER_TASK
     _RECONCILER_TASK = asyncio.ensure_future(_reconcile_loop(interval))
     return _RECONCILER_TASK
+
+
+# ── Engagement sweep (Phase 2) ───────────────────────────────────────────────
+# Periodically nudges eligible users (bonus-unspent / re-engage / reward-available)
+# with brand TG messages, respecting opt-out, quiet hours and frequency caps.
+# See docs/specs/2026-06-23-notification-delivery-phase2-design.md.
+_ENGAGE_QUIET_START = 22   # no engagement sends 22:00–10:00 MSK
+_ENGAGE_QUIET_END = 10
+_ENGAGE_BATCH = 100        # max sends per kind per sweep (Telegram-friendly drip)
+
+
+def _in_quiet_hours() -> bool:
+    """True during 22:00–10:00 MSK (UTC+3) — engagement sends are paused then."""
+    msk_hour = (datetime.now(timezone.utc).hour + 3) % 24
+    return msk_hour >= _ENGAGE_QUIET_START or msk_hour < _ENGAGE_QUIET_END
+
+
+def _rewards_configured() -> bool:
+    return any(REWARDS[k].get("chat") for k in ("tg", "prompts"))
+
+
+def _reward_avail_tokens() -> int:
+    return sum(REWARDS[k]["amount"] for k in ("tg", "prompts") if REWARDS[k].get("chat"))
+
+
+async def _engagement_once():
+    if _in_quiet_hours():
+        return
+    # bonus-unspent: new users sitting on tokens who never created
+    try:
+        for u in await eligible_bonus_unspent(_ENGAGE_BATCH):
+            notif.notify_bg(u["tg_id"], "bonusUnspentTg", btn_key="createBtn",
+                            page="create", n=u["balance"])
+            await log_sent(u["tg_id"], "bonusUnspent")
+    except Exception:
+        logger.exception("engagement: bonusUnspent pass failed")
+    # re-engage: previously active, gone quiet 7–60 days
+    try:
+        for tid in await eligible_reengage(_ENGAGE_BATCH):
+            notif.notify_bg(tid, "reengageTg", btn_key="seeTemplatesBtn", page="home")
+            await log_sent(tid, "reengage")
+    except Exception:
+        logger.exception("engagement: reengage pass failed")
+    # reward-available: only when reward channels are actually configured
+    if _rewards_configured():
+        try:
+            n = _reward_avail_tokens()
+            for tid in await eligible_reward_avail(_ENGAGE_BATCH):
+                notif.notify_bg(tid, "rewardAvailTg", btn_key="claimBtn",
+                                page="rewards", n=n)
+                await log_sent(tid, "rewardAvail")
+        except Exception:
+            logger.exception("engagement: rewardAvail pass failed")
+
+
+async def _engagement_loop(interval: int):
+    while True:
+        await asyncio.sleep(interval)   # delay first run; nothing is urgent here
+        try:
+            await _engagement_once()
+        except Exception:
+            logger.exception("engagement loop iteration failed")
+
+
+_ENGAGE_TASK = None
+
+
+def start_engagement_sweep(interval: int = 3600):
+    """Launch the hourly engagement sweep (call once after the DB pool is ready)."""
+    global _ENGAGE_TASK
+    _ENGAGE_TASK = asyncio.ensure_future(_engagement_loop(interval))
+    return _ENGAGE_TASK
 
 
 def _get_bot() -> Bot:
@@ -1248,6 +1321,46 @@ async def api_heartbeat(request: web.Request):
     except Exception:
         logger.exception("heartbeat touch_active failed for %s", tg_id)
     return web.json_response({"ok": True})
+
+
+@routes.post("/api/user/{tg_id}/notif")
+async def api_set_notif_pref(request: web.Request):
+    """Toggle marketing/engagement notifications (transactional ones are unaffected)."""
+    tg_id = _authed_id(request, request.match_info.get("tg_id"))
+    if not tg_id:
+        return web.json_response({"error": "unauthorized"}, status=401)
+    data, _ = await _parse_request(request)
+    on = bool(data.get("on"))
+    try:
+        await set_notif_marketing(tg_id, on)
+    except Exception:
+        logger.exception("set_notif_marketing failed for %s", tg_id)
+        return web.json_response({"error": "failed"}, status=500)
+    return web.json_response({"ok": True, "notif_marketing": on})
+
+
+@routes.post("/api/admin/notify/weekly")
+async def api_admin_notify_weekly(request: web.Request):
+    """Manually broadcast the 'new templates this week' nudge to opted-in, recently
+    active users (capped, quiet-hours-aware, max 1×/7d per user). Owner triggers this
+    when there are actually new templates."""
+    tg_id = _authed_id(request)
+    if tg_id not in ADMIN_IDS:
+        return web.json_response({"error": "forbidden"}, status=403)
+    if _in_quiet_hours():
+        return web.json_response({"ok": False, "reason": "quiet_hours", "sent": 0})
+    data, _ = await _parse_request(request)
+    limit = max(1, min(2000, _int_or_none(data.get("limit")) or 1000))
+    sent = 0
+    try:
+        for tid in await eligible_weekly(limit):
+            notif.notify_bg(tid, "weeklyTg", btn_key="viewBtn", page="home")
+            await log_sent(tid, "weekly")
+            sent += 1
+            await asyncio.sleep(0.05)   # ~20/s — stay under Telegram's broadcast limits
+    except Exception:
+        logger.exception("weekly broadcast failed after %d sends", sent)
+    return web.json_response({"ok": True, "sent": sent})
 
 
 @routes.get("/api/models")
