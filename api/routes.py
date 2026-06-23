@@ -78,7 +78,7 @@ WD_MAX = int(os.getenv("WD_MAX", "500000"))
 # without a code deploy; an empty chat → reward is "not configured" → hidden in the
 # UI. The bot MUST be an admin/member of a subscription channel for getChatMember.
 REWARDS = {
-    "share":   {"type": "story",        "amount": 100},
+    "share":   {"type": "story",        "amount": 30},
     "tg":      {"type": "subscription", "amount": 10, "chat": os.getenv("RWD_TG_CHANNEL", "").strip()},
     "prompts": {"type": "subscription", "amount": 10, "chat": os.getenv("RWD_PROMPTS_CHANNEL", "").strip()},
 }
