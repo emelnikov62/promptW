@@ -1712,6 +1712,56 @@ function genOvLoading(type, model){
         '<p class="gen-load-s">'+escHtml(model||"")+'</p>'+note+'</div>';
     document.getElementById("gen-ov-actions").innerHTML="";
 }
+// ── Custom audio player (the native <audio controls> ignores the dark theme) ──
+function apFmt(s){
+    if(!isFinite(s) || s<0) s=0;
+    var m=Math.floor(s/60), sec=Math.floor(s%60);
+    return m+":"+(sec<10?"0":"")+sec;
+}
+function audioPlayerHtml(url){
+    return '<div class="aplayer">'+
+        '<button type="button" class="aplayer-play" aria-label="play">'+
+            '<svg class="ap-ico-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>'+
+            '<svg class="ap-ico-pause" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h3.5v14H6zM14.5 5H18v14h-3.5z"/></svg>'+
+        '</button>'+
+        '<span class="aplayer-cur">0:00</span>'+
+        '<div class="aplayer-seek"><div class="aplayer-fill"></div><div class="aplayer-knob"></div></div>'+
+        '<span class="aplayer-dur">0:00</span>'+
+        '<audio src="'+escHtml(url)+'" preload="metadata"></audio>'+
+    '</div>';
+}
+function bindAudioPlayers(root){
+    (root||document).querySelectorAll(".aplayer").forEach(function(p){
+        if(p.dataset.bound) return; p.dataset.bound="1";
+        var audio=p.querySelector("audio"), btn=p.querySelector(".aplayer-play"),
+            seek=p.querySelector(".aplayer-seek"), fill=p.querySelector(".aplayer-fill"),
+            knob=p.querySelector(".aplayer-knob"), cur=p.querySelector(".aplayer-cur"),
+            dur=p.querySelector(".aplayer-dur");
+        function paint(){
+            var d=audio.duration||0, c=audio.currentTime||0, r=d?Math.min(1,c/d):0;
+            fill.style.width=(r*100)+"%"; knob.style.left=(r*100)+"%"; cur.textContent=apFmt(c);
+        }
+        audio.addEventListener("loadedmetadata",function(){ dur.textContent=apFmt(audio.duration); paint(); });
+        audio.addEventListener("timeupdate",paint);
+        audio.addEventListener("play",function(){
+            document.querySelectorAll(".aplayer audio").forEach(function(a){ if(a!==audio) a.pause(); });
+            p.classList.add("playing");
+        });
+        audio.addEventListener("pause",function(){ p.classList.remove("playing"); });
+        audio.addEventListener("ended",function(){ p.classList.remove("playing"); audio.currentTime=0; paint(); });
+        btn.addEventListener("click",function(){ if(audio.paused) audio.play(); else audio.pause(); haptic.impact("light"); });
+        var seeking=false;
+        function seekTo(x){
+            var rect=seek.getBoundingClientRect();
+            var r=Math.min(1,Math.max(0,(x-rect.left)/rect.width));
+            if(audio.duration){ audio.currentTime=r*audio.duration; paint(); }
+        }
+        seek.addEventListener("pointerdown",function(e){ seeking=true; try{seek.setPointerCapture(e.pointerId);}catch(_){} seekTo(e.clientX); });
+        seek.addEventListener("pointermove",function(e){ if(seeking) seekTo(e.clientX); });
+        seek.addEventListener("pointerup",function(e){ seeking=false; try{seek.releasePointerCapture(e.pointerId);}catch(_){} });
+        seek.addEventListener("pointercancel",function(){ seeking=false; });
+    });
+}
 function genOvResult(mtype, data){
     var html;
     if(mtype==="photo"){
@@ -1720,12 +1770,13 @@ function genOvResult(mtype, data){
             ? '<div class="gen-res-grid">'+urls.map(function(u){return '<img src="'+escHtml(u)+'" alt="result">';}).join("")+'</div>'
             : '<div class="gen-res-media"><img src="'+escHtml(urls[0])+'" alt="result"></div>';
     } else if(mtype==="audio"){
-        html='<div class="gen-res-media"><audio src="'+escHtml(data.file_url)+'" controls></audio></div>';
+        html='<div class="gen-res-media gen-res-audio">'+audioPlayerHtml(data.file_url)+'</div>';
     } else {
         html='<div class="gen-res-media"><video src="'+escHtml(data.file_url)+'" controls autoplay></video></div>';
     }
     document.getElementById("gen-ov-title").textContent=t("genDone");
     document.getElementById("gen-ov-body").innerHTML=html;
+    bindAudioPlayers(document.getElementById("gen-ov-body"));
     document.getElementById("gen-ov-actions").innerHTML=
         '<button class="gen-ov-again" id="gen-ov-again"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>'+t("detailRepeat")+'</button>'+
         '<button class="gen-ov-save" id="gen-ov-save">'+t("detailSave")+'</button>';
@@ -2030,7 +2081,7 @@ function showGenDetail(item){
     if(item.type==="photo"){
         html+='<div class="detail-media"><img src="'+escHtml(item.url)+'" alt="result"></div>';
     } else if(item.type==="audio"){
-        html+='<div class="detail-media detail-audio"><audio src="'+escHtml(item.url)+'" controls></audio></div>';
+        html+='<div class="detail-media detail-audio">'+audioPlayerHtml(item.url)+'</div>';
     } else {
         html+='<div class="detail-media"><video src="'+escHtml(item.url)+'#t=0.1" controls preload="metadata" playsinline></video></div>';
     }
@@ -2090,6 +2141,7 @@ function showGenDetail(item){
     var dc=document.getElementById("gen-detail-content");
     dc.className = item.type==="photo"?"z-photo":(item.type==="audio"?"z-audio":"z-video");
     dc.innerHTML=html;
+    bindAudioPlayers(dc);
 
     var detailMediaEl=dc.querySelector(".detail-media:not(.detail-audio)");
     if(detailMediaEl) detailMediaEl.addEventListener("click",function(){

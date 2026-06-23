@@ -393,6 +393,22 @@ body.noscroll{overflow:hidden}
 #lb-content img,#lb-content video{max-width:calc(100vw - 32px);max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px);object-fit:contain;border-radius:8px;display:block}
 .media-lightbox .lb-close{position:absolute;top:8px;right:8px;width:44px;height:44px;border:none;background:rgba(0,0,0,.6);border-radius:50%;color:#fff;font-size:24px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:301;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
 .detail-audio audio{width:100%;display:block}
+/* Themed audio player (replaces native <audio controls>; audio zone = jade) */
+.aplayer{display:flex;align-items:center;gap:11px;width:100%;background:var(--card2);border:1px solid var(--brd);border-radius:999px;padding:7px 16px 7px 7px}
+.aplayer audio{display:none}
+.aplayer-play{position:relative;flex-shrink:0;width:46px;height:46px;border-radius:50%;border:none;background:var(--audio);color:#06321F;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 14px -4px var(--audio);transition:transform .12s}
+.aplayer-play svg{width:22px;height:22px;display:block}
+.aplayer-play:active{transform:scale(.93)}
+.aplayer-play .ap-ico-pause{display:none}
+.aplayer.playing .ap-ico-play{display:none}
+.aplayer.playing .ap-ico-pause{display:block}
+.aplayer-cur,.aplayer-dur{font-family:var(--font-mono);font-size:12px;color:var(--tx2);font-variant-numeric:tabular-nums;flex-shrink:0;min-width:32px}
+.aplayer-dur{text-align:right;color:var(--tx3)}
+.aplayer-seek{position:relative;flex:1;height:6px;border-radius:999px;background:var(--brd);cursor:pointer;touch-action:none}
+.aplayer-fill{position:absolute;left:0;top:0;height:100%;width:0;border-radius:999px;background:var(--audio)}
+.aplayer-knob{position:absolute;top:50%;left:0;width:14px;height:14px;border-radius:50%;background:var(--tx);transform:translate(-50%,-50%);box-shadow:0 1px 5px rgba(0,0,0,.45)}
+.aplayer-seek::before{content:"";position:absolute;left:0;right:0;top:-13px;bottom:-13px}
+@media(prefers-reduced-motion:reduce){.aplayer-play{transition:none}}
 .detail-actions{display:flex;gap:8px;margin-bottom:14px}
 .dact{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:5px;padding:11px 4px;background:var(--card2);border:1px solid var(--brd);border-radius:var(--rs);color:var(--tx);font-family:var(--font);font-size:11px;font-weight:600;white-space:nowrap;cursor:pointer;transition:background .15s,border-color .15s}
 .dact svg{width:20px;height:20px}
