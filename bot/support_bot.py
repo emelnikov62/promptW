@@ -43,6 +43,29 @@ async def cmd_start(message: Message):
     )
 
 
+async def _close_and_notify(ticket_id: int):
+    ticket = await get_support_ticket_by_id(ticket_id)
+    ok = await close_support_ticket(ticket_id)
+    if ok and ticket and _main_bot:
+        try:
+            sep = "&" if "?" in _webapp_url else "?"
+            kb = InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(
+                    text="Открыть поддержку",
+                    web_app=WebAppInfo(url=_webapp_url + sep + "p=support"),
+                )
+            ]])
+            await _main_bot.send_message(
+                ticket["user_tg_id"],
+                "Ваше обращение закрыто.\n"
+                "Рады были помочь! Если появятся вопросы — пишите, мы всегда на связи.",
+                reply_markup=kb,
+            )
+        except Exception:
+            logger.exception("failed to notify user %s about ticket close", ticket.get("user_tg_id"))
+    return ok
+
+
 @router.message(Command("close"))
 async def cmd_close(message: Message):
     uid = message.from_user.id
@@ -52,7 +75,7 @@ async def cmd_close(message: Message):
     if not ticket_id:
         await message.answer("Нет активного тикета.")
         return
-    ok = await close_support_ticket(ticket_id)
+    ok = await _close_and_notify(ticket_id)
     del _agent_active[uid]
     await message.answer(f"Тикет #{ticket_id} закрыт ✓" if ok else "Тикет уже был закрыт.")
 
@@ -91,7 +114,7 @@ async def cb_close(callback: CallbackQuery):
         await callback.answer("Нет доступа", show_alert=True)
         return
     ticket_id = int(callback.data.split(":")[2])
-    ok = await close_support_ticket(ticket_id)
+    ok = await _close_and_notify(ticket_id)
     if _agent_active.get(uid) == ticket_id:
         del _agent_active[uid]
     await callback.answer("Тикет закрыт" if ok else "Уже закрыт")
