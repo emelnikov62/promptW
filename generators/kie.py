@@ -452,12 +452,12 @@ class KieGenerator(BaseGenerator):
 
         elif model_name == "Kling 3.0":
             # First frame is image_urls (array); optional end frame is tail_image_url (str).
+            # duration is required by KIE — default to "5" if not supplied.
             if first_url:
                 input_data["image_urls"] = [first_url]
             if last_url:
                 input_data["tail_image_url"] = last_url
-            if duration:
-                input_data["duration"] = str(duration)
+            input_data["duration"] = str(duration) if duration else "5"
             if sound is not None:
                 input_data["sound"] = sound
 
