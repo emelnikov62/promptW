@@ -615,6 +615,19 @@ function pickFile(accept, callback) {
     inp.onchange = function() { if (inp.files[0]) callback(inp.files[0]); document.body.removeChild(inp); };
     inp.click();
 }
+// Multi-file picker: callback is invoked once per chosen file, capped to `max` slots.
+function pickFiles(accept, callback, max) {
+    var inp = document.createElement("input");
+    inp.type = "file"; inp.accept = accept; inp.multiple = true; inp.style.display = "none";
+    document.body.appendChild(inp);
+    inp.onchange = function() {
+        var files = Array.prototype.slice.call(inp.files);
+        if (max) files = files.slice(0, max);
+        files.forEach(function(f){ callback(f); });
+        document.body.removeChild(inp);
+    };
+    inp.click();
+}
 
 function showSinglePreview(el) {
     var uid = el.dataset.uid;
@@ -705,12 +718,17 @@ function initUploads() {
             var max = parseInt(area.dataset.max) || 9;
             if (uploadedFiles[uid] && uploadedFiles[uid].length >= max) return;
             var rAccept = area.dataset.accept || "image/*";
+            var rCur = (uploadedFiles[uid] || []).length;
             var rOnFile = function(file) {
                 if (!uploadedFiles[uid]) uploadedFiles[uid] = [];
+                if (uploadedFiles[uid].length >= max) return;
                 uploadedFiles[uid].push(file);
                 renderRefChips(area);
             };
-            if (rAccept.indexOf("image") === 0) openImageSource(rOnFile); else pickFile(rAccept, rOnFile);
+            // Image refs get the phone/history/reference chooser (multi-select); video/audio
+            // stay native but still allow picking several at once.
+            if (rAccept.indexOf("image") === 0) openImageSource(rOnFile, { multi: true, remaining: max - rCur });
+            else pickFiles(rAccept, rOnFile, max - rCur);
             return;
         }
     });
@@ -791,6 +809,9 @@ async function deleteRef(id){
 // passes a callback that receives a File, regardless of where the user picked it.
 var imgSrcOnFile = null;
 var imgSrcView = "menu";   // "menu" | "history" | "ref" — which chooser screen is open
+var imgSrcMulti = false;   // multi-select enabled (areas that accept several photos)
+var imgSrcRemaining = 1;   // free slots left in the target area (cap for multi-select)
+var imgSrcSelected = [];   // urls picked in multi-select mode (History / Мой референс)
 var IMGSRC_PHONE ='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3.2"/></svg>';
 var IMGSRC_HIST = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>';
 var IMGSRC_REF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
@@ -809,7 +830,27 @@ function imgSrcMenu(){
     '</div>';
 }
 function imgSrcCell(u){
-    return '<div class="imgsrc-cell" data-url="'+escHtml(u)+'"><img src="'+escHtml(u)+'" loading="lazy"></div>';
+    var sel = (imgSrcMulti && imgSrcSelected.indexOf(u) >= 0) ? " selected" : "";
+    return '<div class="imgsrc-cell'+sel+'" data-url="'+escHtml(u)+'"><img src="'+escHtml(u)+'" loading="lazy"></div>';
+}
+// Confirm bar shown in multi-select mode once at least one photo is picked.
+function imgSrcFoot(){
+    var f = document.getElementById("imgsrc-foot");
+    if(!f) return;
+    if(imgSrcMulti && imgSrcSelected.length){
+        f.innerHTML = '<button type="button" class="imgsrc-confirm" id="imgsrc-confirm">'+t("addSelected")+' ('+imgSrcSelected.length+')</button>';
+        f.classList.remove("hidden");
+    } else { f.innerHTML = ""; f.classList.add("hidden"); }
+}
+function toggleImgSrcCell(cell){
+    var url = cell.dataset.url, i = imgSrcSelected.indexOf(url);
+    if(i >= 0){ imgSrcSelected.splice(i,1); cell.classList.remove("selected"); }
+    else {
+        if(imgSrcSelected.length >= imgSrcRemaining){ toast(t("refLimit"), "info"); return; }
+        imgSrcSelected.push(url); cell.classList.add("selected");
+    }
+    haptic.select();
+    imgSrcFoot();
 }
 function imgSrcGrid(kind){
     imgSrcView = kind;
@@ -840,6 +881,8 @@ function imgSrcClose(){
     o.classList.remove("show");
     setTimeout(function(){ o.classList.add("hidden"); }, 300);
     imgSrcOnFile = null;
+    imgSrcMulti = false; imgSrcSelected = [];
+    var f = document.getElementById("imgsrc-foot"); if(f){ f.innerHTML = ""; f.classList.add("hidden"); }
 }
 // Our own S3 media is cross-origin; iOS Telegram's webview fails cross-origin
 // blob fetches intermittently (CORS / Vary cache quirks), so route remote URLs
@@ -856,11 +899,15 @@ function urlToFile(url, cb){
         cb(new File([blob], "image"+(m ? m[0] : ".jpg"), { type: blob.type || "image/jpeg" }));
     }).catch(function(){ toast(t("genFailed"), "error"); });
 }
-function openImageSource(onFile){
+function openImageSource(onFile, opts){
+    imgSrcMulti = !!(opts && opts.multi && (opts.remaining == null || opts.remaining > 1));
+    imgSrcRemaining = (opts && opts.remaining) || 1;
+    imgSrcSelected = [];
     var o = document.getElementById("imgsrc-overlay");
-    if (!o){ pickFile("image/*", onFile); return; }   // graceful fallback
+    if (!o){ if(imgSrcMulti) pickFiles("image/*", onFile, imgSrcRemaining); else pickFile("image/*", onFile); return; }
     imgSrcOnFile = onFile;
     imgSrcMenu();
+    imgSrcFoot();
     o.classList.remove("hidden");
     requestAnimationFrame(function(){ o.classList.add("show"); });
     loadReferences();   // warm the saved-reference cache for the "Мой референс" tab
@@ -886,21 +933,33 @@ function openImageSource(onFile){
     }, true);
     document.getElementById("imgsrc-body").addEventListener("click", function(e){
         if (e.target.closest("[data-imgsrc-add]")){
-            if ((referenceList || []).length >= REF_MAX){ toast(t("refLimit"), "info"); return; }
-            pickFile("image/*", uploadReference);   // uploads, then renderAllRefLibs refreshes this grid
+            var libLeft = REF_MAX - (referenceList || []).length;
+            if (libLeft <= 0){ toast(t("refLimit"), "info"); return; }
+            pickFiles("image/*", uploadReference, libLeft);   // uploads each, grid refreshes
             return;
         }
         var opt = e.target.closest(".imgsrc-opt");
         if (opt){
             var k = opt.dataset.src;
             haptic.select();
-            if (k === "phone"){ var cb = imgSrcOnFile; imgSrcClose(); pickFile("image/*", cb); }
+            if (k === "phone"){ var cb = imgSrcOnFile, mlt = imgSrcMulti, rem = imgSrcRemaining; imgSrcClose(); if(mlt) pickFiles("image/*", cb, rem); else pickFile("image/*", cb); }
             else if (k === "history"){ imgSrcGrid("history"); if (!galleryItems.length) loadUserHistory(); }
             else { imgSrcGrid("ref"); loadReferences().then(function(){ imgSrcGrid("ref"); }); }
             return;
         }
         var cell = e.target.closest(".imgsrc-cell");
-        if (cell){ var cb2 = imgSrcOnFile, url = cell.dataset.url; haptic.impact("light"); imgSrcClose(); urlToFile(url, cb2); }
+        if (cell){
+            if(imgSrcMulti){ toggleImgSrcCell(cell); return; }   // multi: tap toggles selection
+            var cb2 = imgSrcOnFile, url = cell.dataset.url; haptic.impact("light"); imgSrcClose(); urlToFile(url, cb2);
+        }
+    });
+    // Multi-select confirm: pull each chosen photo into the target area, then close.
+    var foot = document.getElementById("imgsrc-foot");
+    if (foot) foot.addEventListener("click", function(e){
+        if (!e.target.closest("#imgsrc-confirm")) return;
+        var urls = imgSrcSelected.slice(), cb = imgSrcOnFile;
+        haptic.impact("medium"); imgSrcClose();
+        urls.forEach(function(u){ urlToFile(u, cb); });
     });
 })();
 
@@ -923,12 +982,14 @@ function initPhotoUpload() {
         }
         if (e.target.closest(".ref-add")) {
             var max = 8;
-            if (uploadedFiles["photo-refs"] && uploadedFiles["photo-refs"].length >= max) return;
+            var cur = (uploadedFiles["photo-refs"] || []).length;
+            if (cur >= max) return;
             openImageSource(function(file) {
                 if (!uploadedFiles["photo-refs"]) uploadedFiles["photo-refs"] = [];
+                if (uploadedFiles["photo-refs"].length >= max) return;
                 uploadedFiles["photo-refs"].push(file);
                 renderRefChips(area);
-            });
+            }, { multi: true, remaining: max - cur });
         }
     });
 }
