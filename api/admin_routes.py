@@ -694,6 +694,108 @@ async def admin_promo_delete(request):
     return web.json_response({"ok": True})
 
 
+# ── Referrals ──
+
+@admin_routes.get("/api/admin/referrals")
+async def admin_referrals(request):
+    _require_admin(request)
+    pool = await get_pool()
+    limit = _qint(request, "limit", 50, 1, 200)
+    offset = _qint(request, "offset", 0, 0)
+    q = (request.query.get("q") or "").strip()
+
+    where = ""
+    params: list = []
+    if q:
+        if q.isdigit():
+            where = "WHERE u.tg_id = $1"
+            params = [int(q)]
+        else:
+            where = "WHERE u.username ILIKE $1"
+            params = [f"%{q}%"]
+
+    idx = len(params)
+    rows = await pool.fetch(f"""
+        SELECT u.tg_id, u.username, u.first_name, u.ref_balance,
+               u.created_at,
+               COUNT(r.referred_tg_id) AS invites,
+               COALESCE(SUM(re.earned), 0) AS total_earned
+        FROM users u
+        LEFT JOIN referrals r ON r.referrer_tg_id = u.tg_id
+        LEFT JOIN (
+            SELECT referrer_tg_id, SUM(amount_rub) AS earned
+            FROM ref_earnings GROUP BY referrer_tg_id
+        ) re ON re.referrer_tg_id = u.tg_id
+        {where}
+        GROUP BY u.tg_id
+        HAVING COUNT(r.referred_tg_id) > 0
+        ORDER BY invites DESC
+        LIMIT ${idx+1} OFFSET ${idx+2}
+    """, *params, limit, offset)
+
+    total = await pool.fetchval(f"""
+        SELECT COUNT(*) FROM (
+            SELECT u.tg_id FROM users u
+            LEFT JOIN referrals r ON r.referrer_tg_id = u.tg_id
+            {where}
+            GROUP BY u.tg_id HAVING COUNT(r.referred_tg_id) > 0
+        ) sub
+    """, *params)
+
+    return web.json_response({
+        "items": [_row(r) for r in rows],
+        "total": total,
+    })
+
+
+@admin_routes.get("/api/admin/referrals/{tg_id}")
+async def admin_referral_detail(request):
+    _require_admin(request)
+    pool = await get_pool()
+    tg_id = int(request.match_info["tg_id"])
+
+    referrer = await pool.fetchrow("""
+        SELECT tg_id, username, first_name, ref_balance, created_at
+        FROM users WHERE tg_id = $1
+    """, tg_id)
+    if not referrer:
+        return web.json_response({"error": "not found"}, status=404)
+
+    invitees = await pool.fetch("""
+        SELECT u.tg_id, u.username, u.first_name, u.created_at,
+               COALESCE(p.total_paid, 0) AS total_paid
+        FROM referrals r
+        JOIN users u ON u.tg_id = r.referred_tg_id
+        LEFT JOIN (
+            SELECT user_tg_id, SUM(amount_rub) AS total_paid
+            FROM payments WHERE status = 'paid'
+            GROUP BY user_tg_id
+        ) p ON p.user_tg_id = u.tg_id
+        WHERE r.referrer_tg_id = $1
+        ORDER BY r.created_at DESC
+    """, tg_id)
+
+    earnings = await pool.fetch("""
+        SELECT re.referred_tg_id, u.username, re.line, re.amount_rub, re.created_at
+        FROM ref_earnings re
+        JOIN users u ON u.tg_id = re.referred_tg_id
+        WHERE re.referrer_tg_id = $1
+        ORDER BY re.created_at DESC LIMIT 50
+    """, tg_id)
+
+    total_earned = await pool.fetchval("""
+        SELECT COALESCE(SUM(amount_rub), 0) FROM ref_earnings
+        WHERE referrer_tg_id = $1
+    """, tg_id)
+
+    return web.json_response({
+        "referrer": _row(referrer),
+        "invitees": [_row(r) for r in invitees],
+        "earnings": [_row(r) for r in earnings],
+        "total_earned": float(total_earned),
+    })
+
+
 # ── Audit log ──
 
 @admin_routes.get("/api/admin/audit")

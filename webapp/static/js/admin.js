@@ -91,7 +91,7 @@ function logout() {
 
 // ── Navigation ──
 var navItems = document.querySelectorAll(".nav-item");
-var sectionTitles = {dashboard:"Dashboard",users:"Пользователи",generations:"Генерации",payments:"Платежи",withdrawals:"Выводы",templates:"Шаблоны",promos:"Промокоды",support:"Поддержка",face:"Сходство лиц",notif:"Уведомления",audit:"Аудит-лог"};
+var sectionTitles = {dashboard:"Dashboard",users:"Пользователи",generations:"Генерации",payments:"Платежи",withdrawals:"Выводы",templates:"Шаблоны",promos:"Промокоды",referrals:"Рефералы",support:"Поддержка",face:"Сходство лиц",notif:"Уведомления",audit:"Аудит-лог"};
 
 navItems.forEach(function(btn) {
     btn.addEventListener("click", function() {
@@ -121,6 +121,7 @@ function showSection(name) {
         withdrawals: function() { loadWithdrawals(0); },
         templates: function() { loadTemplates(0); },
         promos: function() { loadPromos(0); },
+        referrals: function() { loadReferrals(0); },
         support: function() { loadSupport("open", 0); },
         face: function() { loadFace(facePeriod); },
         notif: function() { loadNotif(0); },
@@ -1055,6 +1056,53 @@ function replyTicket(id) {
         if (d.id) { openTicket(id); }
         else { alert(d.error || "Ошибка"); }
     }).catch(function() { input.disabled = false; });
+}
+
+// ── Referrals ──
+var refQuery = "";
+function loadReferrals(offset) {
+    var mc = document.getElementById("main-content");
+    var q = refQuery;
+    var url = "/api/admin/referrals?limit=" + PAGE_SIZE + "&offset=" + offset + (q ? "&q=" + encodeURIComponent(q) : "");
+    mc.innerHTML = '<div class="toolbar"><input class="search-input" id="ref-search" placeholder="Поиск по tg_id или username" value="' + esc(q) + '" onkeydown="if(event.key===\'Enter\'){refQuery=this.value;loadReferrals(0)}"><button class="btn btn-outline btn-sm" onclick="refQuery=document.getElementById(\'ref-search\').value;loadReferrals(0)">Найти</button></div><p style="color:var(--tx2)">Загрузка...</p>';
+    api(url).then(function(d) {
+        var rows = d.items.map(function(u) {
+            return '<tr class="clickable" onclick="loadReferralDetail(' + u.tg_id + ')"><td>' + u.tg_id + '</td><td>' + esc(u.username) + '</td><td>' + esc(u.first_name) + '</td><td>' + u.invites + '</td><td>' + Number(u.total_earned).toFixed(2) + ' ₽</td><td>' + Number(u.ref_balance).toFixed(2) + ' ₽</td><td>' + fmtDate(u.created_at) + '</td></tr>';
+        }).join("");
+        mc.innerHTML = '<div class="toolbar"><input class="search-input" id="ref-search" placeholder="Поиск по tg_id или username" value="' + esc(q) + '" onkeydown="if(event.key===\'Enter\'){refQuery=this.value;loadReferrals(0)}"><button class="btn btn-outline btn-sm" onclick="refQuery=document.getElementById(\'ref-search\').value;loadReferrals(0)">Найти</button></div>' +
+            '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>TG ID</th><th>Username</th><th>Имя</th><th>Приглашено</th><th>Заработано</th><th>Реф. баланс</th><th>Регистрация</th></tr></thead><tbody>' + (rows || '<tr><td colspan="7" style="text-align:center;color:var(--tx3)">Нет рефералов</td></tr>') + '</tbody></table></div>' +
+            pagination(d.total, offset, "loadReferrals");
+    });
+}
+
+function loadReferralDetail(tgId) {
+    api("/api/admin/referrals/" + tgId).then(function(d) {
+        var u = d.referrer;
+        var html = '<h3>Реферер ' + u.tg_id + '</h3>' +
+            '<div class="modal-row"><span class="modal-label">Username</span><span>' + esc(u.username) + '</span></div>' +
+            '<div class="modal-row"><span class="modal-label">Имя</span><span>' + esc(u.first_name) + '</span></div>' +
+            '<div class="modal-row"><span class="modal-label">Реф. баланс</span><span>' + Number(u.ref_balance).toFixed(2) + ' ₽</span></div>' +
+            '<div class="modal-row"><span class="modal-label">Всего заработано</span><span>' + d.total_earned.toFixed(2) + ' ₽</span></div>' +
+            '<div class="modal-row"><span class="modal-label">Приглашённых</span><span>' + d.invitees.length + '</span></div>';
+
+        if (d.invitees.length) {
+            html += '<div class="modal-section"><h4>Приглашённые пользователи</h4><div class="tbl-wrap"><table class="tbl"><thead><tr><th>TG ID</th><th>Username</th><th>Имя</th><th>Оплатил</th><th>Регистрация</th></tr></thead><tbody>';
+            d.invitees.forEach(function(inv) {
+                html += '<tr><td>' + inv.tg_id + '</td><td>' + esc(inv.username) + '</td><td>' + esc(inv.first_name) + '</td><td>' + Number(inv.total_paid).toFixed(2) + ' ₽</td><td>' + fmtDate(inv.created_at) + '</td></tr>';
+            });
+            html += '</tbody></table></div></div>';
+        }
+
+        if (d.earnings.length) {
+            html += '<div class="modal-section"><h4>Начисления (последние 50)</h4><div class="tbl-wrap"><table class="tbl"><thead><tr><th>От кого</th><th>Username</th><th>Линия</th><th>Сумма</th><th>Дата</th></tr></thead><tbody>';
+            d.earnings.forEach(function(e) {
+                html += '<tr><td>' + e.referred_tg_id + '</td><td>' + esc(e.username) + '</td><td>L' + e.line + '</td><td>' + Number(e.amount_rub).toFixed(2) + ' ₽</td><td>' + fmtDate(e.created_at) + '</td></tr>';
+            });
+            html += '</tbody></table></div></div>';
+        }
+
+        openModal(html);
+    });
 }
 
 // ── Audit ──
