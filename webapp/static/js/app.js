@@ -522,8 +522,10 @@ var VIDEO_MODELS = {
         uploads: [
             { id: "v-start-frame", title: "startFrame", hint: "startFrameHint", type: "image", label: "addPhoto" }
         ],
-        // Без выбора соотношения сторон: Kling берёт формат видео из стартового кадра,
-        // поэтому селектор только путал. Без кадра сервер шлёт дефолт 16:9.
+        // Соотношение сторон: при прикреплённом кадре Kling берёт формат из самого фото,
+        // поэтому показываем «как на фото» и блокируем выбор; без кадра — обычный выбор.
+        ratios: ["16:9", "9:16", "1:1"],
+        ratioFromFrame: true,
         qualities: ["720p", "1080p"],
         duration: { min: 3, max: 15, default: 5 },
         sound: true,
@@ -622,6 +624,7 @@ function showSinglePreview(el) {
         var name = file.name.length > 18 ? file.name.substring(0, 15) + "…" : file.name;
         el.innerHTML = '<span class="up-fname">' + name + '</span><button class="up-x">×</button>';
     }
+    syncRatioFromFrame();   // "Как на фото" when a Kling start frame is attached
 }
 
 function renderRefChips(area) {
@@ -660,6 +663,7 @@ function initUploads() {
                 up.classList.remove("has-img");
                 up.innerHTML = plusSvg + '<span>' + up.dataset.lbl + '</span>';
                 if (up.dataset.uid === "v-motion-video") { motionVideoRawSec = null; updateMotionDuration(); }
+                syncRatioFromFrame();   // frame removed -> restore the ratio picker
             }
             return;
         }
@@ -1093,6 +1097,24 @@ function renderVideoSettings(model) {
     bindVideoSettingsEvents(cfg);
     initUploads();
     updateVideoCost();
+    syncRatioFromFrame();
+}
+
+// Models where the output aspect follows the start frame (Kling): with a frame attached,
+// show "Как на фото" and lock the ratio picker; with no frame, restore the user's choice.
+function syncRatioFromFrame() {
+    var cfg = VIDEO_MODELS[currentVideoModel] || {};
+    if (!cfg.ratioFromFrame || !cfg.ratios) return;
+    var col = document.querySelector('#video-settings .set-col[data-vm="vm-ratio"]');
+    var val = document.getElementById("vm-ratio");
+    if (!col || !val) return;
+    if (uploadedFiles["v-start-frame"]) {
+        val.textContent = t("ratioByPhoto");
+        col.classList.add("ratio-locked");
+    } else {
+        col.classList.remove("ratio-locked");
+        if (val.textContent === t("ratioByPhoto")) val.textContent = cfg.ratios[0];
+    }
 }
 
 function bindVideoSettingsEvents(cfg) {
@@ -1117,6 +1139,7 @@ function bindVideoSettingsEvents(cfg) {
         b.addEventListener("click", function() {
             var id = b.dataset.vm;
             if (id === "vm-ratio" && cfg.ratios) {
+                if (cfg.ratioFromFrame && uploadedFiles["v-start-frame"]) { haptic.impact("light"); toast(t("ratioByPhotoHint"), "info"); return; }
                 openSheet(t("aspectRatio"), cfg.ratios.map(function(v){return {value:v,label:v}}),
                     document.getElementById("vm-ratio").textContent, function(v) {
                         document.getElementById("vm-ratio").textContent = v;
@@ -1640,7 +1663,7 @@ function getSettings(type) {
         var cfg = VIDEO_MODELS[currentVideoModel] || {};
         var s = {};
         var ratioEl = document.getElementById("vm-ratio");
-        if (ratioEl && ratioEl.textContent !== "Auto") s.ratio = ratioEl.textContent;
+        if (ratioEl && ratioEl.textContent !== "Auto" && ratioEl.textContent !== t("ratioByPhoto")) s.ratio = ratioEl.textContent;
         var qualEl = document.getElementById("vm-qual");
         if (qualEl) s.quality = qualEl.textContent;
         if (currentVideoDuration && !cfg.fixedSeconds) s.duration = currentVideoDuration;
