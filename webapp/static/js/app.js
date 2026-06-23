@@ -365,6 +365,7 @@ function applyLang(lang) {
     });
     document.getElementById("lang-btn").textContent = langFlags[lang] || langFlags.ru;
     renderVideoSettings(currentVideoModel);
+    if (typeof setModelDesc === "function") { setModelDesc("photo"); setModelDesc("audio"); }
     if (typeof renderTemplatesHome === "function") renderTemplatesHome();   // re-caption gallery
     if (typeof fixObBonus === "function") fixObBonus();   // keep onboarding bonus {n} substituted
     if (typeof renderRewardsState === "function") renderRewardsState();   // re-apply "done" labels after re-localizing
@@ -2077,7 +2078,27 @@ function selectModel(type,modelName){
     });
     document.getElementById(type+"-model-name").textContent=modelName;
     applyModelLogo(type+"-model-ico", modelName);
+    setModelDesc(type, modelName);
     if(type==="audio") updateAudioCost();
+}
+
+// Per-model "what it's best for" hints (photo + audio; video uses VIDEO_MODELS.desc
+// rendered inside renderVideoSettings).
+var MODEL_DESC = {
+    "NanoBanana PRO": "imDescNbPro",
+    "NanoBanana 2": "imDescNb2",
+    "GPT Image 2": "imDescGpt",
+    "Seedream 4.5": "imDescSeedream",
+    "Suno V5.5": "auDescSuno",
+};
+
+function setModelDesc(type, modelName) {
+    var el = document.getElementById(type + "-model-desc");
+    if (!el) return;   // video has no such element (hint lives in #video-settings)
+    var name = modelName || (document.getElementById(type + "-model-name") || {}).textContent || "";
+    var key = MODEL_DESC[name];
+    el.innerHTML = key ? ("💡 " + t(key)) : "";
+    el.style.display = key ? "" : "none";
 }
 
 async function loadRefsForRepeat(references){
@@ -2905,6 +2926,8 @@ window.addEventListener("scroll", function(){
 
 // ── Init ──
 renderVideoSettings(currentVideoModel);
+setModelDesc("photo");
+setModelDesc("audio");
 initPhotoUpload();
 loadUserProfile();
 loadUserHistory();
