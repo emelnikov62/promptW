@@ -1899,12 +1899,18 @@ function makeVideoThumb(url){
     if(videoThumbs[url] || videoThumbPending[url]) return;
     videoThumbPending[url]=true;
     var v=document.createElement("video");
-    v.muted=true; v.playsInline=true; v.preload="auto"; v.crossOrigin="anonymous"; v.src=mediaBlobUrl(url);
+    // preload="metadata" (not "auto"): don't eagerly download the whole clip — we only
+    // need the very start. Combined with an early-frame seek below, the browser fetches
+    // just the file head (a small range) instead of half the video → near-instant thumb.
+    v.muted=true; v.playsInline=true; v.preload="metadata"; v.crossOrigin="anonymous"; v.src=mediaBlobUrl(url);
     var done=false;
     function finish(){ if(!done){ done=true; delete videoThumbPending[url]; } }
     v.addEventListener("loadedmetadata",function(){
         var d=v.duration;
-        var t=(isFinite(d)&&d>0) ? Math.min(d/2, d-0.05) : 0.1; // middle of the clip
+        // Near the first frame, not the middle: seeking to ~0.15s only needs the file head,
+        // not half the download. For image-to-video the first frame is the source photo, so
+        // it's a great (and far faster) thumbnail.
+        var t=(isFinite(d)&&d>0) ? Math.min(0.15, d-0.05) : 0.1;
         try{ v.currentTime=t; }catch(e){ finish(); }
     });
     v.addEventListener("seeked",function(){
