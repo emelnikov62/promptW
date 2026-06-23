@@ -754,6 +754,7 @@ body.noscroll{overflow:hidden}
 .imgsrc-add .imgsrc-add-t{font-size:11px}
 .imgsrc-add:active{opacity:1;background:var(--bg)}
 .imgsrc-empty{padding:30px 12px 14px;text-align:center;color:var(--tx3);font-size:14px;line-height:1.5;white-space:pre-line}
+.imgsrc-loadmore{text-align:center;color:var(--tx3);font-size:13px;padding:10px 0 2px;min-height:18px}
 .sheet-item{display:flex;align-items:center;justify-content:space-between;width:100%;padding:15px 14px;background:transparent;border:1px solid transparent;border-radius:12px;color:var(--tx);font-size:15px;font-weight:500;font-family:inherit;cursor:pointer;text-align:left}
 .sheet-item:active{background:var(--card)}
 .sheet-item.active{background:var(--vdim);border-color:var(--vbrd);color:var(--violet);font-weight:600}
