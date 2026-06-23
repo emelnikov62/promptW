@@ -200,14 +200,20 @@ async def main():
         # across restarts without extra config.
         webhook_secret = os.getenv("WEBHOOK_SECRET") or hashlib.sha256(
             ("whsec:" + BOT_TOKEN).encode()).hexdigest()
-        await bot.set_webhook(f"{WEBHOOK_URL}{webhook_path}", secret_token=webhook_secret)
+        # allowed_updates MUST list callback_query — without it the language picker
+        # buttons (and any inline buttons) never reach the bot. set_webhook does NOT
+        # reset a previously-stored list when omitted, so it had stuck on ['message'].
+        # resolve_used_update_types() derives the set from registered handlers.
+        await bot.set_webhook(f"{WEBHOOK_URL}{webhook_path}", secret_token=webhook_secret,
+                              allowed_updates=dp.resolve_used_update_types())
         SimpleRequestHandler(dispatcher=dp, bot=bot, secret_token=webhook_secret).register(app, path=webhook_path)
         setup_application(app, dp, bot=bot)
         if support_bot and support_dp:
             sup_path = "/webhook-support"
             sup_secret = hashlib.sha256(
                 ("whsec:" + SUPPORT_BOT_TOKEN).encode()).hexdigest()
-            await support_bot.set_webhook(f"{WEBHOOK_URL}{sup_path}", secret_token=sup_secret)
+            await support_bot.set_webhook(f"{WEBHOOK_URL}{sup_path}", secret_token=sup_secret,
+                                          allowed_updates=support_dp.resolve_used_update_types())
             SimpleRequestHandler(dispatcher=support_dp, bot=support_bot, secret_token=sup_secret).register(app, path=sup_path)
             setup_application(app, support_dp, bot=support_bot)
         runner = web.AppRunner(app)
