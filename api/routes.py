@@ -31,6 +31,7 @@ from db.queries import (
     create_payment, set_payment_external, settle_payment, get_payment,
     get_latest_pending_payment,
     create_withdrawal, list_withdrawals, set_withdrawal_status, has_pending_withdrawal,
+    touch_active,
     list_references, add_reference, delete_reference,
     list_chat_dialogs, get_chat_dialog, append_chat_turn, delete_chat_dialog,
     list_templates_public, get_template_public,
@@ -41,6 +42,7 @@ from db.queries import (
 import payments_gw as pg
 import storage
 import face_verify
+from bot import notify as notif
 
 logger = logging.getLogger(__name__)
 routes = web.RouteTableDef()
@@ -289,12 +291,23 @@ async def _run_generation(gen_id, tg_id, cost: int, label: str, build):
             logger.exception("Generation failed (%s)", label)
             # Guarded flip so the refund happens exactly once even if the
             # reconciliation sweep touches the same row concurrently.
+            notify_owner = None
             if gen_id:
                 info = await fail_generation_if_pending(gen_id)
                 if info is not None:
                     await _refund(info["user_tg_id"], info["cost"] or 0, "refund " + label)
+                    notify_owner = info["user_tg_id"]
             else:
                 await _refund(tg_id, cost, "refund " + label)
+                notify_owner = tg_id
+            # Tell the author only if they've left the app (otherwise the in-app
+            # toast already covers it). Fully isolated — never affects the refund.
+            if notify_owner:
+                try:
+                    if not await _user_recently_active(notify_owner):
+                        notif.notify_bg(notify_owner, "genFailTg", btn_key="retryBtn", page="create")
+                except Exception:
+                    pass
             return {"__error__": True}
 
     task = asyncio.ensure_future(_runner())
@@ -387,6 +400,7 @@ async def _reconcile_once():
         file_urls = [_media_url(p) for p in paths]
         if await finish_generation_if_pending(gen_id, file_urls[0], file_urls):
             logger.info("reconcile: recovered gen %s -> %d file(s)", gen_id, len(file_urls))
+            await _notify_gen_ready(row["user_tg_id"], row["gen_type"], len(file_urls))
         else:
             await _discard_media(paths)   # another path finalized first — drop duplicates
 
@@ -424,6 +438,70 @@ def setup(gen: BaseGenerator, support_bot: Optional[Bot] = None):
     global generator, _support_bot
     generator = gen
     _support_bot = support_bot
+
+
+# ── Notifications (transactional, Phase 1) ──────────────────────────────────
+# See docs/specs/2026-06-23-notification-delivery-phase1-design.md. All sends are
+# fire-and-forget and fail-safe (notif.notify_bg never raises).
+_NOTIF_ACTIVE_SECS = 60   # if the user pinged the WebApp this recently, skip TG dupes
+
+
+async def _user_recently_active(tg_id: int) -> bool:
+    """True if the user is currently in the app (heartbeat < _NOTIF_ACTIVE_SECS ago),
+    so a TG duplicate of an in-app toast should be suppressed. Fail-open to False."""
+    try:
+        user = await get_user(tg_id)
+        ts = (user or {}).get("last_active_at")
+        if not ts:
+            return False
+        return (datetime.now(timezone.utc) - ts).total_seconds() < _NOTIF_ACTIVE_SECS
+    except Exception:
+        return False
+
+
+async def _settle_and_notify(order_id, external_id=None, provider=None, expected_amount=None):
+    """Wrap settle_payment so a freshly-settled top-up notifies the buyer (payment
+    receipt) and any referral earners. Returns settle_payment's result unchanged."""
+    pay = await settle_payment(order_id, external_id, provider=provider,
+                               expected_amount=expected_amount)
+    if pay:   # non-None == settled on THIS call (idempotent: already-paid returns None)
+        try:
+            total = (pay.get("tokens") or 0) + (pay.get("bonus_tokens") or 0)
+            notif.notify_bg(pay["user_tg_id"], "payTg", btn_key="payBtn", page="create",
+                            n=total, k=max(1, total // 30))
+            for c in pay.get("ref_credits") or []:
+                notif.notify_bg(c["tg_id"], "refEarnTg", btn_key="partnerBtn", page="partner",
+                                amount=_fmt_rub(c["amount"]))
+        except Exception:
+            logger.exception("payment notify failed for %s", order_id)
+    return pay
+
+
+def _fmt_rub(v) -> str:
+    """Money for messages: drop the .0 on whole rubles (120.0 -> '120', 12.5 -> '12.5')."""
+    try:
+        f = float(v)
+        return str(int(f)) if f == int(f) else ("%.2f" % f).rstrip("0").rstrip(".")
+    except (TypeError, ValueError):
+        return str(v)
+
+
+async def _notify_gen_ready(tg_id: int, gen_type: str, count: int = 1):
+    """Notify the author that a generation finished — unless they're still in the app
+    (then the in-app toast already covers it)."""
+    if not tg_id:
+        return
+    if await _user_recently_active(tg_id):
+        return
+    if gen_type == "photo":
+        if count and count > 1:
+            notif.notify_bg(tg_id, "photosTgN", btn_key="viewBtn", page="history", n=count)
+        else:
+            notif.notify_bg(tg_id, "photoTg", btn_key="viewBtn", page="history")
+    elif gen_type == "video":
+        notif.notify_bg(tg_id, "videoTg", btn_key="viewBtn", page="history")
+    elif gen_type == "audio":
+        notif.notify_bg(tg_id, "audioTg", btn_key="listenBtn", page="history")
 
 
 def _serialize(obj):
@@ -1022,8 +1100,8 @@ async def api_topup_status(request: web.Request):
             ok, vorder, vamount = await pg.yookassa_verify(pay["external_id"])
             if ok and vorder == order_id:
                 try:
-                    await settle_payment(order_id, pay["external_id"], provider="yoomoney",
-                                         expected_amount=vamount)
+                    await _settle_and_notify(order_id, pay["external_id"], provider="yoomoney",
+                                             expected_amount=vamount)
                     pay = await get_payment(order_id) or pay
                 except Exception:
                     logger.exception("ЮKassa settle (status) failed for %s", order_id)
@@ -1031,8 +1109,8 @@ async def api_topup_status(request: web.Request):
             confirmed, amount = await pg.platega_verify(pay["external_id"])
             if confirmed:
                 try:
-                    await settle_payment(order_id, pay["external_id"], provider="platega",
-                                         expected_amount=amount)
+                    await _settle_and_notify(order_id, pay["external_id"], provider="platega",
+                                             expected_amount=amount)
                     pay = await get_payment(order_id) or pay
                 except Exception:
                     logger.exception("Platega settle (status) failed for %s", order_id)
@@ -1058,8 +1136,8 @@ async def api_pay_yoomoney(request: web.Request):
         ok, order_id, vamount = await pg.yookassa_verify(obj["id"])
         if ok and order_id:
             try:
-                await settle_payment(order_id, obj["id"], provider="yoomoney",
-                                     expected_amount=vamount)
+                await _settle_and_notify(order_id, obj["id"], provider="yoomoney",
+                                         expected_amount=vamount)
             except Exception:
                 logger.exception("ЮKassa settle failed for %s", order_id)
     return web.json_response({"ok": True})
@@ -1085,8 +1163,8 @@ async def api_pay_platega(request: web.Request):
             confirmed, amount = await pg.platega_verify(txid)
             if confirmed:
                 try:
-                    await settle_payment(order_id, txid, provider="platega",
-                                         expected_amount=amount)
+                    await _settle_and_notify(order_id, txid, provider="platega",
+                                             expected_amount=amount)
                 except Exception:
                     logger.exception("Platega settle failed for %s", order_id)
             else:
@@ -1144,7 +1222,32 @@ async def api_admin_withdrawal_set(request: web.Request):
     wd = await set_withdrawal_status(int(request.match_info["wd_id"]), status)
     if wd is None:
         return web.json_response({"error": "not_pending"}, status=409)
+    try:
+        amt = _fmt_rub(wd["amount_rub"])
+        if status == "paid":
+            notif.notify_bg(wd["user_tg_id"], "wdPaidTg", amount=amt)
+        elif status == "rejected":
+            notif.notify_bg(wd["user_tg_id"], "wdRejectTg",
+                            btn_key="partnerBtn", page="partner", amount=amt)
+    except Exception:
+        logger.exception("withdrawal notify failed for wd %s", wd.get("id"))
     return web.json_response(_row_to_json(wd))
+
+
+@routes.post("/api/heartbeat")
+async def api_heartbeat(request: web.Request):
+    """WebApp liveness ping → users.last_active_at. Used to suppress TG notification
+    duplicates while the user is actively in the app."""
+    tg_id = _authed_id(request)
+    if not tg_id:
+        return web.json_response({"ok": False}, status=401)
+    if not _rate_ok("hb:" + str(tg_id), 30, 60):
+        return web.json_response({"ok": True})   # silently accept; never error the app
+    try:
+        await touch_active(tg_id)
+    except Exception:
+        logger.exception("heartbeat touch_active failed for %s", tg_id)
+    return web.json_response({"ok": True})
 
 
 @routes.get("/api/models")
@@ -1597,6 +1700,7 @@ async def generate_image(request: web.Request):
     resp = await _run_generation(gen_id, tg_id, cost, f"photo:{model}", _build)
     if resp.get("__error__") or resp.get("__superseded__"):
         return web.json_response({"error": "generation_failed"}, status=500)
+    await _notify_gen_ready(tg_id, "photo", len(resp.get("file_urls") or []))
     return web.json_response(resp)
 
 
@@ -1663,6 +1767,7 @@ async def generate_video(request: web.Request):
     resp = await _run_generation(gen_id, tg_id, cost, f"video:{model}", _build)
     if resp.get("__error__") or resp.get("__superseded__"):
         return web.json_response({"error": "generation_failed"}, status=500)
+    await _notify_gen_ready(tg_id, "video")
     return web.json_response(resp)
 
 
@@ -1721,6 +1826,7 @@ async def generate_audio(request: web.Request):
     resp = await _run_generation(gen_id, tg_id, cost, f"audio:{model}", _build)
     if resp.get("__error__") or resp.get("__superseded__"):
         return web.json_response({"error": "generation_failed"}, status=500)
+    await _notify_gen_ready(tg_id, "audio")
     return web.json_response(resp)
 
 

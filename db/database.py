@@ -199,6 +199,10 @@ async def _create_tables():
             ALTER TABLE users ADD COLUMN IF NOT EXISTS banned BOOLEAN DEFAULT FALSE;
             ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_note TEXT;
 
+            -- Last WebApp activity (heartbeat) — used to suppress duplicate TG
+            -- notifications while the user is actively in the app.
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMPTZ;
+
             -- Generation templates ("тренды"). Light columns for the gallery list +
             -- a `definition` JSONB holding the heavy prompt/params/settings payload.
             CREATE TABLE IF NOT EXISTS templates (
