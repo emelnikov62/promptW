@@ -1943,7 +1943,9 @@ bindGen("gen-video","prompt-video","video");
 bindGen("gen-audio","prompt-audio","audio");
 (function(){
     var c=document.getElementById("gen-ov-close");
-    if(c) c.addEventListener("click", genOvClose);
+    // Closing the generation overlay sends the user to History, where the pending card
+    // shows the file still generating (showPage closes the overlay + loads history).
+    if(c) c.addEventListener("click", function(){ showPage("history"); });
 })();
 
 // Keyboard handling: when a text field is focused the on-screen keyboard opens and iOS
