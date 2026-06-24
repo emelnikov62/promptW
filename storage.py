@@ -91,6 +91,21 @@ def key_from_url(url: str) -> str:
     return url[len(prefix):] if url.startswith(prefix) else ""
 
 
+def media_name_from_url(url: str) -> str:
+    """Basename if `url` is one of OUR legacy '{WEBAPP_URL}/media/<name>' URLs (served
+    from disk, pre-S3 generations), else '' (foreign URL — refuse). Tolerates a
+    query/fragment suffix. Keeps the 'only our own media' guard: foreign hosts return ''."""
+    marker = "/media/"
+    base = (WEBAPP_URL + marker) if WEBAPP_URL else ""
+    if base and url.startswith(base):
+        tail = url[len(base):]
+    elif url.startswith(marker):           # relative legacy reference
+        tail = url[len(marker):]
+    else:
+        return ""
+    return os.path.basename(tail.split("?", 1)[0].split("#", 1)[0])
+
+
 def _local_url(filename: str) -> str:
     return "%s/media/%s" % (WEBAPP_URL, os.path.basename(filename))
 
