@@ -551,7 +551,7 @@ var I18N = {
         privS7p1: "7.1. Сервис может использовать локальное хранилище браузера (localStorage) для сохранения настроек интерфейса и авторизации.",
         privS7p2: "7.2. Сторонние cookie не используются. Рекламные трекеры не подключены.",
         privS8: "8. Контактная информация",
-        privS8p1: "8.1. По вопросам обработки персональных данных Пользователь может обратиться в поддержку через форму в боте или по адресу yakobanton23@mail.ru.",
+        privS8p1: "8.1. По вопросам обработки персональных данных Пользователь может обратиться в поддержку через форму в боте.",
         privAccept: "Используя Сервис, Пользователь подтверждает, что ознакомлен с настоящей Политикой конфиденциальности и согласен с её условиями.",
         // Offer
         offer: "Оферта",
@@ -560,7 +560,7 @@ var I18N = {
         offerDate: "Дата публикации: 1 апреля 2026 г.",
         offerCompany: "Реквизиты Исполнителя",
         offerS1: "1. Общие положения",
-        offerS1p1: "1.1. Настоящий документ является официальным предложением (публичной офертой) ИП Якоба Антон Алексеевич (далее — «Исполнитель») заключить договор на оказание услуг с любым физическим или юридическим лицом (далее — «Заказчик»).",
+        offerS1p1: "1.1. Настоящий документ является официальным предложением (публичной офертой) Администрации Сервиса (далее — «Исполнитель») заключить договор на оказание услуг с любым физическим или юридическим лицом (далее — «Заказчик»).",
         offerS1p2: "1.2. Оферта считается акцептованной с момента оплаты услуг Заказчиком. Акцепт оферты равнозначен заключению договора на условиях, изложенных в настоящей оферте.",
         offerS1p3: "1.3. Оферта действует в соответствии со ст. 435 и ст. 437 Гражданского кодекса Российской Федерации.",
         offerS2: "2. Предмет оферты",
@@ -607,7 +607,7 @@ var I18N = {
         offerS11p1: "11.1. Исполнитель вправе вносить изменения в условия оферты. Актуальная версия публикуется в Сервисе.",
         offerS11p2: "11.2. Продолжение использования Сервиса после публикации изменений означает согласие Заказчика с новыми условиями.",
         offerS12: "12. Контактная информация",
-        offerS12p1: "12.1. По всем вопросам Заказчик может обратиться в службу поддержки через форму в боте или по адресу yakobanton23@mail.ru.",
+        offerS12p1: "12.1. По всем вопросам Заказчик может обратиться в службу поддержки через форму в боте.",
         offerAccept: "Оплачивая услуги Сервиса, Заказчик подтверждает, что ознакомлен с условиями настоящей публичной оферты, принимает их в полном объёме и выражает свой акцепт.",
         // ── Уведомления (каталог: docs/specs/2026-06-23-notifications-catalog-and-copy-design.md) ──
         notif: {
@@ -1184,7 +1184,7 @@ var I18N = {
         privS7p1: "7.1. The Service may use browser local storage (localStorage) to save interface settings and authorization.",
         privS7p2: "7.2. Third-party cookies are not used. Advertising trackers are not connected.",
         privS8: "8. Contact Information",
-        privS8p1: "8.1. For questions about personal data processing, the User may contact support through the bot or at yakobanton23@mail.ru.",
+        privS8p1: "8.1. For questions about personal data processing, the User may contact support through the bot.",
         privAccept: "By using the Service, the User confirms that they have read this Privacy Policy and agree to its terms.",
         // Offer
         offer: "Offer",
@@ -1240,7 +1240,7 @@ var I18N = {
         offerS11p1: "11.1. The Provider may amend the offer terms. The current version is published in the Service.",
         offerS11p2: "11.2. Continued use of the Service after publication of changes constitutes the Client's acceptance of the new terms.",
         offerS12: "12. Contact Information",
-        offerS12p1: "12.1. For all inquiries, the Client may contact support through the bot or at yakobanton23@mail.ru.",
+        offerS12p1: "12.1. For all inquiries, the Client may contact support through the bot.",
         offerAccept: "By paying for the Service, the Client confirms that they have read the terms of this public offer, accept them in full, and express their acceptance.",
         // ── Notifications (catalogue: docs/specs/2026-06-23-notifications-catalog-and-copy-design.md) ──
         notif: {
@@ -1817,7 +1817,7 @@ var I18N = {
         privS7p1: "7.1. El Servicio puede utilizar el almacenamiento local del navegador (localStorage) para guardar la configuración de la interfaz y la autorización.",
         privS7p2: "7.2. No se utilizan cookies de terceros. No hay rastreadores publicitarios conectados.",
         privS8: "8. Información de contacto",
-        privS8p1: "8.1. Para consultas sobre el tratamiento de datos personales, el Usuario puede contactar con el soporte a través del bot o en yakobanton23@mail.ru.",
+        privS8p1: "8.1. Para consultas sobre el tratamiento de datos personales, el Usuario puede contactar con el soporte a través del bot.",
         privAccept: "Al utilizar el Servicio, el Usuario confirma que ha leído la presente Política de privacidad y acepta sus condiciones.",
         // Offer
         offer: "Oferta",
@@ -1873,7 +1873,7 @@ var I18N = {
         offerS11p1: "11.1. El Proveedor puede modificar los términos de la oferta. La versión actual se publica en el Servicio.",
         offerS11p2: "11.2. El uso continuado del Servicio después de la publicación de cambios constituye la aceptación de los nuevos términos por parte del Cliente.",
         offerS12: "12. Información de contacto",
-        offerS12p1: "12.1. Para cualquier consulta, el Cliente puede contactar con el soporte a través del bot o en yakobanton23@mail.ru.",
+        offerS12p1: "12.1. Para cualquier consulta, el Cliente puede contactar con el soporte a través del bot.",
         offerAccept: "Al pagar los servicios del Servicio, el Cliente confirma que ha leído los términos de la presente oferta pública, los acepta en su totalidad y expresa su aceptación.",
         // ── Notificaciones (catálogo: docs/specs/2026-06-23-notifications-catalog-and-copy-design.md) ──
         notif: {
