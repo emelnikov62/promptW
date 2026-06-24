@@ -360,6 +360,17 @@ async def _seed_templates():
                     UPDATE templates SET featured = $2, category = $3
                     WHERE id = $1 AND featured = FALSE AND category IS NULL
                 """, r["id"], r.get("featured", False), r.get("category"))
+                # One-time backfill: add any new language keys from the seed into the
+                # existing title JSONB. Runs only when a key is absent — never overwrites
+                # existing translations (admin-edited or already correct).
+                seed_title = r.get("title") or {}
+                for lang, val in seed_title.items():
+                    if val:
+                        await conn.execute("""
+                            UPDATE templates
+                            SET title = title || jsonb_build_object($2::text, $3::text)
+                            WHERE id = $1 AND NOT (title ? $2)
+                        """, r["id"], lang, val)
         if inserted:
             logger.info("Seeded %d new template(s)", inserted)
     except Exception:
