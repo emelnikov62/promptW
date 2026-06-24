@@ -1996,9 +1996,7 @@ async def api_send_media(request: web.Request):
     # Resolve the media source. s3: stream the object's bytes through the bot
     # (BufferedInputFile); legacy/local: serve the on-disk file, contained to
     # MEDIA_DIR (basename strips traversal; realpath blocks edge cases).
-    if storage.is_remote(file_url):
-        if not storage.key_from_url(file_url):
-            return web.json_response({"error": "file not found"}, status=404)
+    if storage.is_remote(file_url) and storage.key_from_url(file_url):
         try:
             src = BufferedInputFile(await storage.aget_bytes(file_url),
                                     filename=os.path.basename(file_url))
@@ -2006,7 +2004,16 @@ async def api_send_media(request: web.Request):
             logger.exception("send-media: s3 fetch failed")
             return web.json_response({"error": "file not found"}, status=404)
     else:
-        filepath = os.path.join(MEDIA_DIR, os.path.basename(file_url))
+        # Local-disk file: either a bare path (dev) or one of OUR legacy
+        # '{WEBAPP_URL}/media/<file>' URLs (pre-S3 generations, still served from disk).
+        # A foreign remote URL yields '' here → refused below.
+        if storage.is_remote(file_url):
+            fname = storage.media_name_from_url(file_url)
+            if not fname:
+                return web.json_response({"error": "file not found"}, status=404)
+        else:
+            fname = os.path.basename(file_url)
+        filepath = os.path.join(MEDIA_DIR, fname)
         if os.path.realpath(filepath).startswith(os.path.realpath(MEDIA_DIR) + os.sep) is False \
                 or not os.path.isfile(filepath):
             return web.json_response({"error": "file not found"}, status=404)
@@ -2044,10 +2051,19 @@ async def api_share_media(request: web.Request):
         return web.json_response({"error": "bad_request"}, status=400)
     # Only allow our own media (no arbitrary-URL inline messages). s3: the public
     # object URL is Telegram-fetchable as-is; legacy/local: serve via WEBAPP_URL.
-    if storage.is_remote(file_url):
-        if not storage.key_from_url(file_url):
+    if storage.is_remote(file_url) and storage.key_from_url(file_url):
+        public_url = file_url                       # our S3 object — already public
+    elif storage.is_remote(file_url) and storage.media_name_from_url(file_url):
+        # OUR legacy '{WEBAPP_URL}/media/<file>' URL (pre-S3) — already a public,
+        # Telegram-fetchable URL; just verify the object still exists on disk.
+        fname = storage.media_name_from_url(file_url)
+        filepath = os.path.join(MEDIA_DIR, fname)
+        if not os.path.realpath(filepath).startswith(os.path.realpath(MEDIA_DIR) + os.sep) \
+                or not os.path.isfile(filepath):
             return web.json_response({"error": "file_not_found"}, status=404)
         public_url = file_url
+    elif storage.is_remote(file_url):
+        return web.json_response({"error": "file_not_found"}, status=404)  # foreign URL — refuse
     else:
         fname = os.path.basename(file_url)
         filepath = os.path.join(MEDIA_DIR, fname)
