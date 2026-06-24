@@ -1337,7 +1337,7 @@ function chatDayLabel(ts){
     if(sameDay) return chatTime(ts);
     var yest = new Date(now); yest.setDate(now.getDate()-1);
     if(d.toDateString() === yest.toDateString()) return t("chatYesterday");
-    return d.toLocaleDateString(currentLang === "ru" ? "ru-RU" : (currentLang==="es"?"es-ES":"en-US"), { day:"2-digit", month:"2-digit" });
+    return d.toLocaleDateString(currentLang === "ru" ? "ru-RU" : (currentLang==="es"?"es-ES":(currentLang==="uz"?"uz-UZ":"en-US")), { day:"2-digit", month:"2-digit" });
 }
 function chatRenderContent(text){
     var esc = escHtml(text);

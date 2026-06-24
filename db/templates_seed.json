@@ -9,7 +9,8 @@
     "title": {
       "ru": "С днём рождения фото",
       "en": "Birthday photo",
-      "es": "Foto de cumpleaños"
+      "es": "Foto de cumpleaños",
+      "uz": "Tug'ilgan kun fotosi"
     },
     "preview": {
       "img": "/static/tpl/birthday-photo.jpg",
@@ -230,7 +231,8 @@
     "title": {
       "ru": "С днём рождения видео",
       "en": "Birthday video",
-      "es": "Video de cumpleaños"
+      "es": "Video de cumpleaños",
+      "uz": "Tug'ilgan kun videosi"
     },
     "preview": {
       "img": "/static/tpl/birthday-video.mp4?v=2",
@@ -267,7 +269,8 @@
     "title": {
       "ru": "На яхте фото",
       "en": "Yacht photo",
-      "es": "Foto en yate"
+      "es": "Foto en yate",
+      "uz": "Yaxtada foto"
     },
     "preview": {
       "img": "/static/tpl/yacht-photo.jpg",
@@ -476,7 +479,8 @@
     "title": {
       "ru": "На яхте видео",
       "en": "Yacht video",
-      "es": "Video en yate"
+      "es": "Video en yate",
+      "uz": "Yaxtada video"
     },
     "preview": {
       "img": "/static/tpl/yacht-video.mp4",
@@ -510,7 +514,8 @@
     "title": {
       "ru": "Девушка с розами",
       "en": "Girl with roses",
-      "es": "Chica con rosas"
+      "es": "Chica con rosas",
+      "uz": "Atirgullar bilan qiz"
     },
     "preview": {
       "img": "/static/tpl/girl-roses-photo.jpg",
@@ -773,7 +778,8 @@
     "title": {
       "ru": "Селфи на закате",
       "en": "Sunset selfie",
-      "es": "Selfie al atardecer"
+      "es": "Selfie al atardecer",
+      "uz": "Botishda selfi"
     },
     "preview": {
       "img": "/static/tpl/girl-sunset-photo.jpg",
@@ -998,7 +1004,8 @@
     "title": {
       "ru": "В кабриолете",
       "en": "In the cabrio",
-      "es": "En el cabrio"
+      "es": "En el cabrio",
+      "uz": "Kabrioletda"
     },
     "preview": {
       "img": "/static/tpl/girl-porsche-photo.jpg",
@@ -1270,7 +1277,8 @@
     "title": {
       "ru": "Обложка VOGUE",
       "en": "VOGUE cover",
-      "es": "Portada VOGUE"
+      "es": "Portada VOGUE",
+      "uz": "VOGUE muqovasi"
     },
     "preview": {
       "img": "/static/tpl/girl-vogue-photo.jpg",
@@ -1486,7 +1494,8 @@
     "title": {
       "ru": "Неон",
       "en": "Neon",
-      "es": "Neón"
+      "es": "Neón",
+      "uz": "Neon"
     },
     "preview": {
       "img": "/static/tpl/girl-neon-photo.jpg",
@@ -1684,7 +1693,8 @@
     "title": {
       "ru": "Бизнес-класс",
       "en": "Business Class",
-      "es": "Clase Business"
+      "es": "Clase Business",
+      "uz": "Biznes klass"
     },
     "preview": {
       "img": "/static/tpl/man-jet-photo.jpg",
@@ -1956,7 +1966,8 @@
     "title": {
       "ru": "Суперкар",
       "en": "Supercar",
-      "es": "Superdeportivo"
+      "es": "Superdeportivo",
+      "uz": "Superkar"
     },
     "preview": {
       "img": "/static/tpl/man-supercar-photo.jpg",
@@ -2228,7 +2239,8 @@
     "title": {
       "ru": "Босс",
       "en": "The Boss",
-      "es": "El Jefe"
+      "es": "El Jefe",
+      "uz": "Boss"
     },
     "preview": {
       "img": "/static/tpl/man-boss-photo.jpg",
@@ -2426,7 +2438,8 @@
     "title": {
       "ru": "Острые козырьки",
       "en": "Peaky Blinders",
-      "es": "Peaky Blinders"
+      "es": "Peaky Blinders",
+      "uz": "Peaky Blinders"
     },
     "preview": {
       "img": "/static/tpl/man-gangster-photo.jpg",
@@ -2615,7 +2628,8 @@
     "title": {
       "ru": "Горы",
       "en": "Alpine",
-      "es": "Montañas"
+      "es": "Montañas",
+      "uz": "Tog'lar"
     },
     "preview": {
       "img": "/static/tpl/man-alpine-photo.jpg",
@@ -2804,7 +2818,8 @@
     "title": {
       "ru": "Met Gala",
       "en": "Met Gala",
-      "es": "Met Gala"
+      "es": "Met Gala",
+      "uz": "Met Gala"
     },
     "preview": {
       "img": "/static/tpl/girl-metgala-photo.jpg",
@@ -2955,7 +2970,8 @@
     "title": {
       "ru": "Куршевель",
       "en": "Courchevel",
-      "es": "Courchevel"
+      "es": "Courchevel",
+      "uz": "Courchevel"
     },
     "preview": {
       "img": "/static/tpl/girl-courchevel-photo.jpg",
@@ -3106,7 +3122,8 @@
     "title": {
       "ru": "Парижанка",
       "en": "Parisian",
-      "es": "Parisina"
+      "es": "Parisina",
+      "uz": "Parij qizi"
     },
     "preview": {
       "img": "/static/tpl/girl-paris-photo.jpg",
@@ -3257,7 +3274,8 @@
     "title": {
       "ru": "Дубай",
       "en": "Dubai",
-      "es": "Dubái"
+      "es": "Dubái",
+      "uz": "Dubai"
     },
     "preview": {
       "img": "/static/tpl/girl-dubai-photo.jpg",
@@ -3408,7 +3426,8 @@
     "title": {
       "ru": "Фитнес",
       "en": "Fitness",
-      "es": "Fitness"
+      "es": "Fitness",
+      "uz": "Fitnes"
     },
     "preview": {
       "img": "/static/tpl/girl-gym-photo.jpg",
@@ -3530,7 +3549,8 @@
     "title": {
       "ru": "Боец",
       "en": "Boxer",
-      "es": "Boxeador"
+      "es": "Boxeador",
+      "uz": "Jangchi"
     },
     "preview": {
       "img": "/static/tpl/man-boxer-photo.jpg",
@@ -3681,7 +3701,8 @@
     "title": {
       "ru": "Байкер",
       "en": "Biker",
-      "es": "Motero"
+      "es": "Motero",
+      "uz": "Bayker"
     },
     "preview": {
       "img": "/static/tpl/man-biker-photo.jpg",
@@ -3832,7 +3853,8 @@
     "title": {
       "ru": "Пилот",
       "en": "Pilot",
-      "es": "Piloto"
+      "es": "Piloto",
+      "uz": "Pilot"
     },
     "preview": {
       "img": "/static/tpl/man-pilot-photo.jpg",
@@ -3974,7 +3996,8 @@
     "title": {
       "ru": "Футболист",
       "en": "Footballer",
-      "es": "Futbolista"
+      "es": "Futbolista",
+      "uz": "Futbolchi"
     },
     "preview": {
       "img": "/static/tpl/man-footballer-photo.jpg",
@@ -4143,7 +4166,8 @@
     "title": {
       "ru": "Формула-1",
       "en": "Formula 1",
-      "es": "Fórmula 1"
+      "es": "Fórmula 1",
+      "uz": "Formula-1"
     },
     "preview": {
       "img": "/static/tpl/man-f1-photo.jpg",
@@ -4323,7 +4347,8 @@
     "title": {
       "ru": "Супергерой",
       "en": "Superhero",
-      "es": "Superhéroe"
+      "es": "Superhéroe",
+      "uz": "Superkahramonlar"
     },
     "preview": {
       "img": "/static/tpl/cine-superhero-photo.jpg",
@@ -4483,7 +4508,8 @@
     "title": {
       "ru": "Маг",
       "en": "Wizard",
-      "es": "Mago"
+      "es": "Mago",
+      "uz": "Sehrgar"
     },
     "preview": {
       "img": "/static/tpl/cine-wizard-photo.jpg",
@@ -4643,7 +4669,8 @@
     "title": {
       "ru": "Киберпанк",
       "en": "Cyberpunk",
-      "es": "Cyberpunk"
+      "es": "Cyberpunk",
+      "uz": "Kiberpank"
     },
     "preview": {
       "img": "/static/tpl/cine-cyberpunk-photo.jpg",
@@ -4794,7 +4821,8 @@
     "title": {
       "ru": "Викинг",
       "en": "Viking",
-      "es": "Vikingo"
+      "es": "Vikingo",
+      "uz": "Viking"
     },
     "preview": {
       "img": "/static/tpl/cine-viking-photo.jpg",
@@ -4945,7 +4973,8 @@
     "title": {
       "ru": "Постапокалипсис",
       "en": "Apocalypse",
-      "es": "Apocalipsis"
+      "es": "Apocalipsis",
+      "uz": "Apokalipsis"
     },
     "preview": {
       "img": "/static/tpl/cine-apocalypse-photo.jpg",
@@ -5096,7 +5125,8 @@
     "title": {
       "ru": "Космонавт",
       "en": "Astronaut",
-      "es": "Astronauta"
+      "es": "Astronauta",
+      "uz": "Kosmonavt"
     },
     "preview": {
       "img": "/static/tpl/job-astronaut-photo.jpg",
@@ -5238,7 +5268,8 @@
     "title": {
       "ru": "Хирург",
       "en": "Surgeon",
-      "es": "Cirujano"
+      "es": "Cirujano",
+      "uz": "Jarroh"
     },
     "preview": {
       "img": "/static/tpl/job-surgeon-photo.jpg",
@@ -5389,7 +5420,8 @@
     "title": {
       "ru": "Шеф-повар",
       "en": "Chef",
-      "es": "Chef"
+      "es": "Chef",
+      "uz": "Oshpaz"
     },
     "preview": {
       "img": "/static/tpl/job-chef-photo.jpg",
@@ -5540,7 +5572,8 @@
     "title": {
       "ru": "Офицер",
       "en": "Officer",
-      "es": "Oficial"
+      "es": "Oficial",
+      "uz": "Ofitser"
     },
     "preview": {
       "img": "/static/tpl/job-officer-photo.jpg",
@@ -5691,7 +5724,8 @@
     "title": {
       "ru": "Пожарный",
       "en": "Firefighter",
-      "es": "Bombero"
+      "es": "Bombero",
+      "uz": "O'tni o'chiruvchi"
     },
     "preview": {
       "img": "/static/tpl/job-firefighter-photo.jpg",
@@ -5842,7 +5876,8 @@
     "title": {
       "ru": "1920-е",
       "en": "The 1920s",
-      "es": "Los años 20"
+      "es": "Los años 20",
+      "uz": "1920-yillar"
     },
     "preview": {
       "img": "/static/tpl/era-1920s-photo.jpg",
@@ -5993,7 +6028,8 @@
     "title": {
       "ru": "СССР-ретро",
       "en": "Soviet retro",
-      "es": "Retro soviético"
+      "es": "Retro soviético",
+      "uz": "SSSR retro"
     },
     "preview": {
       "img": "/static/tpl/era-ussr-photo.jpg",
@@ -6144,7 +6180,8 @@
     "title": {
       "ru": "Древний Рим",
       "en": "Ancient Rome",
-      "es": "Antigua Roma"
+      "es": "Antigua Roma",
+      "uz": "Qadimgi Rim"
     },
     "preview": {
       "img": "/static/tpl/era-rome-photo.jpg",
@@ -6295,7 +6332,8 @@
     "title": {
       "ru": "Рыцарь",
       "en": "Knight",
-      "es": "Caballero"
+      "es": "Caballero",
+      "uz": "Ritsar"
     },
     "preview": {
       "img": "/static/tpl/era-knight-photo.jpg",
@@ -6446,7 +6484,8 @@
     "title": {
       "ru": "Дикий Запад",
       "en": "Wild West",
-      "es": "Salvaje Oeste"
+      "es": "Salvaje Oeste",
+      "uz": "Yovvoyi G'arb"
     },
     "preview": {
       "img": "/static/tpl/era-western-photo.jpg",
@@ -6598,7 +6637,8 @@
     "title": {
       "ru": "Маленький супергерой",
       "en": "Little superhero",
-      "es": "Pequeño superhéroe"
+      "es": "Pequeño superhéroe",
+      "uz": "Kichik superkahramonlar"
     },
     "preview": {
       "img": "/static/tpl/kid-superhero.jpg",
@@ -6720,7 +6760,8 @@
     "title": {
       "ru": "Космонавт-малыш",
       "en": "Little astronaut",
-      "es": "Pequeño astronauta"
+      "es": "Pequeño astronauta",
+      "uz": "Kichik kosmonavt"
     },
     "preview": {
       "img": "/static/tpl/kid-astronaut.jpg",
@@ -6833,7 +6874,8 @@
     "title": {
       "ru": "Юный футболист",
       "en": "Young footballer",
-      "es": "Joven futbolista"
+      "es": "Joven futbolista",
+      "uz": "Yosh futbolchi"
     },
     "preview": {
       "img": "/static/tpl/kid-footballer.jpg",
@@ -6955,7 +6997,8 @@
     "title": {
       "ru": "Маленький доктор",
       "en": "Little doctor",
-      "es": "Pequeño doctor"
+      "es": "Pequeño doctor",
+      "uz": "Kichik shifokor"
     },
     "preview": {
       "img": "/static/tpl/kid-doctor.jpg",
@@ -7030,7 +7073,8 @@
     "title": {
       "ru": "Маленький шеф-повар",
       "en": "Little chef",
-      "es": "Pequeño chef"
+      "es": "Pequeño chef",
+      "uz": "Kichik oshpaz"
     },
     "preview": {
       "img": "/static/tpl/kid-chef.jpg",
@@ -7105,7 +7149,8 @@
     "title": {
       "ru": "Юный пилот",
       "en": "Young pilot",
-      "es": "Joven piloto"
+      "es": "Joven piloto",
+      "uz": "Yosh pilot"
     },
     "preview": {
       "img": "/static/tpl/kid-pilot.jpg",
@@ -7180,7 +7225,8 @@
     "title": {
       "ru": "Принц и принцесса",
       "en": "Prince & princess",
-      "es": "Príncipe y princesa"
+      "es": "Príncipe y princesa",
+      "uz": "Shahzoda va malikasi"
     },
     "preview": {
       "img": "/static/tpl/kid-prince.jpg",
@@ -7302,7 +7348,8 @@
     "title": {
       "ru": "Маленький волшебник",
       "en": "Little wizard",
-      "es": "Pequeño mago"
+      "es": "Pequeño mago",
+      "uz": "Kichik sehrgar"
     },
     "preview": {
       "img": "/static/tpl/kid-wizard.jpg",
@@ -7424,7 +7471,8 @@
     "title": {
       "ru": "Фея и эльф",
       "en": "Fairy & elf",
-      "es": "Hada y elfo"
+      "es": "Hada y elfo",
+      "uz": "Pariy va elf"
     },
     "preview": {
       "img": "/static/tpl/kid-fairy.jpg",
@@ -7537,7 +7585,8 @@
     "title": {
       "ru": "Мальдивы",
       "en": "Maldives",
-      "es": "Maldivas"
+      "es": "Maldivas",
+      "uz": "Maldiv"
     },
     "preview": {
       "img": "/static/tpl/travel-maldives.jpg",
@@ -7641,7 +7690,8 @@
     "title": {
       "ru": "Токио",
       "en": "Tokyo",
-      "es": "Tokio"
+      "es": "Tokio",
+      "uz": "Tokio"
     },
     "preview": {
       "img": "/static/tpl/travel-tokyo.jpg",
@@ -7745,7 +7795,8 @@
     "title": {
       "ru": "Сафари",
       "en": "Safari",
-      "es": "Safari"
+      "es": "Safari",
+      "uz": "Safari"
     },
     "preview": {
       "img": "/static/tpl/travel-safari.jpg",
@@ -7820,7 +7871,8 @@
     "title": {
       "ru": "Санторини",
       "en": "Santorini",
-      "es": "Santorini"
+      "es": "Santorini",
+      "uz": "Santorini"
     },
     "preview": {
       "img": "/static/tpl/travel-santorini.jpg",
@@ -7924,7 +7976,8 @@
     "title": {
       "ru": "Северное сияние",
       "en": "Northern lights",
-      "es": "Aurora boreal"
+      "es": "Aurora boreal",
+      "uz": "Shimoliy chiroq"
     },
     "preview": {
       "img": "/static/tpl/travel-aurora.jpg",
@@ -7999,7 +8052,8 @@
     "title": {
       "ru": "Венеция",
       "en": "Venice",
-      "es": "Venecia"
+      "es": "Venecia",
+      "uz": "Venetsiya"
     },
     "preview": {
       "img": "/static/tpl/girl-venice-photo.jpg",
@@ -8103,7 +8157,8 @@
     "title": {
       "ru": "Сакура",
       "en": "Sakura",
-      "es": "Sakura"
+      "es": "Sakura",
+      "uz": "Sakura"
     },
     "preview": {
       "img": "/static/tpl/girl-sakura-photo.jpg",
@@ -8216,7 +8271,8 @@
     "title": {
       "ru": "Конный клуб",
       "en": "Equestrian Club",
-      "es": "Club ecuestre"
+      "es": "Club ecuestre",
+      "uz": "Chavandozlik"
     },
     "preview": {
       "img": "/static/tpl/girl-equestrian-photo.jpg",
@@ -8358,7 +8414,8 @@
     "title": {
       "ru": "Крыша-бар",
       "en": "Rooftop Bar",
-      "es": "Bar en la azotea"
+      "es": "Bar en la azotea",
+      "uz": "Tom bari"
     },
     "preview": {
       "img": "/static/tpl/girl-rooftop-photo.jpg",
@@ -8509,7 +8566,8 @@
     "title": {
       "ru": "Виноградник",
       "en": "Vineyard",
-      "es": "Viñedo"
+      "es": "Viñedo",
+      "uz": "Uzumzor"
     },
     "preview": {
       "img": "/static/tpl/girl-vineyard-photo.jpg",
@@ -8613,7 +8671,8 @@
     "title": {
       "ru": "Пустыня",
       "en": "Desert",
-      "es": "Desierto"
+      "es": "Desierto",
+      "uz": "Sahroi"
     },
     "preview": {
       "img": "/static/tpl/girl-dunes-photo.jpg",
@@ -8726,7 +8785,8 @@
     "title": {
       "ru": "Арт-галерея",
       "en": "Art Gallery",
-      "es": "Galería de arte"
+      "es": "Galería de arte",
+      "uz": "San'at galereyasi"
     },
     "preview": {
       "img": "/static/tpl/girl-gallery-photo.jpg",
@@ -8839,7 +8899,8 @@
     "title": {
       "ru": "Осень",
       "en": "Autumn",
-      "es": "Otoño"
+      "es": "Otoño",
+      "uz": "Kuz"
     },
     "preview": {
       "img": "/static/tpl/girl-autumn-photo.jpg",
@@ -8952,7 +9013,8 @@
     "title": {
       "ru": "Смокинг",
       "en": "Tuxedo",
-      "es": "Esmoquin"
+      "es": "Esmoquin",
+      "uz": "Smoking"
     },
     "preview": {
       "img": "/static/tpl/man-tuxedo-photo.jpg",
@@ -9094,7 +9156,8 @@
     "title": {
       "ru": "Вертолёт",
       "en": "Helicopter",
-      "es": "Helicóptero"
+      "es": "Helicóptero",
+      "uz": "Vertolyot"
     },
     "preview": {
       "img": "/static/tpl/man-helicopter-photo.jpg",
@@ -9207,7 +9270,8 @@
     "title": {
       "ru": "Гольф",
       "en": "Golf",
-      "es": "Golf"
+      "es": "Golf",
+      "uz": "Golf"
     },
     "preview": {
       "img": "/static/tpl/man-golf-photo.jpg",
@@ -9340,7 +9404,8 @@
     "title": {
       "ru": "Рок-звезда",
       "en": "Rock star",
-      "es": "Estrella de rock"
+      "es": "Estrella de rock",
+      "uz": "Rok yulduz"
     },
     "preview": {
       "img": "/static/tpl/man-rockstar-photo.jpg",
@@ -9491,7 +9556,8 @@
     "title": {
       "ru": "Пентхаус",
       "en": "Penthouse",
-      "es": "Ático"
+      "es": "Ático",
+      "uz": "Penthaus"
     },
     "preview": {
       "img": "/static/tpl/man-penthouse-photo.jpg",
@@ -9633,7 +9699,8 @@
     "title": {
       "ru": "Кабриолет",
       "en": "Convertible",
-      "es": "Descapotable"
+      "es": "Descapotable",
+      "uz": "Kabriolet"
     },
     "preview": {
       "img": "/static/tpl/man-convertible-photo.jpg",
@@ -9775,7 +9842,8 @@
     "title": {
       "ru": "Капитан яхты",
       "en": "Yacht captain",
-      "es": "Capitán de yate"
+      "es": "Capitán de yate",
+      "uz": "Yaxta kapitani"
     },
     "preview": {
       "img": "/static/tpl/man-captain-photo.jpg",
@@ -9879,7 +9947,8 @@
     "title": {
       "ru": "Покер",
       "en": "Poker",
-      "es": "Póker"
+      "es": "Póker",
+      "uz": "Poker"
     },
     "preview": {
       "img": "/static/tpl/man-poker-photo.jpg",
@@ -10021,7 +10090,8 @@
     "title": {
       "ru": "Пожарный",
       "en": "Firefighter",
-      "es": "Bombero"
+      "es": "Bombero",
+      "uz": "Kichik o't o'chiruvchi"
     },
     "preview": {
       "img": "/static/tpl/kid-firefighter.jpg",
@@ -10154,7 +10224,8 @@
     "title": {
       "ru": "Полицейский",
       "en": "Police Officer",
-      "es": "Policía"
+      "es": "Policía",
+      "uz": "Kichik politsiyachi"
     },
     "preview": {
       "img": "/static/tpl/kid-police.jpg",
@@ -10287,7 +10358,8 @@
     "title": {
       "ru": "Учёный",
       "en": "Scientist",
-      "es": "Científico"
+      "es": "Científico",
+      "uz": "Kichik olim"
     },
     "preview": {
       "img": "/static/tpl/kid-scientist.jpg",
@@ -10420,7 +10492,8 @@
     "title": {
       "ru": "Исследователь",
       "en": "Explorer",
-      "es": "Explorador"
+      "es": "Explorador",
+      "uz": "Tadqiqotchi"
     },
     "preview": {
       "img": "/static/tpl/kid-explorer.jpg",
@@ -10553,7 +10626,8 @@
     "title": {
       "ru": "Балерина",
       "en": "Ballerina",
-      "es": "Bailarina"
+      "es": "Bailarina",
+      "uz": "Balerina"
     },
     "preview": {
       "img": "/static/tpl/kid-ballerina.jpg",
@@ -10666,7 +10740,8 @@
     "title": {
       "ru": "Пират",
       "en": "Pirate",
-      "es": "Pirata"
+      "es": "Pirata",
+      "uz": "Qaroqchi"
     },
     "preview": {
       "img": "/static/tpl/kid-pirate.jpg",
@@ -10799,7 +10874,8 @@
     "title": {
       "ru": "Гонщик",
       "en": "Racer",
-      "es": "Piloto de carreras"
+      "es": "Piloto de carreras",
+      "uz": "Poyabdoz"
     },
     "preview": {
       "img": "/static/tpl/kid-racer.jpg",
@@ -10932,7 +11008,8 @@
     "title": {
       "ru": "Нью-Йорк",
       "en": "New York",
-      "es": "Nueva York"
+      "es": "Nueva York",
+      "uz": "Nyu-York"
     },
     "preview": {
       "img": "/static/tpl/travel-newyork.jpg",
@@ -11036,7 +11113,8 @@
     "title": {
       "ru": "Египет",
       "en": "Egypt",
-      "es": "Egipto"
+      "es": "Egipto",
+      "uz": "Misr"
     },
     "preview": {
       "img": "/static/tpl/travel-egypt.jpg",
@@ -11140,7 +11218,8 @@
     "title": {
       "ru": "Бали",
       "en": "Bali",
-      "es": "Bali"
+      "es": "Bali",
+      "uz": "Bali"
     },
     "preview": {
       "img": "/static/tpl/travel-bali.jpg",
@@ -11253,7 +11332,8 @@
     "title": {
       "ru": "Швейцарские Альпы",
       "en": "Swiss Alps",
-      "es": "Alpes suizos"
+      "es": "Alpes suizos",
+      "uz": "Shveytsariya Alplari"
     },
     "preview": {
       "img": "/static/tpl/travel-swissalps.jpg",
@@ -11357,7 +11437,8 @@
     "title": {
       "ru": "Лондон",
       "en": "London",
-      "es": "Londres"
+      "es": "Londres",
+      "uz": "London"
     },
     "preview": {
       "img": "/static/tpl/travel-london.jpg",
@@ -11461,7 +11542,8 @@
     "title": {
       "ru": "Рио",
       "en": "Rio",
-      "es": "Río"
+      "es": "Río",
+      "uz": "Rio"
     },
     "preview": {
       "img": "/static/tpl/travel-rio.jpg",
@@ -11565,7 +11647,8 @@
     "title": {
       "ru": "Мачу-Пикчу",
       "en": "Machu Picchu",
-      "es": "Machu Picchu"
+      "es": "Machu Picchu",
+      "uz": "Machu Picchu"
     },
     "preview": {
       "img": "/static/tpl/travel-machu.jpg",
@@ -11669,7 +11752,8 @@
     "title": {
       "ru": "Шпион",
       "en": "Spy",
-      "es": "Espía"
+      "es": "Espía",
+      "uz": "Josus"
     },
     "preview": {
       "img": "/static/tpl/cine-spy-photo.jpg",
@@ -11820,7 +11904,8 @@
     "title": {
       "ru": "Пират",
       "en": "Pirate",
-      "es": "Pirata"
+      "es": "Pirata",
+      "uz": "Qaroqchi"
     },
     "preview": {
       "img": "/static/tpl/cine-pirate-photo.jpg",
@@ -11962,7 +12047,8 @@
     "title": {
       "ru": "Капитан звездолёта",
       "en": "Starship Captain",
-      "es": "Capitán de nave"
+      "es": "Capitán de nave",
+      "uz": "Yulduzli kema kapitani"
     },
     "preview": {
       "img": "/static/tpl/cine-spacecaptain-photo.jpg",
@@ -12075,7 +12161,8 @@
     "title": {
       "ru": "Хакер",
       "en": "Hacker",
-      "es": "Hacker"
+      "es": "Hacker",
+      "uz": "Xaker"
     },
     "preview": {
       "img": "/static/tpl/cine-matrix-photo.jpg",
@@ -12208,7 +12295,8 @@
     "title": {
       "ru": "Вампир",
       "en": "Vampire",
-      "es": "Vampiro"
+      "es": "Vampiro",
+      "uz": "Vampir"
     },
     "preview": {
       "img": "/static/tpl/cine-vampire-photo.jpg",
@@ -12350,7 +12438,8 @@
     "title": {
       "ru": "Греческий бог",
       "en": "Greek God",
-      "es": "Dios griego"
+      "es": "Dios griego",
+      "uz": "Yunoniston xudosi"
     },
     "preview": {
       "img": "/static/tpl/cine-greekgod-photo.jpg",
@@ -12501,7 +12590,8 @@
     "title": {
       "ru": "Нуар",
       "en": "Noir",
-      "es": "Noir"
+      "es": "Noir",
+      "uz": "Nuar"
     },
     "preview": {
       "img": "/static/tpl/cine-noir-photo.jpg",
@@ -12643,7 +12733,8 @@
     "title": {
       "ru": "Учёный",
       "en": "Scientist",
-      "es": "Científico"
+      "es": "Científico",
+      "uz": "Olim"
     },
     "preview": {
       "img": "/static/tpl/job-scientist-photo.jpg",
@@ -12785,7 +12876,8 @@
     "title": {
       "ru": "Фотограф",
       "en": "Photographer",
-      "es": "Fotógrafo"
+      "es": "Fotógrafo",
+      "uz": "Fotograf"
     },
     "preview": {
       "img": "/static/tpl/job-photographer-photo.jpg",
@@ -12927,7 +13019,8 @@
     "title": {
       "ru": "Архитектор",
       "en": "Architect",
-      "es": "Arquitecto"
+      "es": "Arquitecto",
+      "uz": "Arxitektor"
     },
     "preview": {
       "img": "/static/tpl/job-architect-photo.jpg",
@@ -13069,7 +13162,8 @@
     "title": {
       "ru": "Военный",
       "en": "Soldier",
-      "es": "Militar"
+      "es": "Militar",
+      "uz": "Askar"
     },
     "preview": {
       "img": "/static/tpl/job-soldier-photo.jpg",
@@ -13211,7 +13305,8 @@
     "title": {
       "ru": "Диджей",
       "en": "DJ",
-      "es": "DJ"
+      "es": "DJ",
+      "uz": "DJ"
     },
     "preview": {
       "img": "/static/tpl/job-dj-photo.jpg",
@@ -13362,7 +13457,8 @@
     "title": {
       "ru": "Дайвер",
       "en": "Diver",
-      "es": "Buzo"
+      "es": "Buzo",
+      "uz": "Dalgich"
     },
     "preview": {
       "img": "/static/tpl/job-diver-photo.jpg",
@@ -13495,7 +13591,8 @@
     "title": {
       "ru": "Ветеринар",
       "en": "Veterinarian",
-      "es": "Veterinario"
+      "es": "Veterinario",
+      "uz": "Veterinar"
     },
     "preview": {
       "img": "/static/tpl/job-vet-photo.jpg",
@@ -13637,7 +13734,8 @@
     "title": {
       "ru": "60-е",
       "en": "The 60s",
-      "es": "Los 60"
+      "es": "Los 60",
+      "uz": "60-yillar"
     },
     "preview": {
       "img": "/static/tpl/era-60s-photo.jpg",
@@ -13779,7 +13877,8 @@
     "title": {
       "ru": "80-е",
       "en": "The 80s",
-      "es": "Los 80"
+      "es": "Los 80",
+      "uz": "80-yillar"
     },
     "preview": {
       "img": "/static/tpl/era-80s-photo.jpg",
@@ -13921,7 +14020,8 @@
     "title": {
       "ru": "Викторианская эпоха",
       "en": "Victorian era",
-      "es": "Época victoriana"
+      "es": "Época victoriana",
+      "uz": "Viktoriya davri"
     },
     "preview": {
       "img": "/static/tpl/era-victorian-photo.jpg",
@@ -14063,7 +14163,8 @@
     "title": {
       "ru": "Древний Египет",
       "en": "Ancient Egypt",
-      "es": "Antiguo Egipto"
+      "es": "Antiguo Egipto",
+      "uz": "Qadimgi Misr"
     },
     "preview": {
       "img": "/static/tpl/era-egypt-photo.jpg",
@@ -14214,7 +14315,8 @@
     "title": {
       "ru": "Возрождение",
       "en": "Renaissance",
-      "es": "Renacimiento"
+      "es": "Renacimiento",
+      "uz": "Uyg'onish davri"
     },
     "preview": {
       "img": "/static/tpl/era-renaissance-photo.jpg",
@@ -14365,7 +14467,8 @@
     "title": {
       "ru": "Самурай",
       "en": "Samurai",
-      "es": "Samurái"
+      "es": "Samurái",
+      "uz": "Samuray"
     },
     "preview": {
       "img": "/static/tpl/era-samurai-photo.jpg",
@@ -14515,7 +14618,8 @@
     "title": {
       "ru": "Белый тигр",
       "en": "White Tiger",
-      "es": "Tigre blanco"
+      "es": "Tigre blanco",
+      "uz": "Oq yo'lbars"
     },
     "preview": {
       "img": "/static/tpl/animal-white-tiger.jpg",
@@ -14733,7 +14837,8 @@
     "title": {
       "ru": "Король саванны",
       "en": "Savanna King",
-      "es": "Rey de la sabana"
+      "es": "Rey de la sabana",
+      "uz": "Savanna qiroli"
     },
     "preview": {
       "img": "/static/tpl/animal-lion.jpg",
@@ -14951,7 +15056,8 @@
     "title": {
       "ru": "Вороной конь",
       "en": "Black Stallion",
-      "es": "Caballo negro"
+      "es": "Caballo negro",
+      "uz": "Qora ot"
     },
     "preview": {
       "img": "/static/tpl/animal-black-horse.jpg",
@@ -15169,7 +15275,8 @@
     "title": {
       "ru": "Соколиная охота",
       "en": "Falconry",
-      "es": "Cetrería"
+      "es": "Cetrería",
+      "uz": "Lochin ovchi"
     },
     "preview": {
       "img": "/static/tpl/animal-falcon.jpg",
@@ -15387,7 +15494,8 @@
     "title": {
       "ru": "Сафари",
       "en": "Safari",
-      "es": "Safari"
+      "es": "Safari",
+      "uz": "Safari"
     },
     "preview": {
       "img": "/static/tpl/animal-leopard-safari.jpg",
@@ -15605,7 +15713,8 @@
     "title": {
       "ru": "Слон на закате",
       "en": "Elephant at Sunset",
-      "es": "Elefante al atardecer"
+      "es": "Elefante al atardecer",
+      "uz": "Botishda fil"
     },
     "preview": {
       "img": "/static/tpl/animal-elephant.jpg",
@@ -15823,7 +15932,8 @@
     "title": {
       "ru": "Дельфины",
       "en": "Dolphins",
-      "es": "Delfines"
+      "es": "Delfines",
+      "uz": "Delfinlar"
     },
     "preview": {
       "img": "/static/tpl/animal-dolphin.jpg",
@@ -16041,7 +16151,8 @@
     "title": {
       "ru": "Сказочный олень",
       "en": "Enchanted Deer",
-      "es": "Ciervo encantado"
+      "es": "Ciervo encantado",
+      "uz": "Sehrli bug'u"
     },
     "preview": {
       "img": "/static/tpl/animal-deer-forest.jpg",
@@ -16259,7 +16370,8 @@
     "title": {
       "ru": "Тропический ара",
       "en": "Tropical Macaw",
-      "es": "Guacamayo tropical"
+      "es": "Guacamayo tropical",
+      "uz": "Tropik ara"
     },
     "preview": {
       "img": "/static/tpl/animal-macaw.jpg",
@@ -16477,7 +16589,8 @@
     "title": {
       "ru": "Павлин",
       "en": "Peacock",
-      "es": "Pavo real"
+      "es": "Pavo real",
+      "uz": "Tovus"
     },
     "preview": {
       "img": "/static/tpl/animal-peacock.jpg",
@@ -16695,7 +16808,8 @@
     "title": {
       "ru": "Корги в кафе",
       "en": "Corgi Café",
-      "es": "Corgi en el café"
+      "es": "Corgi en el café",
+      "uz": "Kafedagi Korgi"
     },
     "preview": {
       "img": "/static/tpl/animal-corgi-cafe.jpg",
@@ -16913,7 +17027,8 @@
     "title": {
       "ru": "Хаски в горах",
       "en": "Husky in the Mountains",
-      "es": "Husky en las montañas"
+      "es": "Husky en las montañas",
+      "uz": "Tog'dagi Xaski"
     },
     "preview": {
       "img": "/static/tpl/animal-husky-mountains.jpg",
@@ -17131,7 +17246,8 @@
     "title": {
       "ru": "Ретривер на пляже",
       "en": "Beach Retriever",
-      "es": "Retriever en la playa"
+      "es": "Retriever en la playa",
+      "uz": "Plyajdagi Retriever"
     },
     "preview": {
       "img": "/static/tpl/animal-retriever-beach.jpg",
@@ -17349,7 +17465,8 @@
     "title": {
       "ru": "Французский бульдог",
       "en": "French Bulldog",
-      "es": "Bulldog francés"
+      "es": "Bulldog francés",
+      "uz": "Fransuz Buldogi"
     },
     "preview": {
       "img": "/static/tpl/animal-frenchie-city.jpg",
@@ -17567,7 +17684,8 @@
     "title": {
       "ru": "Гламурный шпиц",
       "en": "Glam Pom",
-      "es": "Pomerania glam"
+      "es": "Pomerania glam",
+      "uz": "Glamurli Shpits"
     },
     "preview": {
       "img": "/static/tpl/animal-pomeranian-glam.jpg",
@@ -17785,7 +17903,8 @@
     "title": {
       "ru": "Кот в лофте",
       "en": "Loft Cat",
-      "es": "Gato en el loft"
+      "es": "Gato en el loft",
+      "uz": "Loftdagi mushuk"
     },
     "preview": {
       "img": "/static/tpl/animal-cat-loft.jpg",
@@ -18003,7 +18122,8 @@
     "title": {
       "ru": "Уютный котёнок",
       "en": "Cozy Kitten",
-      "es": "Gatito acogedor"
+      "es": "Gatito acogedor",
+      "uz": "Shinam kittik"
     },
     "preview": {
       "img": "/static/tpl/animal-kitten-cozy.jpg",
@@ -18221,7 +18341,8 @@
     "title": {
       "ru": "Щенок на руках",
       "en": "Puppy in Arms",
-      "es": "Cachorro en brazos"
+      "es": "Cachorro en brazos",
+      "uz": "Quchog'imdagi kuchukcha"
     },
     "preview": {
       "img": "/static/tpl/animal-puppy-arms.jpg",
@@ -18439,7 +18560,8 @@
     "title": {
       "ru": "Весенний кролик",
       "en": "Spring Bunny",
-      "es": "Conejo de primavera"
+      "es": "Conejo de primavera",
+      "uz": "Bahorgi quyon"
     },
     "preview": {
       "img": "/static/tpl/animal-bunny-spring.jpg",
@@ -18657,7 +18779,8 @@
     "title": {
       "ru": "Лебединое озеро",
       "en": "Swan Lake",
-      "es": "Lago de los cisnes"
+      "es": "Lago de los cisnes",
+      "uz": "Oqqush ko'li"
     },
     "preview": {
       "img": "/static/tpl/animal-swan-lake.jpg",
@@ -18875,7 +18998,8 @@
     "title": {
       "ru": "Гелик в Дубае",
       "en": "G-Wagon in Dubai",
-      "es": "G-Wagon en Dubái"
+      "es": "G-Wagon en Dubái",
+      "uz": "Dubay G-Wagon"
     },
     "preview": {
       "img": "/static/tpl/car-dubai-gwagon-photo.jpg",
@@ -19168,7 +19292,8 @@
     "title": {
       "ru": "Неоновый суперкар",
       "en": "Neon supercar",
-      "es": "Superdeportivo neón"
+      "es": "Superdeportivo neón",
+      "uz": "Neon superkar"
     },
     "preview": {
       "img": "/static/tpl/car-neon-supercar-photo.jpg",
@@ -19461,7 +19586,8 @@
     "title": {
       "ru": "Кабриолет на Ривьере",
       "en": "Riviera cabrio",
-      "es": "Cabrio en la Riviera"
+      "es": "Cabrio en la Riviera",
+      "uz": "Rivyerada kabriolet"
     },
     "preview": {
       "img": "/static/tpl/car-riviera-cabrio-photo.jpg",
@@ -19754,7 +19880,8 @@
     "title": {
       "ru": "Внедорожник в горах",
       "en": "Alpine off-road",
-      "es": "Todoterreno alpino"
+      "es": "Todoterreno alpino",
+      "uz": "Tog'da off-road"
     },
     "preview": {
       "img": "/static/tpl/car-alpine-offroad-photo.jpg",
@@ -20047,7 +20174,8 @@
     "title": {
       "ru": "Rolls-Royce, выход",
       "en": "Rolls red carpet",
-      "es": "Rolls alfombra roja"
+      "es": "Rolls alfombra roja",
+      "uz": "Qizil gilam"
     },
     "preview": {
       "img": "/static/tpl/car-rolls-redcarpet-photo.jpg",
@@ -20340,7 +20468,8 @@
     "title": {
       "ru": "Дрифт в дыму",
       "en": "Drift in smoke",
-      "es": "Drift en humo"
+      "es": "Drift en humo",
+      "uz": "Tutunda drift"
     },
     "preview": {
       "img": "/static/tpl/car-drift-smoke-photo.jpg",
@@ -20633,7 +20762,8 @@
     "title": {
       "ru": "Кибер-Токио",
       "en": "Cyber Tokyo",
-      "es": "Ciber-Tokio"
+      "es": "Ciber-Tokio",
+      "uz": "Kiber-Tokio"
     },
     "preview": {
       "img": "/static/tpl/car-cyber-tokyo-photo.jpg",
@@ -20926,7 +21056,8 @@
     "title": {
       "ru": "Винтаж 60-х",
       "en": "Vintage 60s",
-      "es": "Vintage años 60"
+      "es": "Vintage años 60",
+      "uz": "60-lar vintaji"
     },
     "preview": {
       "img": "/static/tpl/car-route66-vintage-photo.jpg",
@@ -21219,7 +21350,8 @@
     "title": {
       "ru": "Гиперкар на рассвете",
       "en": "Hypercar at dawn",
-      "es": "Hipercoche al alba"
+      "es": "Hipercoche al alba",
+      "uz": "Tong giperkar"
     },
     "preview": {
       "img": "/static/tpl/car-saltflat-hyper-photo.jpg",
@@ -21512,7 +21644,8 @@
     "title": {
       "ru": "Советская классика",
       "en": "Soviet classic",
-      "es": "Clásico soviético"
+      "es": "Clásico soviético",
+      "uz": "Sovet klassikasi"
     },
     "preview": {
       "img": "/static/tpl/car-soviet-classic-photo.jpg",
