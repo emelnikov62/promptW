@@ -76,5 +76,31 @@
     "weeklyTg": "Novedades de la semana 🆕 Nuevas plantillas listas — tu próximo look te espera.",
     "rewardAvailTg": "Tokens fáciles 🎁 Suscríbete a nuestro canal y llévate +{n} tokens — fotos gratis, vamos.",
     "claimBtn": "Reclamar"
+  },
+  "uz": {
+    "payTg": "To'lov o'tdi ✅\n+{n} token allaqachon balansda — bu taxminan {k} ta rasm. Ijod qilish vaqti!",
+    "payBtn": "Yaratish",
+    "welcomeTg": "Salom! Men PromptW 👋\nBoshlash uchun sizga {bonus} token sovg'a qilaman — bu bir nechta trend rasm bepul. Ilovani oching, bosh sahifada shablon tanlang — qolganini men o'zim qilaman ✨",
+    "welcomeBtn": "PromptW ni ochish",
+    "photoTg": "Rasmingiz tayyor 🔥 Kiring ko'ring — menimcha, ajoyib chiqdi.",
+    "photosTgN": "{n} ta rasm tayyor 🔥 Eng yaxshisini tanlang!",
+    "viewBtn": "Ko'rish",
+    "videoTg": "Videongiz tayyor 🎬 Kiring ko'ring!",
+    "audioTg": "Trek tayyor 🎧 Play bosing!",
+    "listenBtn": "Tinglash",
+    "genFailTg": "Ups, chiqmadi 🙈 Tokenlarni allaqachon balansga qaytardim — yana bir bor urinib ko'ring, ko'pincha ikkinchi marotaba yanada yaxshiroq chiqadi.",
+    "retryBtn": "Qayta urinish",
+    "refNewTg": "Sizda yangi referal! 🎉 Kimdir sizning havolangiz orqali keldi. Balans to'ldirsa — siz 30% olasiz.",
+    "partnerBtn": "Hamkorlik",
+    "refEarnTg": "+{amount}₽ referallaringizdan 💰 Hamkorlik balansiga tushdi — ajoyib.",
+    "wdPaidTg": "Chiqarish to'landi 💸 {amount}₽ yuborildi. Biz bilan bo'lganingiz uchun rahmat — yana ishlang!",
+    "wdRejectTg": "Chiqarish o'tmadi 🙈 {amount}₽ hamkorlik balansiga qaytardim. Rekvizitlarni tekshiring va qayta urinib ko'ring — yoki qo'llab-quvvatlashga yozing, hal qilamiz.",
+    "reengageTg": "Sizni sog'indim 🥺 Yangi trend shablonlar tushdi — ko'rasizmi? Bir necha bosish va yangi obraz tayyor.",
+    "seeTemplatesBtn": "Shablonlarni ko'rish",
+    "bonusUnspentTg": "Sizda {n} ta token ishlatilmay turibdi 👀 Bu bepul rasm — bosh sahifani oching, shablon tanlang, men hammasini qilaman.",
+    "createBtn": "Yaratish",
+    "weeklyTg": "Hafta yangiliklari 🆕 Yangi shablonlar qo'shildi — keyingi obrazingiz kutmoqda.",
+    "rewardAvailTg": "Oson tokenlarni oling 🎁 Kanalimizga obuna bo'ling va +{n} token oling — bu bepul rasmlar.",
+    "claimBtn": "Olish"
   }
 }

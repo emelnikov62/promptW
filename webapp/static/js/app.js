@@ -1337,7 +1337,8 @@ function chatDayLabel(ts){
     if(sameDay) return chatTime(ts);
     var yest = new Date(now); yest.setDate(now.getDate()-1);
     if(d.toDateString() === yest.toDateString()) return t("chatYesterday");
-    return d.toLocaleDateString(currentLang === "ru" ? "ru-RU" : (currentLang==="es"?"es-ES":(currentLang==="uz"?"uz-UZ":"en-US")), { day:"2-digit", month:"2-digit" });
+    var loc = currentLang==="ru"?"ru-RU":currentLang==="es"?"es-ES":currentLang==="uz"?"uz-UZ":"en-US";
+    return d.toLocaleDateString(loc, { day:"2-digit", month:"2-digit" });
 }
 function chatRenderContent(text){
     var esc = escHtml(text);
@@ -2152,6 +2153,7 @@ function formatDetailDate(iso){
     var months=["янв","фев","мар","апр","май","июн","июл","авг","сен","окт","ноя","дек"];
     if(currentLang==="en") months=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     if(currentLang==="es") months=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+    if(currentLang==="uz") months=["yan","fev","mar","apr","may","iyn","iyl","avg","sen","okt","noy","dek"];
     return d.getDate()+" "+months[d.getMonth()]+" "+d.getFullYear()+", "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
 }
 
