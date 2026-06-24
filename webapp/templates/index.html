@@ -146,9 +146,11 @@
             <div class="act-tile" data-nav="support"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span data-i18n="support">Поддержка</span></div>
             <div class="act-tile" data-nav="info"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><span data-i18n="info">Инфо</span></div>
             <div class="act-tile" data-nav="stats"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span data-i18n="stats">Статистика</span></div>
+            <!-- legal tiles hidden for now
             <div class="act-tile" data-nav="terms"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg><span data-i18n="terms">Соглашение</span></div>
             <div class="act-tile" data-nav="privacy"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span data-i18n="privacy">Конфиденц.</span></div>
             <div class="act-tile" data-nav="offer"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg><span data-i18n="offer">Оферта</span></div>
+            -->
         </div></div>
 
         <div class="sec"><span class="sec-lbl" data-i18n="notifSettings">УВЕДОМЛЕНИЯ</span>
@@ -203,7 +205,8 @@
             <div class="pkg best" data-pkg="5000"><div class="pkg-top"><span class="pkg-amt">5000</span><span class="pkg-u" data-i18n="tokensUnit">ТОКЕНОВ</span><span class="pkg-disc">-20%</span></div><span class="pkg-price">4240 ₽</span><span class="pkg-sub">≈ 166 фото</span><span class="pkg-best-lbl" data-i18n="bestPrice">ЛУЧШАЯ ЦЕНА</span></div>
         </div>
         <p class="muted small mb12" data-i18n="pickPkgHint">Выбери пакет — откроется окно оплаты</p>
-        <label class="agree"><input type="checkbox" id="agree-chk" checked><span><span data-i18n="agreePre">Я согласен с</span> <a data-i18n="privacyPolicy" data-nav="privacy">политикой конфиденциальности</a> <span data-i18n="agreeAnd">и</span> <a data-i18n="publicOffer" data-nav="offer">публичной офертой</a>.</span></label>
+        <!-- legal agree hidden for now -->
+        <input type="hidden" id="agree-chk" value="1">
         <div class="ccard"><span class="prm-lbl" data-i18n="havePromo">Есть промокод?</span><div class="promo-row"><div class="field"><input type="text" id="promo-input" class="field-input" placeholder=" "><label class="field-label" for="promo-input" data-i18n="promoLabel">Промокод</label></div><button class="topup-btn" id="promo-activate" data-i18n="activate">Активировать</button></div><p class="promo-msg hidden" id="promo-msg"></p></div>
     </section>
 
@@ -735,6 +738,6 @@
 </div>
 
 <script src="/static/js/i18n.js?v=121"></script>
-<script src="/static/js/app.js?v=186"></script>
+<script src="/static/js/app.js?v=187"></script>
 </body>
 </html>

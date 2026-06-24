@@ -3120,7 +3120,7 @@ function tuOpen(pkg){
 }
 async function startPay(method){
     var agree = document.getElementById("agree-chk");
-    if (agree && !agree.checked){ tuNote(t("payNeedAgree"), "err"); return; }
+    if (agree && agree.type === "checkbox" && !agree.checked){ tuNote(t("payNeedAgree"), "err"); return; }
     if (!selectedPkg) return;
     var rows = document.querySelectorAll("#tu-overlay .pay-m.primary");
     rows.forEach(function(x){ x.style.pointerEvents = "none"; x.style.opacity = ".6"; });
