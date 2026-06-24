@@ -63,7 +63,9 @@ def lang_picker_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="🇷🇺 Русский", callback_data="lang:ru"),
         InlineKeyboardButton(text="🇬🇧 English", callback_data="lang:en"),
+    ], [
         InlineKeyboardButton(text="🇪🇸 Español", callback_data="lang:es"),
+        InlineKeyboardButton(text="🇺🇿 O'zbek", callback_data="lang:uz"),
     ]])
 
 
@@ -124,7 +126,7 @@ async def cmd_start(message: Message):
         # language they already chose (users.lang).
         if res.get("is_new"):
             await message.answer(
-                "Выбери язык / Choose your language / Elige tu idioma:",
+                "Выбери язык / Choose your language / Elige tu idioma / Tilni tanlang:",
                 reply_markup=lang_picker_kb(),
             )
         else:
@@ -142,7 +144,7 @@ async def cmd_start(message: Message):
 async def cb_set_lang(callback: CallbackQuery):
     """New user picked a language on /start: persist it, then show the welcome."""
     lang = callback.data.split(":", 1)[1]
-    if lang not in ("ru", "en", "es"):
+    if lang not in ("ru", "en", "es", "uz"):
         lang = "ru"
     await update_user_lang(callback.from_user.id, lang)
     await callback.answer()
