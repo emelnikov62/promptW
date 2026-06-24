@@ -18871,7 +18871,7 @@
     "cost": 30,
     "sort_order": 1,
     "category": "cars",
-    "enabled": false,
+    "enabled": true,
     "title": {
       "ru": "Гелик в Дубае",
       "en": "G-Wagon in Dubai",
@@ -18896,7 +18896,7 @@
         {
           "id": "gender",
           "control": "pills",
-          "default": "male",
+          "default": "female",
           "label": {
             "ru": "Пол",
             "en": "Gender",
@@ -19164,7 +19164,7 @@
     "cost": 30,
     "sort_order": 2,
     "category": "cars",
-    "enabled": false,
+    "enabled": true,
     "title": {
       "ru": "Неоновый суперкар",
       "en": "Neon supercar",
@@ -19189,7 +19189,7 @@
         {
           "id": "gender",
           "control": "pills",
-          "default": "male",
+          "default": "female",
           "label": {
             "ru": "Пол",
             "en": "Gender",
@@ -19457,7 +19457,7 @@
     "cost": 30,
     "sort_order": 3,
     "category": "cars",
-    "enabled": false,
+    "enabled": true,
     "title": {
       "ru": "Кабриолет на Ривьере",
       "en": "Riviera cabrio",
@@ -19750,7 +19750,7 @@
     "cost": 30,
     "sort_order": 4,
     "category": "cars",
-    "enabled": false,
+    "enabled": true,
     "title": {
       "ru": "Внедорожник в горах",
       "en": "Alpine off-road",
@@ -20043,7 +20043,7 @@
     "cost": 30,
     "sort_order": 5,
     "category": "cars",
-    "enabled": false,
+    "enabled": true,
     "title": {
       "ru": "Rolls-Royce, выход",
       "en": "Rolls red carpet",
@@ -20336,7 +20336,7 @@
     "cost": 30,
     "sort_order": 6,
     "category": "cars",
-    "enabled": false,
+    "enabled": true,
     "title": {
       "ru": "Дрифт в дыму",
       "en": "Drift in smoke",
@@ -20629,7 +20629,7 @@
     "cost": 30,
     "sort_order": 7,
     "category": "cars",
-    "enabled": false,
+    "enabled": true,
     "title": {
       "ru": "Кибер-Токио",
       "en": "Cyber Tokyo",
@@ -20922,7 +20922,7 @@
     "cost": 30,
     "sort_order": 8,
     "category": "cars",
-    "enabled": false,
+    "enabled": true,
     "title": {
       "ru": "Винтаж 60-х",
       "en": "Vintage 60s",
@@ -21215,7 +21215,7 @@
     "cost": 30,
     "sort_order": 9,
     "category": "cars",
-    "enabled": false,
+    "enabled": true,
     "title": {
       "ru": "Гиперкар на рассвете",
       "en": "Hypercar at dawn",
@@ -21240,7 +21240,7 @@
         {
           "id": "gender",
           "control": "pills",
-          "default": "male",
+          "default": "female",
           "label": {
             "ru": "Пол",
             "en": "Gender",
@@ -21508,7 +21508,7 @@
     "cost": 30,
     "sort_order": 10,
     "category": "cars",
-    "enabled": false,
+    "enabled": true,
     "title": {
       "ru": "Советская классика",
       "en": "Soviet classic",
