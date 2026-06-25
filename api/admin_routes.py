@@ -126,8 +126,15 @@ async def list_query(request, *, base_sql, count_sql, params=None,
                      serialize=_row, csv_name="export"):
     """Generic paged/filtered/sortable list. base_sql/count_sql end right before
     WHERE; this appends WHERE/ORDER/LIMIT. params are positional placeholders
-    already present in base_sql ($1..$k)."""
+    already present in base_sql ($1..$k).
+
+    NOTE: Both base_sql and count_sql must NOT already contain a WHERE clause —
+    the helper appends its own WHERE (or none if no filters are active).
+
+    Auth: this function performs the admin auth check itself (once). Callers
+    must NOT call _require_admin() again before delegating here."""
     pool = await get_pool()
+    admin_id = _require_admin(request)
     params = list(params or [])
     where = []
 
@@ -162,7 +169,6 @@ async def list_query(request, *, base_sql, count_sql, params=None,
 
     if request.query.get("format") == "csv":
         rows = await pool.fetch(f"{base_sql}{where_sql} ORDER BY {sort_col} {order}", *params)
-        admin_id = _require_admin(request)
         await _audit(admin_id, "export_csv", csv_name, None, None, {"count": len(rows)}, None, _client_ip(request))
         buf = io.StringIO(); buf.write("﻿")  # BOM for Excel
         w = csv.writer(buf, delimiter=";")
@@ -456,7 +462,6 @@ async def admin_generations(request):
 
 @admin_routes.get("/api/admin/payments")
 async def admin_payments(request):
-    _require_admin(request)
     return await list_query(
         request,
         base_sql="""SELECT p.*, u.username FROM payments p
