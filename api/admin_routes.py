@@ -66,6 +66,19 @@ def _qint(request, name, default, lo=None, hi=None):
     return v
 
 
+def _qdate(request, name):
+    """Parse a YYYY-MM-DD query param into a date (or None). asyncpg needs a real
+    date object for a $N::date bind — a raw string raises a DataError."""
+    from datetime import date as _date
+    v = (request.query.get(name) or "")[:10]
+    if not v:
+        return None
+    try:
+        return _date.fromisoformat(v)
+    except ValueError:
+        return None
+
+
 async def _json_body(request):
     """await request.json() that never 500s on malformed input."""
     try:
@@ -416,7 +429,9 @@ async def admin_stats_timeseries(request):
     _require_admin(request)
     pool = await get_pool()
     metric = request.query.get("metric", "revenue")
-    frm = request.query.get("from"); to = request.query.get("to")
+    # Parse to real date objects: asyncpg binds $1::date as a `date` type and rejects a
+    # raw str ("'str' object has no attribute 'toordinal'"). None falls through to COALESCE.
+    frm = _qdate(request, "from"); to = _qdate(request, "to")
     # default last 30 days
     where_date = "created_at >= COALESCE($1::date, NOW()::date - INTERVAL '30 days') AND created_at < (COALESCE($2::date, NOW()::date) + 1)"
     qmap = {
