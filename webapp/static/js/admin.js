@@ -496,7 +496,10 @@ function openPayment(row) {
         openModal(html);
         var rb = document.getElementById("pay-refund");
         if (rb) rb.onclick = function() {
-            confirmDialog({title:"Вернуть " + p.amount_rub + " ₽?", body:"Деньги вернутся плательщику через " + p.provider + ". Действие необратимо.", danger:true, confirmLabel:"Вернуть"}).then(function(ok){
+            var refundBody = p.provider === 'platega'
+                ? "Platega не поддерживает авто-возврат — платёж будет помечен возвращённым вручную (деньги верните в ЛК провайдера). Действие необратимо."
+                : "Деньги вернутся плательщику через " + p.provider + ". Действие необратимо.";
+            confirmDialog({title:"Вернуть " + p.amount_rub + " ₽?", body:refundBody, danger:true, confirmLabel:"Вернуть"}).then(function(ok){
                 if (!ok) return;
                 btnBusy(rb, true);
                 api("/api/admin/payments/" + p.id + "/refund", {method:"POST", body: JSON.stringify({reason:"admin refund"})})

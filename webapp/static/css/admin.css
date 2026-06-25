@@ -57,6 +57,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--tx);min-height:100
 .badge-done,.badge-paid,.badge-approved{background:rgba(61,214,140,.15);color:var(--success)}
 .badge-pending,.badge-processing{background:rgba(255,203,107,.15);color:var(--gold)}
 .badge-error,.badge-failed,.badge-rejected{background:rgba(251,113,133,.15);color:var(--error)}
+.badge-refunded{background:rgba(255,203,107,.15);color:#b8860b}
 
 /* Buttons */
 .btn{padding:8px 16px;border:none;border-radius:var(--rs);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer}

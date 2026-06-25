@@ -578,18 +578,49 @@ async def admin_payment_refund(request):
         return web.json_response({"error": "only paid payments can be refunded"}, status=400)
     if p["refunded_at"]:
         return web.json_response({"error": "already refunded"}, status=409)
+    # How many tokens were originally granted at settle time (mirrors settle_payment logic):
+    #   total_tokens = tokens + (bonus_tokens or 0)
+    granted = (p["tokens"] or 0) + (p["bonus_tokens"] or 0)
+    buyer = p["user_tg_id"]
+
     if p["provider"] != "yookassa":
         # Platega has no confirmed refund API — record a manual refund mark only.
-        await pool.execute("UPDATE payments SET status='refunded', refunded_at=NOW(), refund_id='manual' WHERE id=$1", pid)
-        await _audit(admin_id, "payment_refund_manual", "payment", pid, {"status": p["status"]}, {"status": "refunded"}, reason, _client_ip(request))
+        # NOTE: referral commissions already paid to uplines are NOT auto-reversed on refund
+        #       — owner handles those manually (v1 policy).
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                await conn.execute(
+                    "UPDATE payments SET status='refunded', refunded_at=NOW(), refund_id='manual' WHERE id=$1", pid)
+                await conn.execute(
+                    "UPDATE users SET balance = GREATEST(0, balance - $1), updated_at = NOW() WHERE tg_id = $2",
+                    granted, buyer)
+                await conn.execute(
+                    "INSERT INTO transactions (user_tg_id, amount, tx_type, description) VALUES ($1, $2, 'topup', $3)",
+                    buyer, -granted, f"refund reversal: payment {pid} (manual)")
+        await _audit(admin_id, "payment_refund_manual", "payment", pid,
+                     {"status": p["status"]}, {"status": "refunded", "tokens_reversed": granted}, reason, _client_ip(request))
         return web.json_response({"ok": True, "manual": True})
+
     # amount recomputed server-side from the stored payment — never trust client
+    # Call the gateway FIRST; only write to DB on success (gateway failure => 502, no DB mutation).
     ok, refund_id = await yookassa_refund(p["external_id"], int(round(float(p["amount_rub"]))))
     if not ok:
         return web.json_response({"error": "gateway refund failed"}, status=502)
-    await pool.execute("UPDATE payments SET status='refunded', refunded_at=NOW(), refund_id=$2 WHERE id=$1", pid, refund_id)
+
+    # NOTE: referral commissions already paid to uplines are NOT auto-reversed on refund
+    #       — owner handles those manually (v1 policy).
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            await conn.execute(
+                "UPDATE payments SET status='refunded', refunded_at=NOW(), refund_id=$2 WHERE id=$1", pid, refund_id)
+            await conn.execute(
+                "UPDATE users SET balance = GREATEST(0, balance - $1), updated_at = NOW() WHERE tg_id = $2",
+                granted, buyer)
+            await conn.execute(
+                "INSERT INTO transactions (user_tg_id, amount, tx_type, description) VALUES ($1, $2, 'topup', $3)",
+                buyer, -granted, f"refund reversal: payment {pid} ({refund_id})")
     await _audit(admin_id, "payment_refund", "payment", pid,
-                 {"status": p["status"]}, {"status": "refunded", "refund_id": refund_id}, reason, _client_ip(request))
+                 {"status": p["status"]}, {"status": "refunded", "refund_id": refund_id, "tokens_reversed": granted}, reason, _client_ip(request))
     return web.json_response({"ok": True, "refund_id": refund_id})
 
 
