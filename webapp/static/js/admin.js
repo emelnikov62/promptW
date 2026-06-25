@@ -113,7 +113,7 @@ function showSection(name) {
         users: function() { loadUsers(0); },
         generations: function() { loadGenerations(0); },
         payments: function() { loadPayments(); },
-        withdrawals: function() { loadWithdrawals(0); },
+        withdrawals: function() { loadWithdrawals(); },
         templates: function() { loadTemplates(0); },
         promos: function() { loadPromos(0); },
         referrals: function() { loadReferrals(0); },
@@ -227,8 +227,8 @@ function lineChart(points, opts) {
     var poly = pts.join(" ");
     var area = "M"+pad+","+(h-pad)+" L"+pts.join(" L")+" L"+(pad+(points.length-1)*dx).toFixed(1)+","+(h-pad)+" Z";
     return '<svg class="chart" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none">' +
-        '<path d="'+area+'" fill="var(--accent-soft,rgba(255,107,92,.15))"/>' +
-        '<polyline points="'+poly+'" fill="none" stroke="var(--accent,#FF6B5C)" stroke-width="2"/>' +
+        '<path d="'+area+'" fill="var(--photo-soft,rgba(255,107,92,.15))"/>' +
+        '<polyline points="'+poly+'" fill="none" stroke="var(--photo,#FF6B5C)" stroke-width="2"/>' +
         '</svg><div class="chart-cap"><span>'+esc(points[0].d)+'</span><span>макс '+Math.round(max).toLocaleString("ru")+'</span><span>'+esc(points[points.length-1].d)+'</span></div>';
 }
 
