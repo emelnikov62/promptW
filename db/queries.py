@@ -643,6 +643,30 @@ async def settle_payment(order_id: str, external_id: Optional[str] = None,
             return out
 
 
+async def reverse_referral_commissions(conn, payment_id: int) -> list:
+    """Reverse referral commissions credited at settle for `payment_id` (called on refund).
+    For each ORIGINAL (positive) ref_earnings row of this payment: debit the referrer's
+    ref_balance clamped at 0 (they may have already withdrawn it) and write a NEGATIVE
+    reversing ref_earnings row (preserves audit trail; nets the per-payment earnings to 0).
+    Only positive rows are selected, so a re-run cannot double-reverse. MUST run inside an
+    existing transaction (takes `conn`). Returns [{tg_id, line, amount}] of what was reversed."""
+    rows = await conn.fetch(
+        "SELECT referrer_tg_id, referred_tg_id, line, amount_rub FROM ref_earnings "
+        "WHERE payment_id = $1 AND amount_rub > 0", payment_id)
+    reversed_out = []
+    for r in rows:
+        amt = r["amount_rub"]
+        await conn.execute(
+            "UPDATE users SET ref_balance = GREATEST(0, ref_balance - $1) WHERE tg_id = $2",
+            amt, r["referrer_tg_id"])
+        await conn.execute(
+            "INSERT INTO ref_earnings (referrer_tg_id, referred_tg_id, line, amount_rub, payment_id) "
+            "VALUES ($1, $2, $3, $4, $5)",
+            r["referrer_tg_id"], r["referred_tg_id"], r["line"], -amt, payment_id)
+        reversed_out.append({"tg_id": r["referrer_tg_id"], "line": r["line"], "amount": float(amt)})
+    return reversed_out
+
+
 async def get_partner_overview(tg_id: int) -> dict:
     """Ruble balance, total earned, per-period earnings and line counts."""
     pool = await get_pool()
