@@ -22,7 +22,7 @@ function DataTable(mount, cfg) {
         api(cfg.endpoint + "?" + qs()).then(function(d) {
             state.rows = d.items || []; state.total = d.total || 0;
             renderBody();
-        }).catch(function(e){ apiError(e); mount.querySelector(".dt-body").innerHTML = '<div class="dt-error">Не удалось загрузить. <button class="btn btn-outline btn-sm" id="dt-retry">Повторить</button></div>'; var rb=mount.querySelector("#dt-retry"); if(rb) rb.onclick=load; });
+        }).catch(function(e){ apiError(e); mount.querySelector(".dt-body").innerHTML = '<div class="dt-error">Не удалось загрузить. <button class="btn btn-outline btn-sm dt-retry">Повторить</button></div>'; var rb=mount.querySelector(".dt-retry"); if(rb) rb.onclick=load; });
     }
 
     function renderToolbar() {

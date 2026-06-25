@@ -148,7 +148,7 @@ def _csv_cell(v):
 async def list_query(request, *, base_sql, count_sql, params=None,
                      search_cols=(), sortable=None, default_sort="created_at",
                      default_order="desc", filters=None, date_col=None,
-                     serialize=_row, csv_name="export"):
+                     serialize=_row, csv_name="export", require="admin"):
     """Generic paged/filtered/sortable list. base_sql/count_sql end right before
     WHERE; this appends WHERE/ORDER/LIMIT. params are positional placeholders
     already present in base_sql ($1..$k).
@@ -159,7 +159,10 @@ async def list_query(request, *, base_sql, count_sql, params=None,
     Auth: this function performs the admin auth check itself (once). Callers
     must NOT call _require_admin() again before delegating here."""
     pool = await get_pool()
-    admin_id = _require_admin(request)
+    if require == "owner":
+        admin_id = await _require_role(request, "owner")
+    else:
+        admin_id = _require_admin(request)
     params = list(params or [])
     where = []
 
@@ -365,7 +368,7 @@ FACE_VERIFY_RETRY_UNIT_COST = float(os.getenv("FACE_VERIFY_RETRY_UNIT_COST", "0"
 
 @admin_routes.get("/api/admin/face-stats")
 async def admin_face_stats(request):
-    _require_admin(request)
+    await _require_role(request, "owner")
     period = request.query.get("period", "all")
     if period not in ("day", "week", "month", "all"):
         period = "all"
@@ -550,12 +553,13 @@ async def admin_payments(request):
         filters={"status": "p.status", "provider": "p.provider"},
         date_col="p.created_at",
         csv_name="payments",
+        require="owner",
     )
 
 
 @admin_routes.get("/api/admin/payments/{pid}")
 async def admin_payment_detail(request):
-    _require_admin(request)
+    await _require_role(request, "owner")
     pool = await get_pool()
     pid = int(request.match_info["pid"])
     p = await pool.fetchrow("""SELECT p.*, u.username, u.first_name FROM payments p
@@ -637,6 +641,7 @@ async def admin_withdrawals(request):
         filters={"status": "w.status", "method": "w.method"},
         date_col="w.created_at",
         csv_name="withdrawals",
+        require="owner",
     )
 
 
@@ -703,7 +708,7 @@ async def _reload_costs():
 
 @admin_routes.get("/api/admin/templates")
 async def admin_templates_list(request):
-    _require_admin(request)
+    await _require_role(request, "owner")
     limit = _qint(request, "limit", 200, 1, 500)
     offset = _qint(request, "offset", 0, 0)
     return web.json_response(await admin_list_templates(limit, offset))
@@ -711,7 +716,7 @@ async def admin_templates_list(request):
 
 @admin_routes.get("/api/admin/templates/{tpl_id}")
 async def admin_template_get(request):
-    _require_admin(request)
+    await _require_role(request, "owner")
     tpl = await admin_get_template(request.match_info["tpl_id"])
     if not tpl:
         return web.json_response({"error": "not_found"}, status=404)
@@ -809,7 +814,7 @@ async def admin_template_upload(request):
 
 @admin_routes.get("/api/admin/promos")
 async def admin_promos_list(request):
-    _require_admin(request)
+    await _require_role(request, "owner")
     pool = await get_pool()
     limit = _qint(request, "limit", 50, 1, 200)
     offset = _qint(request, "offset", 0, 0)
@@ -914,7 +919,7 @@ async def admin_promo_delete(request):
 
 @admin_routes.get("/api/admin/referrals")
 async def admin_referrals(request):
-    _require_admin(request)
+    await _require_role(request, "owner")
     pool = await get_pool()
     limit = _qint(request, "limit", 50, 1, 200)
     offset = _qint(request, "offset", 0, 0)
@@ -966,7 +971,7 @@ async def admin_referrals(request):
 
 @admin_routes.get("/api/admin/referrals/{tg_id}")
 async def admin_referral_detail(request):
-    _require_admin(request)
+    await _require_role(request, "owner")
     pool = await get_pool()
     tg_id = int(request.match_info["tg_id"])
 
@@ -1016,7 +1021,7 @@ async def admin_referral_detail(request):
 
 @admin_routes.get("/api/admin/audit")
 async def admin_audit_log(request):
-    _require_admin(request)
+    await _require_role(request, "owner")
     pool = await get_pool()
     limit = _qint(request, "limit", 50, 1, 200)
     offset = _qint(request, "offset", 0, 0)
@@ -1185,7 +1190,7 @@ async def admin_support_reply(request):
 
 @admin_routes.get("/api/admin/notif/overview")
 async def admin_notif_overview(request):
-    _require_admin(request)
+    await _require_role(request, "owner")
     from api.routes import engagement_enabled
     pool = await get_pool()
     total = await pool.fetchval("SELECT COUNT(*) FROM users")
@@ -1247,7 +1252,7 @@ async def admin_notif_weekly(request):
 
 @admin_routes.get("/api/admin/notif/log")
 async def admin_notif_log(request):
-    _require_admin(request)
+    await _require_role(request, "owner")
     pool = await get_pool()
     limit = _qint(request, "limit", 50, 1, 200)
     offset = _qint(request, "offset", 0, 0)
