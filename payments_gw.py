@@ -35,6 +35,7 @@ PACKAGES = {
 YOOKASSA_SHOP_ID = os.getenv("YOOKASSA_SHOP_ID", "")
 YOOKASSA_SECRET_KEY = os.getenv("YOOKASSA_SECRET_KEY", "")
 YOOKASSA_API = "https://api.yookassa.ru/v3/payments"
+YOOKASSA_REFUNDS_API = "https://api.yookassa.ru/v3/refunds"
 
 
 def yookassa_available() -> bool:
@@ -136,6 +137,26 @@ async def yookassa_verify(payment_id: str) -> tuple:
     except Exception:
         logger.exception("YooKassa verify error")
         return False, None, None
+
+
+async def yookassa_refund(payment_id: str, amount_rub) -> tuple:
+    """Refund a ЮKassa payment in full. Returns (ok, refund_id|None)."""
+    if not payment_id or not yookassa_available():
+        return False, None
+    headers = {"Authorization": _yk_auth(), "Idempotence-Key": "refund-" + str(payment_id),
+               "Content-Type": "application/json"}
+    body = {"payment_id": payment_id, "amount": {"value": f"{int(amount_rub)}.00", "currency": "RUB"}}
+    try:
+        async with aiohttp.ClientSession() as s:
+            async with s.post(YOOKASSA_REFUNDS_API, json=body, headers=headers, timeout=20) as r:
+                data = await r.json()
+                if r.status >= 300:
+                    logger.error("YooKassa refund failed %s: %s", r.status, str(data)[:200])
+                    return False, None
+                return data.get("status") in ("succeeded", "pending"), data.get("id")
+    except Exception:
+        logger.exception("YooKassa refund error")
+        return False, None
 
 
 # ── Platega ──

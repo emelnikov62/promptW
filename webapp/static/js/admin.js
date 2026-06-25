@@ -112,7 +112,7 @@ function showSection(name) {
         dashboard: loadDashboard,
         users: function() { loadUsers(0); },
         generations: function() { loadGenerations(0); },
-        payments: function() { loadPayments(0); },
+        payments: function() { loadPayments(); },
         withdrawals: function() { loadWithdrawals(0); },
         templates: function() { loadTemplates(0); },
         promos: function() { loadPromos(0); },
@@ -456,16 +456,58 @@ function loadGenerations() {
 }
 
 // ── Payments ──
-function loadPayments(offset) {
+function loadPayments() {
     var mc = document.getElementById("main-content");
-    mc.innerHTML = '<p style="color:var(--tx2)">Загрузка...</p>';
-    api("/api/admin/payments?limit=" + PAGE_SIZE + "&offset=" + offset).then(function(d) {
-        var rows = d.items.map(function(p) {
-            return '<tr><td>' + p.user_tg_id + (p.username ? " (@" + esc(p.username) + ")" : "") + '</td><td>' + p.amount_rub + ' ₽</td><td>' + p.tokens + '</td><td>' + esc(p.provider) + '</td><td>' + badge(p.status) + '</td><td>' + fmtDate(p.created_at) + '</td></tr>';
-        }).join("");
-        mc.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Пользователь</th><th>Сумма</th><th>Токены</th><th>Провайдер</th><th>Статус</th><th>Дата</th></tr></thead><tbody>' + (rows || '<tr><td colspan="6" style="text-align:center;color:var(--tx3)">Нет данных</td></tr>') + '</tbody></table></div>' +
-            pagination(d.total, offset, "loadPayments");
+    mc.innerHTML = '<div id="pay-table"></div>';
+    window._payTable = DataTable(document.getElementById("pay-table"), {
+        endpoint: "/api/admin/payments", exportCsv: true, searchable: true,
+        searchPlaceholder: "order_id / @username / external_id",
+        defaultSort: {key:"created_at", order:"desc"},
+        filters: [
+            {key:"provider", label:"Провайдер", type:"select", options:["yookassa","platega"]},
+            {key:"status", label:"Статус", type:"select", options:["paid","pending","failed","refunded"]},
+            {type:"daterange"}
+        ],
+        rowAction: openPayment,
+        columns: [
+            {key:"user_tg_id", label:"User", render:function(r){return esc(r.username?("@"+r.username):r.user_tg_id);}},
+            {key:"amount_rub", label:"₽", sortable:true, align:"right"},
+            {key:"tokens", label:"W", sortable:true, align:"right", hideOnMobile:true},
+            {key:"provider", label:"Провайдер", hideOnMobile:true},
+            {key:"status", label:"Статус", render:function(r){return badge(r.status);}},
+            {key:"created_at", label:"Дата", sortable:true, render:function(r){return fmtDate(r.created_at);}}
+        ]
     });
+}
+function openPayment(row) {
+    api("/api/admin/payments/" + row.id).then(function(d){
+        var p = d.payment;
+        var canRefund = (window.adminRole === "owner") && p.status === "paid";
+        var html = '<h3 class="modal-title">Платёж #' + p.id + ' ' + badge(p.status) + '</h3>' +
+            '<div class="kv"><b>Юзер:</b> ' + esc(p.username?("@"+p.username):p.user_tg_id) + '</div>' +
+            '<div class="kv"><b>Сумма:</b> ' + p.amount_rub + ' ₽ → ' + p.tokens + ' W</div>' +
+            '<div class="kv"><b>Провайдер:</b> ' + esc(p.provider) + '</div>' +
+            '<div class="kv"><b>order_id:</b> ' + esc(p.order_id) + '</div>' +
+            '<div class="kv"><b>external_id:</b> ' + esc(p.external_id || "—") + '</div>' +
+            '<div class="kv"><b>Создан:</b> ' + fmtDate(p.created_at) + '</div>' +
+            '<div class="kv"><b>Оплачен:</b> ' + fmtDate(p.paid_at) + '</div>' +
+            (p.refunded_at ? '<div class="kv"><b>Возврат:</b> ' + fmtDate(p.refunded_at) + ' (' + esc(p.refund_id||"") + ')</div>' : '') +
+            (canRefund ? '<div style="margin-top:16px"><button class="btn btn-danger" id="pay-refund">Вернуть платёж</button></div>' : '');
+        openModal(html);
+        var rb = document.getElementById("pay-refund");
+        if (rb) rb.onclick = function() {
+            var refundBody = p.provider === 'platega'
+                ? "Platega не поддерживает авто-возврат — платёж будет помечен возвращённым вручную (деньги верните в ЛК провайдера). Действие необратимо."
+                : "Деньги вернутся плательщику через " + p.provider + ". Действие необратимо.";
+            confirmDialog({title:"Вернуть " + p.amount_rub + " ₽?", body:refundBody, danger:true, confirmLabel:"Вернуть"}).then(function(ok){
+                if (!ok) return;
+                btnBusy(rb, true);
+                api("/api/admin/payments/" + p.id + "/refund", {method:"POST", body: JSON.stringify({reason:"admin refund"})})
+                    .then(function(res){ toast("success", res.manual ? "Помечен возвращённым (вручную)" : "Возврат отправлен"); closeModal(); window._payTable.reload(); })
+                    .catch(function(e){ btnBusy(rb,false); apiError(e); });
+            });
+        };
+    }).catch(apiError);
 }
 
 // ── Withdrawals ──

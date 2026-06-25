@@ -168,6 +168,9 @@ async def _create_tables():
 
             CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
             CREATE INDEX IF NOT EXISTS idx_payments_user_created ON payments(user_tg_id, created_at DESC);
+
+            ALTER TABLE payments ADD COLUMN IF NOT EXISTS refunded_at TIMESTAMPTZ;
+            ALTER TABLE payments ADD COLUMN IF NOT EXISTS refund_id TEXT;
             CREATE INDEX IF NOT EXISTS idx_ref_earnings_referrer ON ref_earnings(referrer_tg_id, created_at DESC);
             CREATE INDEX IF NOT EXISTS idx_withdrawals_status ON withdrawals(status, created_at DESC);
 
