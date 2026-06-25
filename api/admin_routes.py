@@ -628,18 +628,16 @@ async def admin_payment_refund(request):
 
 @admin_routes.get("/api/admin/withdrawals")
 async def admin_withdrawals(request):
-    _require_admin(request)
-    pool = await get_pool()
-    limit = _qint(request, "limit", 50, 1, 200)
-    offset = _qint(request, "offset", 0, 0)
-
-    rows = await pool.fetch("""
-        SELECT w.*, u.username FROM withdrawals w
-        LEFT JOIN users u ON w.user_tg_id = u.tg_id
-        ORDER BY w.created_at DESC LIMIT $1 OFFSET $2
-    """, limit, offset)
-    total = await pool.fetchval("SELECT COUNT(*) FROM withdrawals")
-    return web.json_response({"items": [_row(r) for r in rows], "total": total})
+    return await list_query(
+        request,
+        base_sql="""SELECT w.*, u.username FROM withdrawals w LEFT JOIN users u ON w.user_tg_id=u.tg_id""",
+        count_sql="SELECT COUNT(*) FROM withdrawals w LEFT JOIN users u ON w.user_tg_id=u.tg_id",
+        search_cols=("u.username", "w.details"),
+        sortable={"created_at": "w.created_at", "amount_rub": "w.amount_rub"},
+        filters={"status": "w.status", "method": "w.method"},
+        date_col="w.created_at",
+        csv_name="withdrawals",
+    )
 
 
 @admin_routes.post("/api/admin/withdrawals/{wd_id}/action")
