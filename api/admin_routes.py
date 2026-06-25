@@ -19,6 +19,7 @@ from db.queries import (
 )
 from pricing import refresh_template_costs
 from bot.auth import make_admin_token
+from payments_gw import yookassa_refund
 from bot.config import BOT_TOKEN
 import storage
 
@@ -550,6 +551,46 @@ async def admin_payments(request):
         date_col="p.created_at",
         csv_name="payments",
     )
+
+
+@admin_routes.get("/api/admin/payments/{pid}")
+async def admin_payment_detail(request):
+    _require_admin(request)
+    pool = await get_pool()
+    pid = int(request.match_info["pid"])
+    p = await pool.fetchrow("""SELECT p.*, u.username, u.first_name FROM payments p
+                               LEFT JOIN users u ON p.user_tg_id=u.tg_id WHERE p.id=$1""", pid)
+    if not p:
+        return web.json_response({"error": "not_found"}, status=404)
+    return web.json_response({"payment": _row(p)})
+
+
+@admin_routes.post("/api/admin/payments/{pid}/refund")
+async def admin_payment_refund(request):
+    admin_id = await _require_role(request, "owner")
+    pool = await get_pool()
+    pid = int(request.match_info["pid"])
+    reason = ((await _json_body(request)).get("reason") or "").strip()
+    p = await pool.fetchrow("SELECT * FROM payments WHERE id=$1", pid)
+    if not p:
+        return web.json_response({"error": "not_found"}, status=404)
+    if p["status"] != "paid":
+        return web.json_response({"error": "only paid payments can be refunded"}, status=400)
+    if p["refunded_at"]:
+        return web.json_response({"error": "already refunded"}, status=409)
+    if p["provider"] != "yookassa":
+        # Platega has no confirmed refund API — record a manual refund mark only.
+        await pool.execute("UPDATE payments SET status='refunded', refunded_at=NOW(), refund_id='manual' WHERE id=$1", pid)
+        await _audit(admin_id, "payment_refund_manual", "payment", pid, {"status": p["status"]}, {"status": "refunded"}, reason, _client_ip(request))
+        return web.json_response({"ok": True, "manual": True})
+    # amount recomputed server-side from the stored payment — never trust client
+    ok, refund_id = await yookassa_refund(p["external_id"], int(round(float(p["amount_rub"]))))
+    if not ok:
+        return web.json_response({"error": "gateway refund failed"}, status=502)
+    await pool.execute("UPDATE payments SET status='refunded', refunded_at=NOW(), refund_id=$2 WHERE id=$1", pid, refund_id)
+    await _audit(admin_id, "payment_refund", "payment", pid,
+                 {"status": p["status"]}, {"status": "refunded", "refund_id": refund_id}, reason, _client_ip(request))
+    return web.json_response({"ok": True, "refund_id": refund_id})
 
 
 # ── Withdrawals ──
