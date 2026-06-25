@@ -217,6 +217,8 @@ function openModal(html) {
 }
 
 // ── Dashboard ──
+window.dashDays = 30;
+
 function lineChart(points, opts) {
     opts = opts || {}; var w = opts.w || 560, h = opts.h || 140, pad = 24;
     if (!points.length) return '<div class="chart-empty">Нет данных</div>';
@@ -232,33 +234,115 @@ function lineChart(points, opts) {
         '</svg><div class="chart-cap"><span>'+esc(points[0].d)+'</span><span>макс '+Math.round(max).toLocaleString("ru")+'</span><span>'+esc(points[points.length-1].d)+'</span></div>';
 }
 
+function deltaChip(cur, prev) {
+    if (!prev) return cur > 0 ? '<span style="color:var(--success)">new</span>' : '';
+    var d = Math.round((cur - prev) / prev * 100);
+    if (d === 0) return '<span style="color:var(--tx3)">~0%</span>';
+    return '<span style="color:' + (d > 0 ? 'var(--success)' : 'var(--error)') + '">' + (d > 0 ? '▲' : '▼') + ' ' + Math.abs(d) + '%</span>';
+}
+
+function _dashDateRange() {
+    var today = new Date();
+    var toStr = today.toISOString().slice(0, 10);
+    var from = new Date(today);
+    from.setDate(from.getDate() - (window.dashDays - 1));
+    var fromStr = from.toISOString().slice(0, 10);
+    return { from: fromStr, to: toStr };
+}
+
 function loadDashboard() {
     var mc = document.getElementById("main-content");
-    mc.innerHTML = '<div class="kpi-grid" id="kpi-grid"></div>' +
+    var periodTabs = '<div class="face-tabs" id="dash-period-tabs">' +
+        [["7", "7д"], ["30", "30д"], ["90", "90д"]].map(function(p) {
+            return '<button class="face-tab' + (String(window.dashDays) === p[0] ? " active" : "") +
+                '" onclick="setDashDays(' + p[0] + ')">' + p[1] + '</button>';
+        }).join("") + '</div>';
+    mc.innerHTML = periodTabs +
+        '<div class="kpi-grid" id="kpi-grid"></div>' +
+        '<div id="dash-breakdowns"></div>' +
         '<div class="chart-controls" style="margin:16px 0 8px"><select class="form-input" id="dash-metric" style="max-width:220px">' +
         '<option value="revenue">Выручка ₽/день</option><option value="payments">Оплаты/день</option>' +
         '<option value="users">Новые юзеры/день</option><option value="generations">Генерации/день</option></select></div>' +
         '<div id="dash-chart"></div>';
-    api("/api/admin/stats").then(function(d) {
-        document.getElementById("kpi-grid").innerHTML =
-            kpi("Пользователи", d.users.total, "сегодня +" + d.users.today + " / 7д +" + d.users.week) +
-            kpi("Генерации", d.generations.total, "done " + d.generations.done + " / err " + d.generations.error, "accent") +
-            kpi("Выручка ₽", d.revenue.total.toLocaleString("ru"), "7д: " + d.revenue.week.toLocaleString("ru") + " ₽ · " + d.revenue.payments + " оплат", "gold") +
-            kpi("Токены потрачено", d.tokens.spent.toLocaleString("ru"), "на балансах: " + d.tokens.on_balances.toLocaleString("ru")) +
-            kpi("Выводы pending", d.withdrawals.pending, d.withdrawals.pending_amount.toLocaleString("ru") + " ₽", d.withdrawals.pending > 0 ? "error" : "success");
+
+    api("/api/admin/stats/summary?days=" + window.dashDays).then(function(d) {
+        var rev = d.revenue || {};
+        var pay = d.payments || {};
+        var paying = d.paying || {};
+        var usr = d.users || {};
+        var gns = d.generations || {};
+        var ref = d.refunds || {};
+        var bal = d.balances || {};
+
+        var grid = "";
+        grid += kpi("Выручка ₽", Math.round(rev.value || 0).toLocaleString("ru"),
+            deltaChip(rev.value, rev.prev) + " · ср.чек " + (rev.avg || 0) + " ₽", "gold");
+        grid += kpi("Оплаты", pay.value || 0,
+            deltaChip(pay.value, pay.prev));
+        grid += kpi("Платящие", paying.value || 0, "уникальных");
+        grid += kpi("Новые юзеры", usr.value || 0,
+            deltaChip(usr.value, usr.prev));
+        grid += kpi("Генерации", gns.value || 0,
+            "done " + (gns.done || 0) + " / err " + (gns.error || 0), "accent");
+        grid += kpi("Возвраты ₽", Math.round(ref.value || 0).toLocaleString("ru"),
+            (ref.count || 0) + " шт", (ref.value > 0 ? "error" : ""));
+        grid += kpi("Токены на балансах", (bal.tokens || 0).toLocaleString("ru"), "всего");
+        grid += kpi("Выводы pending", bal.wd_pending || 0,
+            "всего · " + Math.round(bal.wd_pending_rub || 0).toLocaleString("ru") + " ₽",
+            (bal.wd_pending > 0 ? "error" : "success"));
+        document.getElementById("kpi-grid").innerHTML = grid;
+
+        // Breakdown cards
+        var bk = "";
+        var byProv = d.by_provider || [];
+        if (byProv.length) {
+            var maxProv = byProv[0].rub || 1;
+            bk += '<div class="face-card"><h3>Платежи по провайдерам</h3>';
+            byProv.forEach(function(r) {
+                var pct = maxProv > 0 ? Math.round(r.rub / maxProv * 100) : 0;
+                bk += '<div class="face-line"><span class="face-line-l">' + esc(r.provider) + '</span>' +
+                    '<span class="face-line-bar"><span style="width:' + pct + '%;background:var(--accent)"></span></span>' +
+                    '<span class="face-line-v">' + r.count + ' · ' + Math.round(r.rub).toLocaleString("ru") + ' ₽</span></div>';
+            });
+            bk += '</div>';
+        }
+        var byType = d.by_gen_type || [];
+        if (byType.length) {
+            var maxType = byType[0].count || 1;
+            bk += '<div class="face-card"><h3>Генерации по типам</h3>';
+            byType.forEach(function(r) {
+                var pct = maxType > 0 ? Math.round(r.count / maxType * 100) : 0;
+                bk += '<div class="face-line"><span class="face-line-l">' + esc(r.gen_type) + '</span>' +
+                    '<span class="face-line-bar"><span style="width:' + pct + '%;background:var(--accent)"></span></span>' +
+                    '<span class="face-line-v">' + r.count + '</span></div>';
+            });
+            bk += '</div>';
+        }
+        if (bk) {
+            document.getElementById("dash-breakdowns").innerHTML = '<div class="face-row">' + bk + '</div>';
+        }
     }).catch(apiError);
+
     function drawChart() {
         var m = document.getElementById("dash-metric").value;
+        var dr = _dashDateRange();
         document.getElementById("dash-chart").innerHTML = '<p style="color:var(--tx2)">Загрузка…</p>';
-        api("/api/admin/stats/timeseries?metric=" + m).then(function(d){
+        api("/api/admin/stats/timeseries?metric=" + m + "&from=" + dr.from + "&to=" + dr.to).then(function(d){
             document.getElementById("dash-chart").innerHTML = lineChart(d.points || []);
         }).catch(apiError);
     }
     document.getElementById("dash-metric").onchange = drawChart;
     drawChart();
 }
+
+function setDashDays(n) {
+    window.dashDays = n;
+    loadDashboard();
+}
+
+// NOTE: `sub` is inserted as raw HTML (carries deltaChip spans) — callers must pass safe/escaped content.
 function kpi(label, value, sub, cls) {
-    return '<div class="kpi"><div class="kpi-label">' + esc(label) + '</div><div class="kpi-value ' + (cls||"") + '">' + value + '</div><div class="kpi-sub">' + esc(sub||"") + '</div></div>';
+    return '<div class="kpi"><div class="kpi-label">' + esc(label) + '</div><div class="kpi-value ' + (cls||"") + '">' + value + '</div><div class="kpi-sub">' + (sub||"") + '</div></div>';
 }
 
 // ── Face similarity ──
