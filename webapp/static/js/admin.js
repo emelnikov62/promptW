@@ -396,15 +396,13 @@ function loadUserDetail(tgId) {
 }
 
 function promptAdjust(tgId) {
-    var amount = prompt("Сумма (+ начислить, - списать):");
-    if (!amount) return;
-    var reason = prompt("Причина:");
-    if (!reason) return;
-    api("/api/admin/users/" + tgId + "/adjust", {
-        method: "POST", body: JSON.stringify({amount: parseInt(amount), reason: reason})
-    }).then(function(d) {
-        if (d.ok) { alert("Баланс: " + d.balance); loadUserDetail(tgId); }
-        else alert("Ошибка: " + (d.error || "unknown"));
+    formModal({title:"Коррекция баланса", submitLabel:"Применить", fields:[
+        {name:"amount", label:"Сумма (W, можно отрицательную)", type:"number", required:true, hint:"Например 100 или -50"},
+        {name:"reason", label:"Причина", type:"textarea", required:true}
+    ]}).then(function(v){
+        if (!v) return;
+        api("/api/admin/users/"+tgId+"/adjust",{method:"POST",body:JSON.stringify({amount:v.amount,reason:v.reason})})
+            .then(function(d){ toast("success","Новый баланс: "+(d.balance!=null?d.balance:"обновлён")); if(window.loadUserDetail) loadUserDetail(tgId); }).catch(apiError);
     });
 }
 
@@ -492,8 +490,12 @@ function openPayment(row) {
             '<div class="kv"><b>Создан:</b> ' + fmtDate(p.created_at) + '</div>' +
             '<div class="kv"><b>Оплачен:</b> ' + fmtDate(p.paid_at) + '</div>' +
             (p.refunded_at ? '<div class="kv"><b>Возврат:</b> ' + fmtDate(p.refunded_at) + ' (' + esc(p.refund_id||"") + ')</div>' : '') +
-            (canRefund ? '<div style="margin-top:16px"><button class="btn btn-danger" id="pay-refund">Вернуть платёж</button></div>' : '');
+            (canRefund ? '<div style="margin-top:16px"><button class="btn btn-danger" id="pay-refund">Вернуть платёж</button>' : '<div style="margin-top:16px">') +
+            (window.adminRole === "owner" ? '<button class="btn btn-outline" id="pay-adjust" style="margin-left:8px">Коррекция баланса юзера</button>' : '') +
+            '</div>';
         openModal(html);
+        var ab = document.getElementById("pay-adjust");
+        if (ab) ab.onclick = function(){ promptAdjust(p.user_tg_id); };
         var rb = document.getElementById("pay-refund");
         if (rb) rb.onclick = function() {
             var refundBody = p.provider === 'platega'
