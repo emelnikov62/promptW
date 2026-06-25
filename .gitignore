@@ -23,3 +23,6 @@ Thumbs.db
 .idea/
 .vscode/
 deploy.sh
+
+# SDD subagent-driven-development scratch (ledger, briefs, reports, diffs)
+.superpowers/
