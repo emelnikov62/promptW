@@ -360,11 +360,14 @@ async def admin_stats_summary(request):
     _require_admin(request)
     pool = await get_pool()
     days = _qint(request, "days", 30, 1, 365)
+    # offset shifts the whole window back by N days (0 = ending today). Lets the UI
+    # express "Сегодня" (days=1, offset=0) and "Вчера" (days=1, offset=1).
+    offset = _qint(request, "offset", 0, 0, 365)
     from datetime import timedelta
     async with pool.acquire() as conn:
         today = await conn.fetchval("SELECT CURRENT_DATE")
-        cur_start = today - timedelta(days=days - 1)
-        end_excl = today + timedelta(days=1)
+        end_excl = today + timedelta(days=1 - offset)
+        cur_start = end_excl - timedelta(days=days)
         prev_start = cur_start - timedelta(days=days)
 
         async def rev(a, b):
