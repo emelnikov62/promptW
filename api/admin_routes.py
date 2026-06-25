@@ -16,6 +16,7 @@ from db.queries import (
     admin_list_templates, admin_get_template, admin_create_template,
     admin_update_template, admin_delete_template, get_template_costs,
     get_face_verify_stats, get_face_verify_by_template,
+    reverse_referral_commissions,
 )
 from pricing import refresh_template_costs
 from bot.auth import make_admin_token
@@ -589,8 +590,8 @@ async def admin_payment_refund(request):
 
     if p["provider"] != "yookassa":
         # Platega has no confirmed refund API — record a manual refund mark only.
-        # NOTE: referral commissions already paid to uplines are NOT auto-reversed on refund
-        #       — owner handles those manually (v1 policy).
+        # Referral commissions for this payment are reversed atomically below (ref_balance debited clamped + negative ref_earnings rows).
+        rev = []
         async with pool.acquire() as conn:
             async with conn.transaction():
                 await conn.execute(
@@ -601,8 +602,9 @@ async def admin_payment_refund(request):
                 await conn.execute(
                     "INSERT INTO transactions (user_tg_id, amount, tx_type, description) VALUES ($1, $2, 'topup', $3)",
                     buyer, -granted, f"refund reversal: payment {pid} (manual)")
+                rev = await reverse_referral_commissions(conn, pid)
         await _audit(admin_id, "payment_refund_manual", "payment", pid,
-                     {"status": p["status"]}, {"status": "refunded", "tokens_reversed": granted}, reason, _client_ip(request))
+                     {"status": p["status"]}, {"status": "refunded", "tokens_reversed": granted, "referrals_reversed": rev}, reason, _client_ip(request))
         return web.json_response({"ok": True, "manual": True})
 
     # amount recomputed server-side from the stored payment — never trust client
@@ -611,8 +613,8 @@ async def admin_payment_refund(request):
     if not ok:
         return web.json_response({"error": "gateway refund failed"}, status=502)
 
-    # NOTE: referral commissions already paid to uplines are NOT auto-reversed on refund
-    #       — owner handles those manually (v1 policy).
+    # Referral commissions for this payment are reversed atomically below (ref_balance debited clamped + negative ref_earnings rows).
+    rev = []
     async with pool.acquire() as conn:
         async with conn.transaction():
             await conn.execute(
@@ -623,8 +625,9 @@ async def admin_payment_refund(request):
             await conn.execute(
                 "INSERT INTO transactions (user_tg_id, amount, tx_type, description) VALUES ($1, $2, 'topup', $3)",
                 buyer, -granted, f"refund reversal: payment {pid} ({refund_id})")
+            rev = await reverse_referral_commissions(conn, pid)
     await _audit(admin_id, "payment_refund", "payment", pid,
-                 {"status": p["status"]}, {"status": "refunded", "refund_id": refund_id, "tokens_reversed": granted}, reason, _client_ip(request))
+                 {"status": p["status"]}, {"status": "refunded", "refund_id": refund_id, "tokens_reversed": granted, "referrals_reversed": rev}, reason, _client_ip(request))
     return web.json_response({"ok": True, "refund_id": refund_id})
 
 
