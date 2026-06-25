@@ -1,6 +1,6 @@
 var currentSection = "dashboard";
 var PAGE_SIZE = 50;
-var authToken = "";
+window.authToken = "";
 
 // ── Auth ──
 function resolveToken() {
@@ -14,24 +14,7 @@ function resolveToken() {
 function hasAuth() {
     var tg = window.Telegram && Telegram.WebApp;
     if (tg && tg.initData) return true;
-    return !!authToken;
-}
-
-function getAuthHeaders() {
-    var h = {"Content-Type": "application/json"};
-    var tg = window.Telegram && Telegram.WebApp;
-    if (tg && tg.initData) h["X-Init-Data"] = tg.initData;
-    if (authToken) h["X-Auth-Token"] = authToken;
-    return h;
-}
-
-function api(path, opts) {
-    opts = opts || {};
-    opts.headers = Object.assign(getAuthHeaders(), opts.headers || {});
-    return fetch(path, opts).then(function(r) {
-        if (r.status === 403) { logout(); throw new Error("forbidden"); }
-        return r.json();
-    });
+    return !!window.authToken;
 }
 
 function showLogin() {
@@ -67,7 +50,7 @@ function doLogin() {
     }).then(function(r) { return r.json(); }).then(function(d) {
         document.getElementById("login-btn").disabled = false;
         if (d.ok && d.token) {
-            authToken = d.token;
+            window.authToken = d.token;
             localStorage.setItem("pw_admin_token", d.token);
             document.getElementById("login-screen").style.display = "none";
             document.getElementById("admin-app").style.display = "flex";
@@ -84,7 +67,7 @@ function doLogin() {
 }
 
 function logout() {
-    authToken = "";
+    window.authToken = "";
     localStorage.removeItem("pw_admin_token");
     showLogin();
 }
@@ -232,7 +215,7 @@ function loadDashboard() {
             kpi("Токены потрачено", d.tokens.spent.toLocaleString("ru"), "на балансах: " + d.tokens.on_balances.toLocaleString("ru")) +
             kpi("Выводы pending", d.withdrawals.pending, d.withdrawals.pending_amount.toLocaleString("ru") + " ₽", d.withdrawals.pending > 0 ? "error" : "success") +
             '</div>';
-    });
+    }).catch(apiError);
 }
 function kpi(label, value, sub, cls) {
     return '<div class="kpi"><div class="kpi-label">' + esc(label) + '</div><div class="kpi-value ' + (cls||"") + '">' + value + '</div><div class="kpi-sub">' + esc(sub||"") + '</div></div>';
@@ -794,7 +777,7 @@ function uploadPreview() {
     var h = {};
     var tg = window.Telegram && Telegram.WebApp;
     if (tg && tg.initData) h["X-Init-Data"] = tg.initData;
-    if (authToken) h["X-Auth-Token"] = authToken;
+    if (window.authToken) h["X-Auth-Token"] = window.authToken;
     fetch("/api/admin/templates/upload", { method: "POST", headers: h, body: fd })
         .then(function(r){ return r.json(); })
         .then(function(d){
@@ -1119,7 +1102,7 @@ function loadAudit(offset) {
 }
 
 // ── Init ──
-authToken = resolveToken();
+window.authToken = resolveToken();
 if (hasAuth()) {
     showSection("dashboard");
 } else {
