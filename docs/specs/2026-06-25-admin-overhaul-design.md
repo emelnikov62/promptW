@@ -1,7 +1,7 @@
 # Admin Panel Overhaul — Design Spec
 
 **Date:** 2026-06-25
-**Status:** Approved (direction) → spec review
+**Status:** Phase 0 + Phase 1 SHIPPED to `main` (PRs #137–#145, 2026-06-25; final whole-branch review clean). Known v1 limitations: owner-only *section read* endpoints are nav-hidden but not server-role-gated (only mutations are); referral commissions are not auto-reversed on refund (owner handles manually). Phases 2–3 still future.
 **Scope of THIS spec:** Phase 0 (shared foundation) + Phase 1 (finance & analytics).
 Phases 2–3 are outlined as future cycles, each gets its own spec/plan.
 
