@@ -217,18 +217,45 @@ function openModal(html) {
 }
 
 // ── Dashboard ──
+function lineChart(points, opts) {
+    opts = opts || {}; var w = opts.w || 560, h = opts.h || 140, pad = 24;
+    if (!points.length) return '<div class="chart-empty">Нет данных</div>';
+    var vals = points.map(function(p){return p.v;});
+    var max = Math.max.apply(null, vals) || 1, min = 0;
+    var dx = (w - pad*2) / Math.max(1, points.length - 1);
+    var pts = points.map(function(p,i){ var x = pad + i*dx; var y = h - pad - (p.v - min)/(max - min) * (h - pad*2); return x.toFixed(1)+","+y.toFixed(1); });
+    var poly = pts.join(" ");
+    var area = "M"+pad+","+(h-pad)+" L"+pts.join(" L")+" L"+(pad+(points.length-1)*dx).toFixed(1)+","+(h-pad)+" Z";
+    return '<svg class="chart" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none">' +
+        '<path d="'+area+'" fill="var(--accent-soft,rgba(255,107,92,.15))"/>' +
+        '<polyline points="'+poly+'" fill="none" stroke="var(--accent,#FF6B5C)" stroke-width="2"/>' +
+        '</svg><div class="chart-cap"><span>'+esc(points[0].d)+'</span><span>макс '+Math.round(max).toLocaleString("ru")+'</span><span>'+esc(points[points.length-1].d)+'</span></div>';
+}
+
 function loadDashboard() {
     var mc = document.getElementById("main-content");
-    mc.innerHTML = '<p style="color:var(--tx2)">Загрузка...</p>';
+    mc.innerHTML = '<div class="kpi-grid" id="kpi-grid"></div>' +
+        '<div class="chart-controls" style="margin:16px 0 8px"><select class="form-input" id="dash-metric" style="max-width:220px">' +
+        '<option value="revenue">Выручка ₽/день</option><option value="payments">Оплаты/день</option>' +
+        '<option value="users">Новые юзеры/день</option><option value="generations">Генерации/день</option></select></div>' +
+        '<div id="dash-chart"></div>';
     api("/api/admin/stats").then(function(d) {
-        mc.innerHTML = '<div class="kpi-grid">' +
+        document.getElementById("kpi-grid").innerHTML =
             kpi("Пользователи", d.users.total, "сегодня +" + d.users.today + " / 7д +" + d.users.week) +
             kpi("Генерации", d.generations.total, "done " + d.generations.done + " / err " + d.generations.error, "accent") +
             kpi("Выручка ₽", d.revenue.total.toLocaleString("ru"), "7д: " + d.revenue.week.toLocaleString("ru") + " ₽ · " + d.revenue.payments + " оплат", "gold") +
             kpi("Токены потрачено", d.tokens.spent.toLocaleString("ru"), "на балансах: " + d.tokens.on_balances.toLocaleString("ru")) +
-            kpi("Выводы pending", d.withdrawals.pending, d.withdrawals.pending_amount.toLocaleString("ru") + " ₽", d.withdrawals.pending > 0 ? "error" : "success") +
-            '</div>';
+            kpi("Выводы pending", d.withdrawals.pending, d.withdrawals.pending_amount.toLocaleString("ru") + " ₽", d.withdrawals.pending > 0 ? "error" : "success");
     }).catch(apiError);
+    function drawChart() {
+        var m = document.getElementById("dash-metric").value;
+        document.getElementById("dash-chart").innerHTML = '<p style="color:var(--tx2)">Загрузка…</p>';
+        api("/api/admin/stats/timeseries?metric=" + m).then(function(d){
+            document.getElementById("dash-chart").innerHTML = lineChart(d.points || []);
+        }).catch(apiError);
+    }
+    document.getElementById("dash-metric").onchange = drawChart;
+    drawChart();
 }
 function kpi(label, value, sub, cls) {
     return '<div class="kpi"><div class="kpi-label">' + esc(label) + '</div><div class="kpi-value ' + (cls||"") + '">' + value + '</div><div class="kpi-sub">' + esc(sub||"") + '</div></div>';

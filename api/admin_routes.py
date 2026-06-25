@@ -337,6 +337,25 @@ async def admin_stats(request):
     })
 
 
+@admin_routes.get("/api/admin/stats/timeseries")
+async def admin_stats_timeseries(request):
+    _require_admin(request)
+    pool = await get_pool()
+    metric = request.query.get("metric", "revenue")
+    frm = request.query.get("from"); to = request.query.get("to")
+    # default last 30 days
+    where_date = "created_at >= COALESCE($1::date, NOW()::date - INTERVAL '30 days') AND created_at < (COALESCE($2::date, NOW()::date) + 1)"
+    qmap = {
+        "revenue":     f"SELECT created_at::date d, COALESCE(SUM(amount_rub),0) v FROM payments WHERE status='paid' AND {where_date} GROUP BY d ORDER BY d",
+        "payments":    f"SELECT created_at::date d, COUNT(*) v FROM payments WHERE status='paid' AND {where_date} GROUP BY d ORDER BY d",
+        "users":       f"SELECT created_at::date d, COUNT(*) v FROM users WHERE {where_date} GROUP BY d ORDER BY d",
+        "generations": f"SELECT created_at::date d, COUNT(*) v FROM generations WHERE {where_date} GROUP BY d ORDER BY d",
+    }
+    sql = qmap.get(metric, qmap["revenue"])
+    rows = await pool.fetch(sql, frm, to)
+    return web.json_response({"points": [{"d": r["d"].isoformat(), "v": float(r["v"])} for r in rows]})
+
+
 # ── Face-similarity verify dashboard ──
 
 # Our real cost (₽) of one NanoBanana run — used to total the money lost on retries.
