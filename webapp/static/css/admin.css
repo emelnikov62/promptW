@@ -182,3 +182,10 @@ textarea.tf-area{font-family:var(--font-mono);font-size:12px;line-height:1.5;res
 .skel{display:block;height:12px;border-radius:6px;background:linear-gradient(90deg,var(--card2),var(--brd),var(--card2));background-size:200% 100%;animation:shimmer 1.2s infinite}
 @keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
 @media(max-width:600px){.kit-overlay{align-items:flex-end}.kit-dialog{max-width:100%;border-radius:16px 16px 0 0}}
+.dt-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.dt-search{min-width:200px}
+.dt-bulkbar{align-items:center;gap:10px;padding:10px 12px;background:var(--card2);border:1px solid var(--brd);border-radius:12px;margin-bottom:10px}
+.dt-empty,.dt-error{text-align:center;color:var(--tx2);padding:24px}
+.dt-selcol{width:36px;text-align:center}
+.data-table th[data-sort]{user-select:none}
+@media(max-width:768px){.dt-hide-m{display:none}.data-table thead{display:none}.data-table tr{display:block;border:1px solid var(--brd);border-radius:12px;margin-bottom:10px;padding:8px}.data-table td{display:flex;justify-content:space-between;gap:12px;border:0;padding:6px 4px}.data-table td:before{content:attr(data-label);color:var(--tx3);font-size:12px}.dt-bulkbar{position:fixed;left:12px;right:12px;bottom:12px;z-index:50}}

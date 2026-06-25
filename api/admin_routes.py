@@ -422,40 +422,17 @@ async def admin_set_note(request):
 
 @admin_routes.get("/api/admin/generations")
 async def admin_generations(request):
-    _require_admin(request)
-    pool = await get_pool()
-    limit = _qint(request, "limit", 50, 1, 200)
-    offset = _qint(request, "offset", 0, 0)
-    status = request.query.get("status")
-    gen_type = request.query.get("type")
-
-    conditions = []
-    params = []
-    idx = 1
-    if status:
-        conditions.append(f"status = ${idx}")
-        params.append(status)
-        idx += 1
-    if gen_type:
-        conditions.append(f"gen_type = ${idx}")
-        params.append(gen_type)
-        idx += 1
-
-    where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
-    params.extend([limit, offset])
-
-    rows = await pool.fetch(f"""
-        SELECT g.id, g.user_tg_id, g.gen_type, g.model, g.prompt, g.status, g.cost,
-               g.result_url, g.created_at, u.username
-        FROM generations g LEFT JOIN users u ON g.user_tg_id = u.tg_id
-        {where} ORDER BY g.created_at DESC LIMIT ${idx} OFFSET ${idx+1}
-    """, *params)
-
-    total = await pool.fetchval(f"SELECT COUNT(*) FROM generations {where}",
-                                *params[:-2]) if params[:-2] else await pool.fetchval(
-                                    "SELECT COUNT(*) FROM generations")
-
-    return web.json_response({"items": [_row(r) for r in rows], "total": total})
+    return await list_query(
+        request,
+        base_sql="""SELECT g.id, g.user_tg_id, g.gen_type, g.model, g.status, g.cost, g.prompt, g.created_at
+                    FROM generations g""",
+        count_sql="SELECT COUNT(*) FROM generations g",
+        search_cols=("g.prompt",),
+        sortable={"id":"g.id","cost":"g.cost","created_at":"g.created_at"},
+        filters={"gen_type":"g.gen_type","status":"g.status"},
+        date_col="g.created_at",
+        csv_name="generations",
+    )
 
 
 # ── Payments ──

@@ -389,15 +389,29 @@ function promptNote(tgId) {
 }
 
 // ── Generations ──
-function loadGenerations(offset) {
+function loadGenerations() {
     var mc = document.getElementById("main-content");
-    mc.innerHTML = '<p style="color:var(--tx2)">Загрузка...</p>';
-    api("/api/admin/generations?limit=" + PAGE_SIZE + "&offset=" + offset).then(function(d) {
-        var rows = d.items.map(function(g) {
-            return '<tr><td>' + g.id + '</td><td>' + g.user_tg_id + (g.username ? " (@" + esc(g.username) + ")" : "") + '</td><td>' + esc(g.gen_type) + '</td><td>' + esc(g.model) + '</td><td>' + badge(g.status) + '</td><td>' + g.cost + '</td><td title="' + esc(g.prompt) + '">' + esc((g.prompt||"").substring(0,40)) + '</td><td>' + fmtDate(g.created_at) + '</td></tr>';
-        }).join("");
-        mc.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>ID</th><th>Пользователь</th><th>Тип</th><th>Модель</th><th>Статус</th><th>Стоимость</th><th>Промпт</th><th>Дата</th></tr></thead><tbody>' + (rows || '<tr><td colspan="8" style="text-align:center;color:var(--tx3)">Нет данных</td></tr>') + '</tbody></table></div>' +
-            pagination(d.total, offset, "loadGenerations");
+    mc.innerHTML = '<div id="gen-table"></div>';
+    DataTable(document.getElementById("gen-table"), {
+        endpoint: "/api/admin/generations",
+        searchable: true, searchPlaceholder: "Поиск по промпту…",
+        exportCsv: true,
+        defaultSort: {key:"created_at", order:"desc"},
+        filters: [
+            {key:"gen_type", label:"Тип", type:"select", options:[{value:"photo",label:"Фото"},{value:"video",label:"Видео"},{value:"audio",label:"Аудио"}]},
+            {key:"status", label:"Статус", type:"select", options:["done","error","pending"]},
+            {type:"daterange"}
+        ],
+        columns: [
+            {key:"id", label:"ID", sortable:true, hideOnMobile:true},
+            {key:"user_tg_id", label:"User"},
+            {key:"gen_type", label:"Тип"},
+            {key:"model", label:"Модель", hideOnMobile:true},
+            {key:"status", label:"Статус", render:function(r){return badge(r.status);}},
+            {key:"cost", label:"W", sortable:true, align:"right"},
+            {key:"prompt", label:"Промпт", render:function(r){return '<span title="'+esc(r.prompt)+'">'+esc((r.prompt||"").slice(0,40))+'</span>';}},
+            {key:"created_at", label:"Дата", sortable:true, render:function(r){return fmtDate(r.created_at);}}
+        ]
     });
 }
 
