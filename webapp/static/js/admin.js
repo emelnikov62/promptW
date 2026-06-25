@@ -110,17 +110,17 @@ function showSection(name) {
     document.getElementById("topbar-title").textContent = sectionTitles[name] || name;
     var loaders = {
         dashboard: loadDashboard,
-        users: function() { loadUsers(0); },
+        users: function() { loadUsers(); },
         generations: function() { loadGenerations(0); },
         payments: function() { loadPayments(); },
         withdrawals: function() { loadWithdrawals(); },
         templates: function() { loadTemplates(0); },
-        promos: function() { loadPromos(0); },
-        referrals: function() { loadReferrals(0); },
+        promos: function() { loadPromos(); },
+        referrals: function() { loadReferrals(); },
         support: function() { loadSupport("open", 0); },
         face: function() { loadFace(facePeriod); },
         notif: function() { loadNotif(0); },
-        audit: function() { loadAudit(0); },
+        audit: function() { loadAudit(); },
         accounts: loadAccounts
     };
     if (loaders[name]) loaders[name]();
@@ -332,18 +332,28 @@ function faceBar(label, val, total, color) {
 
 // ── Users ──
 var usersQuery = "";
-function loadUsers(offset) {
+function loadUsers() {
     var mc = document.getElementById("main-content");
-    var q = usersQuery;
-    var url = "/api/admin/users?limit=" + PAGE_SIZE + "&offset=" + offset + (q ? "&q=" + encodeURIComponent(q) : "");
-    mc.innerHTML = '<div class="toolbar"><input class="search-input" id="user-search" placeholder="Поиск по tg_id или username" value="' + esc(q) + '" onkeydown="if(event.key===\'Enter\'){usersQuery=this.value;loadUsers(0)}"></div><p style="color:var(--tx2)">Загрузка...</p>';
-    api(url).then(function(d) {
-        var rows = d.items.map(function(u) {
-            return '<tr class="clickable" onclick="loadUserDetail(' + u.tg_id + ')"><td>' + u.tg_id + '</td><td>' + esc(u.username) + '</td><td>' + esc(u.first_name) + '</td><td>' + u.balance + '</td><td>' + (u.banned ? badge("banned") : "—") + '</td><td>' + fmtDate(u.created_at) + '</td></tr>';
-        }).join("");
-        mc.innerHTML = '<div class="toolbar"><input class="search-input" id="user-search" placeholder="Поиск по tg_id или username" value="' + esc(q) + '" onkeydown="if(event.key===\'Enter\'){usersQuery=this.value;loadUsers(0)}"><button class="btn btn-outline btn-sm" onclick="usersQuery=document.getElementById(\'user-search\').value;loadUsers(0)">Найти</button></div>' +
-            '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>TG ID</th><th>Username</th><th>Имя</th><th>Баланс</th><th>Бан</th><th>Регистрация</th></tr></thead><tbody>' + (rows || '<tr><td colspan="6" style="text-align:center;color:var(--tx3)">Нет данных</td></tr>') + '</tbody></table></div>' +
-            pagination(d.total, offset, "loadUsers");
+    mc.innerHTML = '<div id="users-table"></div>';
+    window._usersTable = DataTable(document.getElementById("users-table"), {
+        endpoint: "/api/admin/users",
+        searchable: true, searchPlaceholder: "Поиск по tg_id, username, имени…",
+        exportCsv: true,
+        defaultSort: {key: "created_at", order: "desc"},
+        idKey: "tg_id",
+        filters: [
+            {key: "banned", label: "Бан", type: "select", options: [{value: "true", label: "Забанен"}, {value: "false", label: "Активен"}]},
+            {type: "daterange"}
+        ],
+        rowAction: function(r) { loadUserDetail(r.tg_id); },
+        columns: [
+            {key: "tg_id", label: "TG ID", sortable: true},
+            {key: "username", label: "Username", render: function(r) { return esc(r.username || "—"); }},
+            {key: "first_name", label: "Имя", render: function(r) { return esc(r.first_name || "—"); }},
+            {key: "balance", label: "Баланс", sortable: true, align: "right"},
+            {key: "banned", label: "Бан", render: function(r) { return r.banned ? badge("banned") : "—"; }},
+            {key: "created_at", label: "Дата", sortable: true, render: function(r) { return fmtDate(r.created_at); }}
+        ]
     });
 }
 
@@ -926,23 +936,29 @@ function deleteTemplate(id) {
 var PROMO_TYPES = {topup:"Пополнение на сумму",bonus_pct:"% бонус при пополнении"};
 function promoTypeBadge(t){ return '<span class="badge badge-'+(t==="topup"?"done":"pending")+'">'+(PROMO_TYPES[t]||t)+'</span>'; }
 
-function loadPromos(offset){
-    var mc=document.getElementById("main-content");
-    mc.innerHTML='<p style="color:var(--tx2)">Загрузка...</p>';
-    api("/api/admin/promos?limit="+PAGE_SIZE+"&offset="+offset).then(function(d){
-        var rows=d.items.map(function(p){
-            var en=p.enabled?'<span class="badge badge-done">on</span>':'<span class="badge badge-error">off</span>';
-            var uses=p.used_count+"/"+(p.max_uses||"∞");
-            var exp=p.expires_at?fmtDate(p.expires_at):"—";
-            var valStr=p.type==="topup"?p.value+" W":p.value+"%";
-            return '<tr><td>'+esc(p.code)+'</td><td>'+promoTypeBadge(p.type)+'</td><td>'+valStr+'</td><td>'+uses+'</td><td>'+en+'</td><td>'+exp+'</td><td>'+fmtDate(p.created_at)+'</td>'+
-                '<td><button class="btn btn-outline btn-sm" onclick="editPromo('+p.id+')">Изм.</button> '+
-                '<button class="btn btn-danger btn-sm" onclick="deletePromo('+p.id+',\''+esc(p.code)+'\')">Удал.</button></td></tr>';
-        }).join("");
-        mc.innerHTML='<div style="margin-bottom:12px"><button class="btn btn-primary btn-sm" onclick="newPromo()">+ Новый промокод</button></div>'+
-            '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Код</th><th>Тип</th><th>Значение</th><th>Использований</th><th>Вкл</th><th>Истекает</th><th>Создан</th><th>Действия</th></tr></thead><tbody>'+
-            (rows||'<tr><td colspan="8" style="text-align:center;color:var(--tx3)">Нет промокодов</td></tr>')+'</tbody></table></div>'+
-            pagination(d.total,offset,"loadPromos");
+function loadPromos() {
+    var mc = document.getElementById("main-content");
+    mc.innerHTML = '<div style="margin-bottom:12px"><button class="btn btn-primary btn-sm" onclick="newPromo()">+ Промокод</button></div><div id="promos-table"></div>';
+    window._promosTable = DataTable(document.getElementById("promos-table"), {
+        endpoint: "/api/admin/promos",
+        searchable: true, searchPlaceholder: "Поиск по коду…",
+        exportCsv: true,
+        defaultSort: {key: "created_at", order: "desc"},
+        idKey: "id",
+        filters: [
+            {key: "type", label: "Тип", type: "select", options: [{value: "topup", label: "Пополнение"}, {value: "bonus_pct", label: "% бонус"}]},
+            {key: "enabled", label: "Активен", type: "select", options: [{value: "true", label: "Да"}, {value: "false", label: "Нет"}]},
+            {type: "daterange"}
+        ],
+        columns: [
+            {key: "code", label: "Код", render: function(r) { return esc(r.code); }},
+            {key: "type", label: "Тип", render: function(r) { return promoTypeBadge(r.type); }},
+            {key: "value", label: "Значение", render: function(r) { return r.type === "topup" ? r.value + " W" : r.value + "%"; }},
+            {key: "used_count", label: "Использовано", render: function(r) { return r.used_count + "/" + (r.max_uses || "∞"); }},
+            {key: "enabled", label: "Активен", render: function(r) { return r.enabled ? '<span class="badge badge-done">on</span>' : '<span class="badge badge-error">off</span>'; }},
+            {key: "expires_at", label: "Истекает", sortable: true, render: function(r) { return r.expires_at ? fmtDate(r.expires_at) : "—"; }},
+            {key: "_actions", label: "", render: function(r) { return '<button class="btn btn-outline btn-sm" onclick="event.stopPropagation();editPromo(' + r.id + ')">Изм.</button> <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deletePromo(' + r.id + ',\'' + esc(r.code) + '\')">Удал.</button>'; }}
+        ]
     });
 }
 
@@ -994,7 +1010,7 @@ function savePromo(id,isNew){
     var body={code:code,type:type,value:value,max_uses:max_uses,enabled:enabled,expires_at:expires||null};
     var path=isNew?"/api/admin/promos":"/api/admin/promos/"+id;
     api(path,{method:isNew?"POST":"PUT",body:JSON.stringify(body)}).then(function(d){
-        if(d.ok){closeModal();loadPromos(0);}
+        if(d.ok){closeModal();if(window._promosTable)window._promosTable.reload();else loadPromos();}
         else alert("Ошибка: "+(d.error||"unknown"));
     });
 }
@@ -1002,7 +1018,7 @@ function savePromo(id,isNew){
 function deletePromo(id,code){
     if(!confirm("Удалить промокод «"+code+"»?"))return;
     api("/api/admin/promos/"+id,{method:"DELETE"}).then(function(d){
-        if(d.ok)loadPromos(0);
+        if(d.ok){if(window._promosTable)window._promosTable.reload();else loadPromos();}
         else alert("Ошибка: "+(d.error||"unknown"));
     });
 }
@@ -1167,18 +1183,28 @@ function replyTicket(id) {
 
 // ── Referrals ──
 var refQuery = "";
-function loadReferrals(offset) {
+function loadReferrals() {
     var mc = document.getElementById("main-content");
-    var q = refQuery;
-    var url = "/api/admin/referrals?limit=" + PAGE_SIZE + "&offset=" + offset + (q ? "&q=" + encodeURIComponent(q) : "");
-    mc.innerHTML = '<div class="toolbar"><input class="search-input" id="ref-search" placeholder="Поиск по tg_id или username" value="' + esc(q) + '" onkeydown="if(event.key===\'Enter\'){refQuery=this.value;loadReferrals(0)}"><button class="btn btn-outline btn-sm" onclick="refQuery=document.getElementById(\'ref-search\').value;loadReferrals(0)">Найти</button></div><p style="color:var(--tx2)">Загрузка...</p>';
-    api(url).then(function(d) {
-        var rows = d.items.map(function(u) {
-            return '<tr class="clickable" onclick="loadReferralDetail(' + u.tg_id + ')"><td>' + u.tg_id + '</td><td>' + esc(u.username) + '</td><td>' + esc(u.first_name) + '</td><td>' + u.invites + '</td><td>' + Number(u.total_earned).toFixed(2) + ' ₽</td><td>' + Number(u.ref_balance).toFixed(2) + ' ₽</td><td>' + fmtDate(u.created_at) + '</td></tr>';
-        }).join("");
-        mc.innerHTML = '<div class="toolbar"><input class="search-input" id="ref-search" placeholder="Поиск по tg_id или username" value="' + esc(q) + '" onkeydown="if(event.key===\'Enter\'){refQuery=this.value;loadReferrals(0)}"><button class="btn btn-outline btn-sm" onclick="refQuery=document.getElementById(\'ref-search\').value;loadReferrals(0)">Найти</button></div>' +
-            '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>TG ID</th><th>Username</th><th>Имя</th><th>Приглашено</th><th>Заработано</th><th>Реф. баланс</th><th>Регистрация</th></tr></thead><tbody>' + (rows || '<tr><td colspan="7" style="text-align:center;color:var(--tx3)">Нет рефералов</td></tr>') + '</tbody></table></div>' +
-            pagination(d.total, offset, "loadReferrals");
+    mc.innerHTML = '<div id="ref-table"></div>';
+    window._refTable = DataTable(document.getElementById("ref-table"), {
+        endpoint: "/api/admin/referrals",
+        searchable: true, searchPlaceholder: "Поиск по tg_id или username…",
+        exportCsv: true,
+        defaultSort: {key: "invites", order: "desc"},
+        idKey: "tg_id",
+        filters: [
+            {type: "daterange"}
+        ],
+        rowAction: function(r) { loadReferralDetail(r.tg_id); },
+        columns: [
+            {key: "tg_id", label: "TG ID"},
+            {key: "username", label: "Username", render: function(r) { return esc(r.username || "—"); }},
+            {key: "first_name", label: "Имя", render: function(r) { return esc(r.first_name || "—"); }},
+            {key: "invites", label: "Приглашено", sortable: true, align: "right"},
+            {key: "total_earned", label: "Заработано", sortable: true, align: "right", render: function(r) { return Number(r.total_earned).toFixed(2) + " ₽"; }},
+            {key: "ref_balance", label: "Реф. баланс", align: "right", render: function(r) { return Number(r.ref_balance).toFixed(2) + " ₽"; }},
+            {key: "created_at", label: "Регистрация", sortable: true, render: function(r) { return fmtDate(r.created_at); }}
+        ]
     });
 }
 
@@ -1213,15 +1239,39 @@ function loadReferralDetail(tgId) {
 }
 
 // ── Audit ──
-function loadAudit(offset) {
+function loadAudit() {
     var mc = document.getElementById("main-content");
-    mc.innerHTML = '<p style="color:var(--tx2)">Загрузка...</p>';
-    api("/api/admin/audit?limit=" + PAGE_SIZE + "&offset=" + offset).then(function(d) {
-        var rows = d.items.map(function(a) {
-            return '<tr><td>' + a.admin_tg_id + '</td><td>' + esc(a.action) + '</td><td>' + esc(a.target_type||"") + '</td><td>' + esc(a.target_id||"") + '</td><td>' + esc(a.reason||"") + '</td><td>' + fmtDate(a.created_at) + '</td></tr>';
-        }).join("");
-        mc.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Админ</th><th>Действие</th><th>Цель</th><th>ID</th><th>Причина</th><th>Дата</th></tr></thead><tbody>' + (rows || '<tr><td colspan="6" style="text-align:center;color:var(--tx3)">Нет данных</td></tr>') + '</tbody></table></div>' +
-            pagination(d.total, offset, "loadAudit");
+    mc.innerHTML = '<div id="audit-table"></div>';
+    window._auditTable = DataTable(document.getElementById("audit-table"), {
+        endpoint: "/api/admin/audit",
+        searchable: true, searchPlaceholder: "Поиск по причине или admin_id…",
+        exportCsv: true,
+        defaultSort: {key: "created_at", order: "desc"},
+        idKey: "id",
+        filters: [
+            {key: "action", label: "Действие", type: "select", options: ["login_browser","login_failed","export_csv","promo_create","promo_update","promo_delete","payment_refund","payment_refund_manual","template_upload","ban_user","unban_user","balance_adjust","note_update","withdrawal_approve","withdrawal_reject","withdrawal_paid"]},
+            {key: "target_type", label: "Тип объекта", type: "select", options: ["admin","promo","payment","template","user","withdrawal","referral"]},
+            {type: "daterange"}
+        ],
+        rowAction: function(r) {
+            var html = '<h3 class="modal-title">Аудит #' + r.id + '</h3>' +
+                '<div class="kv"><b>Админ:</b> ' + r.admin_tg_id + '</div>' +
+                '<div class="kv"><b>Действие:</b> ' + esc(r.action) + '</div>' +
+                '<div class="kv"><b>Объект:</b> ' + esc(r.target_type || "—") + ' ' + esc(r.target_id || "") + '</div>' +
+                '<div class="kv"><b>Причина:</b> ' + esc(r.reason || "—") + '</div>' +
+                '<div class="kv"><b>IP:</b> ' + esc(r.ip || "—") + '</div>' +
+                '<div class="kv"><b>Дата:</b> ' + fmtDate(r.created_at) + '</div>' +
+                (r.before ? '<div class="kv"><b>До:</b><pre style="white-space:pre-wrap;word-break:break-all;font-size:11px;margin:4px 0">' + esc(typeof r.before === "string" ? r.before : JSON.stringify(r.before, null, 2)) + '</pre></div>' : '') +
+                (r.after ? '<div class="kv"><b>После:</b><pre style="white-space:pre-wrap;word-break:break-all;font-size:11px;margin:4px 0">' + esc(typeof r.after === "string" ? r.after : JSON.stringify(r.after, null, 2)) + '</pre></div>' : '');
+            openModal(html);
+        },
+        columns: [
+            {key: "admin_tg_id", label: "Админ"},
+            {key: "action", label: "Действие", render: function(r) { return esc(r.action); }},
+            {key: "target_type", label: "Объект", render: function(r) { return esc((r.target_type || "") + (r.target_id ? " " + r.target_id : "")); }},
+            {key: "reason", label: "Причина", render: function(r) { return esc((r.reason || "").slice(0, 60)); }},
+            {key: "created_at", label: "Дата", sortable: true, render: function(r) { return fmtDate(r.created_at); }}
+        ]
     });
 }
 
