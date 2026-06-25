@@ -217,7 +217,16 @@ function openModal(html) {
 }
 
 // ── Dashboard ──
-window.dashDays = 30;
+window.dashPeriod = "30";
+// period key → {days, offset}. offset shifts the window back N days (see summary endpoint).
+var DASH_PERIODS = {
+    "today":     {label:"Сегодня", days:1,  offset:0},
+    "yesterday": {label:"Вчера",   days:1,  offset:1},
+    "7":         {label:"7д",      days:7,  offset:0},
+    "30":        {label:"30д",     days:30, offset:0},
+    "90":        {label:"90д",     days:90, offset:0}
+};
+var DASH_PERIOD_ORDER = ["today", "yesterday", "7", "30", "90"];
 
 function lineChart(points, opts) {
     opts = opts || {}; var w = opts.w || 560, h = opts.h || 140, pad = 24;
@@ -241,31 +250,19 @@ function deltaChip(cur, prev) {
     return '<span style="color:' + (d > 0 ? 'var(--success)' : 'var(--error)') + '">' + (d > 0 ? '▲' : '▼') + ' ' + Math.abs(d) + '%</span>';
 }
 
-function _dashDateRange() {
-    var today = new Date();
-    var toStr = today.toISOString().slice(0, 10);
-    var from = new Date(today);
-    from.setDate(from.getDate() - (window.dashDays - 1));
-    var fromStr = from.toISOString().slice(0, 10);
-    return { from: fromStr, to: toStr };
-}
-
 function loadDashboard() {
     var mc = document.getElementById("main-content");
     var periodTabs = '<div class="face-tabs" id="dash-period-tabs">' +
-        [["7", "7д"], ["30", "30д"], ["90", "90д"]].map(function(p) {
-            return '<button class="face-tab' + (String(window.dashDays) === p[0] ? " active" : "") +
-                '" onclick="setDashDays(' + p[0] + ')">' + p[1] + '</button>';
+        DASH_PERIOD_ORDER.map(function(k) {
+            return '<button class="face-tab' + (window.dashPeriod === k ? " active" : "") +
+                '" onclick="setDashPeriod(\'' + k + '\')">' + DASH_PERIODS[k].label + '</button>';
         }).join("") + '</div>';
     mc.innerHTML = periodTabs +
         '<div class="kpi-grid" id="kpi-grid"></div>' +
-        '<div id="dash-breakdowns"></div>' +
-        '<div class="chart-controls" style="margin:16px 0 8px"><select class="form-input" id="dash-metric" style="max-width:220px">' +
-        '<option value="revenue">Выручка ₽/день</option><option value="payments">Оплаты/день</option>' +
-        '<option value="users">Новые юзеры/день</option><option value="generations">Генерации/день</option></select></div>' +
-        '<div id="dash-chart"></div>';
+        '<div id="dash-breakdowns"></div>';
 
-    api("/api/admin/stats/summary?days=" + window.dashDays).then(function(d) {
+    var per = DASH_PERIODS[window.dashPeriod] || DASH_PERIODS["30"];
+    api("/api/admin/stats/summary?days=" + per.days + "&offset=" + per.offset).then(function(d) {
         var rev = d.revenue || {};
         var pay = d.payments || {};
         var paying = d.paying || {};
@@ -322,21 +319,10 @@ function loadDashboard() {
             document.getElementById("dash-breakdowns").innerHTML = '<div class="face-row">' + bk + '</div>';
         }
     }).catch(apiError);
-
-    function drawChart() {
-        var m = document.getElementById("dash-metric").value;
-        var dr = _dashDateRange();
-        document.getElementById("dash-chart").innerHTML = '<p style="color:var(--tx2)">Загрузка…</p>';
-        api("/api/admin/stats/timeseries?metric=" + m + "&from=" + dr.from + "&to=" + dr.to).then(function(d){
-            document.getElementById("dash-chart").innerHTML = lineChart(d.points || []);
-        }).catch(apiError);
-    }
-    document.getElementById("dash-metric").onchange = drawChart;
-    drawChart();
 }
 
-function setDashDays(n) {
-    window.dashDays = n;
+function setDashPeriod(k) {
+    window.dashPeriod = k;
     loadDashboard();
 }
 
