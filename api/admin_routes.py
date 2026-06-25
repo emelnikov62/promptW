@@ -395,35 +395,19 @@ async def admin_face_stats(request):
 
 @admin_routes.get("/api/admin/users")
 async def admin_users(request):
-    _require_admin(request)
-    pool = await get_pool()
-    q = request.query.get("q", "").strip()
-    limit = _qint(request, "limit", 50, 1, 200)
-    offset = _qint(request, "offset", 0, 0)
-    sort = request.query.get("sort", "created_at")
-    order = "DESC" if request.query.get("order", "desc").lower() == "desc" else "ASC"
-
-    allowed_sorts = {"created_at", "balance", "tg_id", "username"}
-    if sort not in allowed_sorts:
-        sort = "created_at"
-
-    if q:
-        rows = await pool.fetch(f"""
-            SELECT tg_id, username, first_name, last_name, lang, balance, ref_balance,
-                   banned, admin_note, referrer_id, created_at
-            FROM users
-            WHERE CAST(tg_id AS TEXT) LIKE $1 OR LOWER(username) LIKE LOWER($1)
-            ORDER BY {sort} {order} LIMIT $2 OFFSET $3
-        """, f"%{q}%", limit, offset)
-    else:
-        rows = await pool.fetch(f"""
-            SELECT tg_id, username, first_name, last_name, lang, balance, ref_balance,
-                   banned, admin_note, referrer_id, created_at
-            FROM users ORDER BY {sort} {order} LIMIT $1 OFFSET $2
-        """, limit, offset)
-
-    total = await pool.fetchval("SELECT COUNT(*) FROM users")
-    return web.json_response({"items": [_row(r) for r in rows], "total": total})
+    return await list_query(
+        request,
+        base_sql="""SELECT tg_id, username, first_name, last_name, lang, balance,
+                           ref_balance, banned, admin_note, referrer_id, created_at
+                    FROM users u""",
+        count_sql="SELECT COUNT(*) FROM users u",
+        search_cols=("u.username", "u.first_name", "u.tg_id::text"),
+        sortable={"created_at": "u.created_at", "balance": "u.balance", "tg_id": "u.tg_id"},
+        default_sort="created_at",
+        filters={"banned": "u.banned::text"},
+        date_col="u.created_at",
+        csv_name="users",
+    )
 
 
 @admin_routes.get("/api/admin/users/{tg_id}")
@@ -817,15 +801,20 @@ async def admin_template_upload(request):
 
 @admin_routes.get("/api/admin/promos")
 async def admin_promos_list(request):
-    await _require_role(request, "owner")
-    pool = await get_pool()
-    limit = _qint(request, "limit", 50, 1, 200)
-    offset = _qint(request, "offset", 0, 0)
-    rows = await pool.fetch("""
-        SELECT * FROM promo_codes ORDER BY created_at DESC LIMIT $1 OFFSET $2
-    """, limit, offset)
-    total = await pool.fetchval("SELECT COUNT(*) FROM promo_codes")
-    return web.json_response({"items": [_row(r) for r in rows], "total": total})
+    return await list_query(
+        request,
+        base_sql="""SELECT id, code, type, value, max_uses, used_count,
+                           enabled, expires_at, created_at
+                    FROM promo_codes p""",
+        count_sql="SELECT COUNT(*) FROM promo_codes p",
+        search_cols=("p.code",),
+        sortable={"created_at": "p.created_at", "expires_at": "p.expires_at"},
+        default_sort="created_at",
+        filters={"type": "p.type", "enabled": "p.enabled::text"},
+        date_col="p.created_at",
+        csv_name="promos",
+        require="owner",
+    )
 
 
 @admin_routes.post("/api/admin/promos")
@@ -922,24 +911,7 @@ async def admin_promo_delete(request):
 
 @admin_routes.get("/api/admin/referrals")
 async def admin_referrals(request):
-    await _require_role(request, "owner")
-    pool = await get_pool()
-    limit = _qint(request, "limit", 50, 1, 200)
-    offset = _qint(request, "offset", 0, 0)
-    q = (request.query.get("q") or "").strip()
-
-    where = ""
-    params: list = []
-    if q:
-        if q.isdigit():
-            where = "WHERE u.tg_id = $1"
-            params = [int(q)]
-        else:
-            where = "WHERE u.username ILIKE $1"
-            params = [f"%{q}%"]
-
-    idx = len(params)
-    rows = await pool.fetch(f"""
+    _inner = """
         SELECT u.tg_id, u.username, u.first_name, u.ref_balance,
                u.created_at,
                COUNT(r.referred_tg_id) AS invites,
@@ -950,26 +922,25 @@ async def admin_referrals(request):
             SELECT referrer_tg_id, SUM(amount_rub) AS earned
             FROM ref_earnings GROUP BY referrer_tg_id
         ) re ON re.referrer_tg_id = u.tg_id
-        {where}
         GROUP BY u.tg_id
         HAVING COUNT(r.referred_tg_id) > 0
-        ORDER BY invites DESC
-        LIMIT ${idx+1} OFFSET ${idx+2}
-    """, *params, limit, offset)
-
-    total = await pool.fetchval(f"""
-        SELECT COUNT(*) FROM (
-            SELECT u.tg_id FROM users u
-            LEFT JOIN referrals r ON r.referrer_tg_id = u.tg_id
-            {where}
-            GROUP BY u.tg_id HAVING COUNT(r.referred_tg_id) > 0
-        ) sub
-    """, *params)
-
-    return web.json_response({
-        "items": [_row(r) for r in rows],
-        "total": total,
-    })
+    """
+    return await list_query(
+        request,
+        base_sql=f"SELECT * FROM ({_inner}) r",
+        count_sql=f"SELECT COUNT(*) FROM ({_inner}) r",
+        search_cols=("r.username", "r.tg_id::text"),
+        sortable={
+            "created_at": "r.created_at",
+            "invites": "r.invites",
+            "total_earned": "r.total_earned",
+        },
+        default_sort="invites",
+        filters={},
+        date_col="r.created_at",
+        csv_name="referrals",
+        require="owner",
+    )
 
 
 @admin_routes.get("/api/admin/referrals/{tg_id}")
@@ -1024,16 +995,18 @@ async def admin_referral_detail(request):
 
 @admin_routes.get("/api/admin/audit")
 async def admin_audit_log(request):
-    await _require_role(request, "owner")
-    pool = await get_pool()
-    limit = _qint(request, "limit", 50, 1, 200)
-    offset = _qint(request, "offset", 0, 0)
-
-    rows = await pool.fetch("""
-        SELECT * FROM admin_audit_log ORDER BY created_at DESC LIMIT $1 OFFSET $2
-    """, limit, offset)
-    total = await pool.fetchval("SELECT COUNT(*) FROM admin_audit_log")
-    return web.json_response({"items": [_row(r) for r in rows], "total": total})
+    return await list_query(
+        request,
+        base_sql="SELECT * FROM admin_audit_log a",
+        count_sql="SELECT COUNT(*) FROM admin_audit_log a",
+        search_cols=("a.reason", "a.admin_tg_id::text"),
+        sortable={"created_at": "a.created_at"},
+        default_sort="created_at",
+        filters={"action": "a.action", "target_type": "a.target_type"},
+        date_col="a.created_at",
+        csv_name="audit",
+        require="owner",
+    )
 
 
 # ── Support tickets ──
