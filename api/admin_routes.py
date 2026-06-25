@@ -1,4 +1,6 @@
 import os
+import csv
+import io
 import hmac
 import json
 import logging
@@ -108,6 +110,84 @@ async def _audit(admin_tg_id, action, target_type=None, target_id=None,
         json.dumps(before) if before else None,
         json.dumps(after) if after else None,
         reason, ip)
+
+
+def _csv_cell(v):
+    s = "" if v is None else str(v)
+    # Formula-injection guard for spreadsheet apps.
+    if s and s[0] in ("=", "+", "-", "@"):
+        s = "'" + s
+    return s
+
+
+async def list_query(request, *, base_sql, count_sql, params=None,
+                     search_cols=(), sortable=None, default_sort="created_at",
+                     default_order="desc", filters=None, date_col=None,
+                     serialize=_row, csv_name="export"):
+    """Generic paged/filtered/sortable list. base_sql/count_sql end right before
+    WHERE; this appends WHERE/ORDER/LIMIT. params are positional placeholders
+    already present in base_sql ($1..$k).
+
+    NOTE: Both base_sql and count_sql must NOT already contain a WHERE clause —
+    the helper appends its own WHERE (or none if no filters are active).
+
+    Auth: this function performs the admin auth check itself (once). Callers
+    must NOT call _require_admin() again before delegating here."""
+    pool = await get_pool()
+    admin_id = _require_admin(request)
+    params = list(params or [])
+    where = []
+
+    # search (ILIKE over allowlisted columns)
+    q = (request.query.get("q") or "").strip()
+    if q and search_cols:
+        params.append(f"%{q}%")
+        idx = len(params)
+        where.append("(" + " OR ".join(f"{c} ILIKE ${idx}" for c in search_cols) + ")")
+
+    # equality filters (allowlisted)
+    for key, col in (filters or {}).items():
+        val = request.query.get(key)
+        if val not in (None, ""):
+            params.append(val); where.append(f"{col} = ${len(params)}")
+
+    # date range (allowlisted single column)
+    if date_col:
+        frm = request.query.get("from"); to = request.query.get("to")
+        if frm: params.append(frm); where.append(f"{date_col} >= ${len(params)}")
+        if to:  params.append(to);  where.append(f"{date_col} < (${len(params)}::date + 1)")
+
+    where_sql = (" WHERE " + " AND ".join(where)) if where else ""
+
+    # sort (allowlist)
+    sortable = sortable or {}
+    sort_key = request.query.get("sort", default_sort)
+    sort_col = sortable.get(sort_key, sortable.get(default_sort, default_sort))
+    order = "ASC" if (request.query.get("order", default_order).lower() == "asc") else "DESC"
+
+    total = await pool.fetchval(count_sql + where_sql, *params)
+
+    if request.query.get("format") == "csv":
+        rows = await pool.fetch(f"{base_sql}{where_sql} ORDER BY {sort_col} {order}", *params)
+        await _audit(admin_id, "export_csv", csv_name, None, None, {"count": len(rows)}, None, _client_ip(request))
+        buf = io.StringIO(); buf.write("﻿")  # BOM for Excel
+        w = csv.writer(buf, delimiter=";")
+        if rows:
+            cols = list(rows[0].keys()); w.writerow(cols)
+            for r in rows:
+                w.writerow([_csv_cell(_serialize(r[c])) for c in cols])
+        resp = web.Response(body=buf.getvalue().encode("utf-8"),
+                            content_type="text/csv",
+                            headers={"Content-Disposition": f'attachment; filename="promptw-{csv_name}.csv"'})
+        return resp
+
+    limit = _qint(request, "limit", 50, 1, 200)
+    offset = _qint(request, "offset", 0, 0)
+    params_page = params + [limit, offset]
+    rows = await pool.fetch(
+        f"{base_sql}{where_sql} ORDER BY {sort_col} {order} LIMIT ${len(params)+1} OFFSET ${len(params)+2}",
+        *params_page)
+    return web.json_response({"items": [serialize(r) for r in rows], "total": total})
 
 
 # ── Login (browser auth without Telegram) ──
@@ -382,28 +462,17 @@ async def admin_generations(request):
 
 @admin_routes.get("/api/admin/payments")
 async def admin_payments(request):
-    _require_admin(request)
-    pool = await get_pool()
-    limit = _qint(request, "limit", 50, 1, 200)
-    offset = _qint(request, "offset", 0, 0)
-    status = request.query.get("status")
-
-    if status:
-        rows = await pool.fetch("""
-            SELECT p.*, u.username FROM payments p
-            LEFT JOIN users u ON p.user_tg_id = u.tg_id
-            WHERE p.status = $1 ORDER BY p.created_at DESC LIMIT $2 OFFSET $3
-        """, status, limit, offset)
-        total = await pool.fetchval("SELECT COUNT(*) FROM payments WHERE status = $1", status)
-    else:
-        rows = await pool.fetch("""
-            SELECT p.*, u.username FROM payments p
-            LEFT JOIN users u ON p.user_tg_id = u.tg_id
-            ORDER BY p.created_at DESC LIMIT $1 OFFSET $2
-        """, limit, offset)
-        total = await pool.fetchval("SELECT COUNT(*) FROM payments")
-
-    return web.json_response({"items": [_row(r) for r in rows], "total": total})
+    return await list_query(
+        request,
+        base_sql="""SELECT p.*, u.username FROM payments p
+                    LEFT JOIN users u ON p.user_tg_id = u.tg_id""",
+        count_sql="SELECT COUNT(*) FROM payments p LEFT JOIN users u ON p.user_tg_id = u.tg_id",
+        search_cols=("u.username", "p.order_id::text", "p.external_id"),
+        sortable={"created_at": "p.created_at", "amount_rub": "p.amount_rub", "tokens": "p.tokens"},
+        filters={"status": "p.status", "provider": "p.provider"},
+        date_col="p.created_at",
+        csv_name="payments",
+    )
 
 
 # ── Withdrawals ──
