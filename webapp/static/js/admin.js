@@ -237,8 +237,8 @@ function lineChart(points, opts) {
 function deltaChip(cur, prev) {
     if (!prev) return cur > 0 ? '<span style="color:var(--success)">new</span>' : '';
     var d = Math.round((cur - prev) / prev * 100);
-    var up = d >= 0;
-    return '<span style="color:' + (up ? 'var(--success)' : 'var(--error)') + '">' + (up ? '▲' : '▼') + ' ' + Math.abs(d) + '%</span>';
+    if (d === 0) return '<span style="color:var(--tx3)">~0%</span>';
+    return '<span style="color:' + (d > 0 ? 'var(--success)' : 'var(--error)') + '">' + (d > 0 ? '▲' : '▼') + ' ' + Math.abs(d) + '%</span>';
 }
 
 function _dashDateRange() {
@@ -286,9 +286,9 @@ function loadDashboard() {
             "done " + (gns.done || 0) + " / err " + (gns.error || 0), "accent");
         grid += kpi("Возвраты ₽", Math.round(ref.value || 0).toLocaleString("ru"),
             (ref.count || 0) + " шт", (ref.value > 0 ? "error" : ""));
-        grid += kpi("Токены на балансах", (bal.tokens || 0).toLocaleString("ru"), "");
+        grid += kpi("Токены на балансах", (bal.tokens || 0).toLocaleString("ru"), "всего");
         grid += kpi("Выводы pending", bal.wd_pending || 0,
-            Math.round(bal.wd_pending_rub || 0).toLocaleString("ru") + " ₽",
+            "всего · " + Math.round(bal.wd_pending_rub || 0).toLocaleString("ru") + " ₽",
             (bal.wd_pending > 0 ? "error" : "success"));
         document.getElementById("kpi-grid").innerHTML = grid;
 
@@ -340,6 +340,7 @@ function setDashDays(n) {
     loadDashboard();
 }
 
+// NOTE: `sub` is inserted as raw HTML (carries deltaChip spans) — callers must pass safe/escaped content.
 function kpi(label, value, sub, cls) {
     return '<div class="kpi"><div class="kpi-label">' + esc(label) + '</div><div class="kpi-value ' + (cls||"") + '">' + value + '</div><div class="kpi-sub">' + (sub||"") + '</div></div>';
 }
