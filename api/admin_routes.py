@@ -911,18 +911,23 @@ async def admin_promo_delete(request):
 
 @admin_routes.get("/api/admin/referrals")
 async def admin_referrals(request):
+    # GROUP BY lists every non-aggregated column: the users PK is `id`, not `tg_id`,
+    # so Postgres won't infer functional dependency from tg_id alone.
+    # re.earned is already SUM'd per referrer; the LEFT JOIN to referrals fans out one
+    # row per invitee, so MAX (not SUM) returns that per-referrer total without inflating
+    # it by the invite count.
     _inner = """
         SELECT u.tg_id, u.username, u.first_name, u.ref_balance,
                u.created_at,
                COUNT(r.referred_tg_id) AS invites,
-               COALESCE(SUM(re.earned), 0) AS total_earned
+               COALESCE(MAX(re.earned), 0) AS total_earned
         FROM users u
         LEFT JOIN referrals r ON r.referrer_tg_id = u.tg_id
         LEFT JOIN (
             SELECT referrer_tg_id, SUM(amount_rub) AS earned
             FROM ref_earnings GROUP BY referrer_tg_id
         ) re ON re.referrer_tg_id = u.tg_id
-        GROUP BY u.tg_id
+        GROUP BY u.tg_id, u.username, u.first_name, u.ref_balance, u.created_at
         HAVING COUNT(r.referred_tg_id) > 0
     """
     return await list_query(
