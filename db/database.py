@@ -340,7 +340,7 @@ async def _safe_migrations():
 async def _seed_owner_account():
     """Seed the env ADMIN_LOGIN/PASSWORD as the first 'owner' account (idempotent).
     Lets the existing operator keep logging in; agents are added via the panel."""
-    import os, hashlib, hmac
+    import os, hashlib
     login = os.getenv("ADMIN_LOGIN", ""); pw = os.getenv("ADMIN_PASSWORD", "")
     ids = [int(x) for x in os.getenv("ADMIN_IDS", "").replace(" ", "").split(",") if x]
     if not (login and pw and ids):

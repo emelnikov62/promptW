@@ -691,7 +691,7 @@ _PREVIEW_MAX = 30 * 1024 * 1024  # 30 MB
 async def admin_template_upload(request):
     """Upload a template preview (image/video). Stored via `storage` (S3 or /media,
     never the git checkout) so adding a template needs no deploy. Returns its URL."""
-    admin_id = _require_admin(request)
+    admin_id = await _require_role(request, "owner")
     reader = await request.multipart()
     field = await reader.next()
     while field is not None and field.name != "file":
@@ -983,7 +983,7 @@ async def admin_support_agents_list(request):
 
 @admin_routes.post("/api/admin/support/agents")
 async def admin_support_agent_add(request):
-    admin_id = _require_admin(request)
+    admin_id = await _require_role(request, "owner")
     data = await _json_body(request)
     tg_id = data.get("tg_id")
     name = (data.get("name") or "").strip() or None
@@ -1002,7 +1002,7 @@ async def admin_support_agent_add(request):
 
 @admin_routes.put("/api/admin/support/agents/{agent_tg_id}")
 async def admin_support_agent_update(request):
-    admin_id = _require_admin(request)
+    admin_id = await _require_role(request, "owner")
     agent_tg_id = int(request.match_info["agent_tg_id"])
     data = await _json_body(request)
     name = (data.get("name") or "").strip()
@@ -1017,7 +1017,7 @@ async def admin_support_agent_update(request):
 
 @admin_routes.delete("/api/admin/support/agents/{agent_tg_id}")
 async def admin_support_agent_delete(request):
-    admin_id = _require_admin(request)
+    admin_id = await _require_role(request, "owner")
     agent_tg_id = int(request.match_info["agent_tg_id"])
     from db.queries import remove_support_agent
     ok = await remove_support_agent(agent_tg_id)
