@@ -524,7 +524,7 @@ function promptNote(tgId) {
 function loadGenerations() {
     var mc = document.getElementById("main-content");
     mc.innerHTML = '<div id="gen-table"></div>';
-    DataTable(document.getElementById("gen-table"), {
+    window._genTable = DataTable(document.getElementById("gen-table"), {
         endpoint: "/api/admin/generations",
         searchable: true, searchPlaceholder: "Поиск по промпту…",
         exportCsv: true,
@@ -534,6 +534,7 @@ function loadGenerations() {
             {key:"status", label:"Статус", type:"select", options:["done","error","pending"]},
             {type:"daterange"}
         ],
+        rowAction: function(r){ openGeneration(r.id); },
         columns: [
             {key:"id", label:"ID", sortable:true, hideOnMobile:true},
             {key:"user_tg_id", label:"User"},
@@ -545,6 +546,65 @@ function loadGenerations() {
             {key:"created_at", label:"Дата", sortable:true, render:function(r){return fmtDate(r.created_at);}}
         ]
     });
+}
+
+// Render the generation result media (photo / batch grid / video / audio).
+function mediaPreview(g){
+    var urls = (g.result_urls && g.result_urls.length) ? g.result_urls : (g.result_url ? [g.result_url] : []);
+    if (!urls.length) return '<div class="gen-empty">Нет результата</div>';
+    if (g.gen_type === "video")
+        return '<div class="gen-preview"><video controls preload="metadata" src="'+escA(urls[0])+'"></video></div>';
+    if (g.gen_type === "audio")
+        return '<div class="gen-preview"><audio controls src="'+escA(urls[0])+'"></audio></div>';
+    // photo (one or many)
+    if (urls.length === 1)
+        return '<div class="gen-preview"><a href="'+escA(urls[0])+'" target="_blank" rel="noopener"><img src="'+escA(urls[0])+'" alt=""></a></div>';
+    var cells = urls.map(function(u){ return '<a href="'+escA(u)+'" target="_blank" rel="noopener"><img src="'+escA(u)+'" alt=""></a>'; }).join("");
+    return '<div class="gen-preview gen-grid">'+cells+'</div>';
+}
+
+function openGeneration(id){
+    api("/api/admin/generations/" + id).then(function(d){
+        var g = d.generation, u = d.user;
+        var canRefund = (window.adminRole === "owner") && !g.refunded_at && (g.cost || 0) > 0;
+        var userCell = u
+            ? '<a href="#" onclick="closeModal();loadUserDetail('+g.user_tg_id+');return false">'+esc(u.username?("@"+u.username):g.user_tg_id)+'</a>'
+            : esc(String(g.user_tg_id));
+        var html = '<h3 class="modal-title">Генерация #'+g.id+' <span class="badge badge-'+esc(g.gen_type)+'">'+esc(g.gen_type)+'</span> '+badge(g.status)+(g.refunded_at?' '+badge("refunded"):'')+'</h3>' +
+            '<div class="kv"><b>Юзер:</b> '+userCell+'</div>' +
+            '<div class="kv"><b>Модель:</b> '+esc(g.model||"—")+'</div>' +
+            '<div class="kv"><b>Стоимость:</b> '+(g.cost||0)+' W'+(g.refunded_at?' · возвращено '+fmtDate(g.refunded_at):'')+'</div>' +
+            '<div class="kv"><b>Создана:</b> '+fmtDate(g.created_at)+'</div>' +
+            mediaPreview(g);
+        // Prompt
+        if (g.prompt)
+            html += '<div class="modal-section"><h4>Промпт</h4><pre style="white-space:pre-wrap;word-break:break-word;font-size:12px;margin:0">'+esc(g.prompt)+'</pre></div>';
+        // Settings
+        if (g.settings && Object.keys(g.settings).length)
+            html += '<div class="modal-section"><h4>Настройки</h4><pre style="white-space:pre-wrap;word-break:break-word;font-size:11px;margin:0">'+esc(JSON.stringify(g.settings, null, 2))+'</pre></div>';
+        // Face metrics
+        if (g.face_score != null)
+            html += '<div class="modal-section"><h4>Сходство лица</h4>' +
+                '<div class="kv"><b>Score:</b> '+Number(g.face_score).toFixed(3)+(g.face_threshold!=null?' (порог '+Number(g.face_threshold).toFixed(2)+')':'')+'</div>' +
+                '<div class="kv"><b>Принято:</b> '+(g.face_accepted?'да':'нет')+'</div>' +
+                '<div class="kv"><b>Попыток:</b> '+(g.face_attempts!=null?g.face_attempts:"—")+'</div>' +
+                '<div class="kv"><b>Лицо в референсе:</b> '+(g.face_ref_found?'да':'нет')+'</div>' +
+                '</div>';
+        // Refund action (owner-only)
+        if (canRefund)
+            html += '<div style="margin-top:16px"><button class="btn btn-danger" id="gen-refund">Вернуть '+(g.cost||0)+' W</button></div>';
+        openModal(html);
+        var rb = document.getElementById("gen-refund");
+        if (rb) rb.onclick = function(){
+            confirmDialog({title:"Вернуть "+(g.cost||0)+" W юзеру?", body:"Токены вернутся на баланс юзера. Действие необратимо.", danger:true, confirmLabel:"Вернуть"}).then(function(ok){
+                if (!ok) return;
+                btnBusy(rb, true);
+                api("/api/admin/generations/"+g.id+"/refund", {method:"POST", body: JSON.stringify({reason:"admin refund"})})
+                    .then(function(){ toast("success", "Возвращено "+(g.cost||0)+" W"); closeModal(); if(window._genTable) window._genTable.reload(); })
+                    .catch(function(e){ btnBusy(rb,false); apiError(e); });
+            });
+        };
+    }).catch(apiError);
 }
 
 // ── Payments ──
@@ -1034,6 +1094,7 @@ function loadPromos() {
             {key: "enabled", label: "Активен", type: "select", options: [{value: "true", label: "Да"}, {value: "false", label: "Нет"}]},
             {type: "daterange"}
         ],
+        rowAction: function(r){ openPromo(r.id); },
         columns: [
             {key: "code", label: "Код", render: function(r) { return esc(r.code); }},
             {key: "type", label: "Тип", render: function(r) { return promoTypeBadge(r.type); }},
@@ -1105,6 +1166,42 @@ function deletePromo(id,code){
         if(d.ok){if(window._promosTable)window._promosTable.reload();else loadPromos();}
         else alert("Ошибка: "+(d.error||"unknown"));
     });
+}
+
+function _promoStatus(p){
+    if(!p.enabled) return badge("error");
+    if(p.expires_at && new Date(p.expires_at) < new Date()) return '<span class="badge badge-error">истёк</span>';
+    if(p.max_uses && p.used_count >= p.max_uses) return '<span class="badge badge-error">исчерпан</span>';
+    return '<span class="badge badge-done">активен</span>';
+}
+
+function openPromo(id){
+    api("/api/admin/promos/"+id).then(function(d){
+        var p = d.promo, s = d.stats || {}, acts = d.activations || [], daily = d.daily || [];
+        var pct = p.max_uses ? Math.round((p.used_count||0)/p.max_uses*100)+"%" : "—";
+        var html = '<h3 class="modal-title">Промокод '+esc(p.code)+' '+_promoStatus(p)+'</h3>' +
+            '<div class="kv"><b>Тип:</b> '+(PROMO_TYPES[p.type]||esc(p.type))+'</div>' +
+            '<div class="kv"><b>Номинал:</b> '+(p.type==="topup"?(p.value+" W"):(p.value+"%"))+'</div>' +
+            '<div class="kv"><b>Использовано:</b> '+(p.used_count||0)+'/'+(p.max_uses||"∞")+(p.max_uses?' ('+pct+')':'')+'</div>' +
+            '<div class="kv"><b>Всего выдано:</b> '+(s.tokens||0)+' W</div>' +
+            '<div class="kv"><b>Активаций:</b> '+(s.total||0)+'</div>' +
+            '<div class="kv"><b>Первая / последняя:</b> '+fmtDate(s.first_at)+' — '+fmtDate(s.last_at)+'</div>' +
+            (p.expires_at?'<div class="kv"><b>Истекает:</b> '+fmtDate(p.expires_at)+'</div>':'');
+        // Activations chart
+        html += '<div class="modal-section"><h4>Активации по дням</h4>' +
+            (daily.length ? lineChart(daily.map(function(x){return {d:x.d, v:x.v};})) : '<div class="chart-empty">Нет данных</div>') +
+            '</div>';
+        // Activations list
+        if (acts.length) {
+            var rows = acts.map(function(a){
+                var user = '<a href="#" onclick="closeModal();loadUserDetail('+a.user_tg_id+');return false">'+esc(a.username?("@"+a.username):a.user_tg_id)+'</a>';
+                return '<tr><td>'+user+'</td><td align="right">'+(a.tokens_given||0)+' W</td><td>'+fmtDate(a.created_at)+'</td></tr>';
+            }).join("");
+            html += '<div class="modal-section"><h4>Активации (последние '+acts.length+')</h4>' +
+                '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Юзер</th><th align="right">Токены</th><th>Дата</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+        }
+        openModal(html);
+    }).catch(apiError);
 }
 
 // ── Support ──
@@ -1333,8 +1430,8 @@ function loadAudit() {
         defaultSort: {key: "created_at", order: "desc"},
         idKey: "id",
         filters: [
-            {key: "action", label: "Действие", type: "select", options: ["login_browser","login_failed","export_csv","promo_create","promo_update","promo_delete","payment_refund","payment_refund_manual","template_upload","ban_user","unban_user","balance_adjust","note_update","withdrawal_approve","withdrawal_reject","withdrawal_paid"]},
-            {key: "target_type", label: "Тип объекта", type: "select", options: ["admin","promo","payment","template","user","withdrawal","referral"]},
+            {key: "action", label: "Действие", type: "select", options: ["login_browser","login_failed","export_csv","promo_create","promo_update","promo_delete","payment_refund","payment_refund_manual","generation_refund","template_upload","ban_user","unban_user","balance_adjust","note_update","withdrawal_approve","withdrawal_reject","withdrawal_paid"]},
+            {key: "target_type", label: "Тип объекта", type: "select", options: ["admin","promo","payment","generation","template","user","withdrawal","referral"]},
             {type: "daterange"}
         ],
         rowAction: function(r) {

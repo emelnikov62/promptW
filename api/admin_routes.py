@@ -608,6 +608,70 @@ async def admin_generations(request):
     )
 
 
+def _jsonb(v, default):
+    """asyncpg returns JSONB columns as strings — parse, tolerating NULL/garbage."""
+    if v is None:
+        return default
+    if isinstance(v, (list, dict)):
+        return v
+    try:
+        return json.loads(v)
+    except Exception:
+        return default
+
+
+@admin_routes.get("/api/admin/generations/{gen_id}")
+async def admin_generation_detail(request):
+    _require_admin(request)
+    pool = await get_pool()
+    gen_id = int(request.match_info["gen_id"])
+    g = await pool.fetchrow("""
+        SELECT id, user_tg_id, gen_type, model, prompt, settings, result_url, result_urls,
+               status, cost, created_at, face_score, face_attempts, face_accepted,
+               face_ref_found, face_scores, face_threshold, refunded_at, refunded_by
+        FROM generations WHERE id=$1""", gen_id)
+    if not g:
+        return web.json_response({"error": "not_found"}, status=404)
+    gen = _row(g)
+    gen["settings"] = _jsonb(g["settings"], {})
+    gen["result_urls"] = _jsonb(g["result_urls"], [])
+    gen["face_scores"] = _jsonb(g["face_scores"], None)
+    u = await pool.fetchrow(
+        "SELECT tg_id, username, first_name, balance FROM users WHERE tg_id=$1", g["user_tg_id"])
+    return web.json_response({"generation": gen, "user": _row(u) if u else None})
+
+
+@admin_routes.post("/api/admin/generations/{gen_id}/refund")
+async def admin_generation_refund(request):
+    admin_id = await _require_role(request, "owner")
+    pool = await get_pool()
+    gen_id = int(request.match_info["gen_id"])
+    reason = ((await _json_body(request)).get("reason") or "").strip()
+    g = await pool.fetchrow(
+        "SELECT id, user_tg_id, cost, status, refunded_at FROM generations WHERE id=$1", gen_id)
+    if not g:
+        return web.json_response({"error": "not_found"}, status=404)
+    if g["refunded_at"]:
+        return web.json_response({"error": "already refunded"}, status=409)
+    cost = g["cost"] or 0
+    if cost <= 0:
+        return web.json_response({"error": "nothing to refund"}, status=400)
+    buyer = g["user_tg_id"]
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            await conn.execute(
+                "UPDATE users SET balance = balance + $1, updated_at = NOW() WHERE tg_id = $2",
+                cost, buyer)
+            await conn.execute(
+                "INSERT INTO transactions (user_tg_id, amount, tx_type, description) VALUES ($1, $2, 'refund', $3)",
+                buyer, cost, f"refund: generation {gen_id}")
+            await conn.execute(
+                "UPDATE generations SET refunded_at=NOW(), refunded_by=$2 WHERE id=$1", gen_id, admin_id)
+    await _audit(admin_id, "generation_refund", "generation", gen_id,
+                 {"status": g["status"]}, {"refunded": True, "tokens_refunded": cost}, reason, _client_ip(request))
+    return web.json_response({"ok": True, "refunded": cost})
+
+
 # ── Payments ──
 
 @admin_routes.get("/api/admin/payments")
@@ -989,6 +1053,34 @@ async def admin_promo_delete(request):
     await _audit(admin_id, "promo_delete", "promo", old["code"],
                  None, None, None, _client_ip(request))
     return web.json_response({"ok": True})
+
+
+@admin_routes.get("/api/admin/promos/{promo_id}")
+async def admin_promo_detail(request):
+    await _require_role(request, "owner")
+    pool = await get_pool()
+    promo_id = int(request.match_info["promo_id"])
+    promo = await pool.fetchrow("SELECT * FROM promo_codes WHERE id=$1", promo_id)
+    if not promo:
+        return web.json_response({"error": "not_found"}, status=404)
+    stats = await pool.fetchrow("""
+        SELECT COUNT(*) AS total, COALESCE(SUM(tokens_given),0) AS tokens,
+               MIN(created_at) AS first_at, MAX(created_at) AS last_at
+        FROM promo_activations WHERE promo_id=$1""", promo_id)
+    acts = await pool.fetch("""
+        SELECT a.user_tg_id, u.username, a.tokens_given, a.created_at
+        FROM promo_activations a LEFT JOIN users u ON a.user_tg_id=u.tg_id
+        WHERE a.promo_id=$1 ORDER BY a.created_at DESC LIMIT 50""", promo_id)
+    daily_rows = await pool.fetch("""
+        SELECT created_at::date AS d, COUNT(*) AS v
+        FROM promo_activations WHERE promo_id=$1 GROUP BY d ORDER BY d""", promo_id)
+    daily = [{"d": r["d"].isoformat(), "v": r["v"]} for r in daily_rows]
+    return web.json_response({
+        "promo": _row(promo),
+        "stats": _row(stats),
+        "activations": [_row(r) for r in acts],
+        "daily": daily,
+    })
 
 
 # ── Referrals ──

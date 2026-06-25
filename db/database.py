@@ -113,6 +113,11 @@ async def _create_tables():
             ALTER TABLE generations ADD COLUMN IF NOT EXISTS face_scores JSONB;        -- per-attempt scores
             ALTER TABLE generations ADD COLUMN IF NOT EXISTS face_threshold REAL;      -- threshold at gen time
 
+            -- Admin token refund for a single generation (mirrors payments.refunded_at):
+            -- refunded_at IS NOT NULL marks the gen as already refunded => idempotent.
+            ALTER TABLE generations ADD COLUMN IF NOT EXISTS refunded_at TIMESTAMPTZ;
+            ALTER TABLE generations ADD COLUMN IF NOT EXISTS refunded_by BIGINT;
+
             CREATE INDEX IF NOT EXISTS idx_generations_user ON generations(user_tg_id);
             -- Hot path: history is "this user's rows, newest first" — a composite
             -- index serves the ORDER BY without a separate sort.

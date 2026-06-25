@@ -213,6 +213,16 @@ textarea.tf-area{font-family:var(--font-mono);font-size:12px;line-height:1.55;re
 .chart-cap{display:flex;justify-content:space-between;color:var(--tx3);font-size:11px;margin-top:6px;font-variant-numeric:tabular-nums}
 .chart-empty{color:var(--tx3);padding:28px;text-align:center;font-size:13px}
 .chart-controls .form-input{max-width:220px}
+/* Generation type badges + result preview (Phase 2 detail modal) */
+.badge-photo{background:var(--accent-soft);color:var(--accent-hi)}
+.badge-video{background:var(--gold-soft);color:var(--gold)}
+.badge-audio{background:var(--success-soft);color:var(--success)}
+.gen-preview{margin:14px 0}
+.gen-preview img,.gen-preview video{max-width:100%;max-height:320px;border-radius:var(--r);border:1px solid var(--brd);display:block}
+.gen-preview audio{width:100%}
+.gen-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+.gen-grid img{max-height:160px;width:100%;object-fit:cover}
+.gen-empty{color:var(--tx3);font-size:13px;padding:16px;text-align:center;border:1px dashed var(--brd);border-radius:var(--r);margin:14px 0}
 
 /* Mobile */
 @media(max-width:768px){
