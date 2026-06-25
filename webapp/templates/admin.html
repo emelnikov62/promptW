@@ -6,27 +6,32 @@
     <title>PromptW Admin</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/admin.css?v=12">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/admin.css?v=13">
 </head>
 <body>
 <div id="admin-app">
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-brand">Prompt<span class="brand-accent">W</span> <span class="brand-tag">admin</span></div>
         <nav class="sidebar-nav">
-            <button class="nav-item active" data-section="dashboard">Dashboard</button>
-            <button class="nav-item" data-section="users">Пользователи</button>
-            <button class="nav-item" data-section="generations">Генерации</button>
-            <button class="nav-item" data-section="payments" data-role="owner">Платежи</button>
-            <button class="nav-item" data-section="withdrawals" data-role="owner">Выводы</button>
-            <button class="nav-item" data-section="templates" data-role="owner">Шаблоны</button>
-            <button class="nav-item" data-section="promos" data-role="owner">Промокоды</button>
-            <button class="nav-item" data-section="referrals" data-role="owner">Рефералы</button>
-            <button class="nav-item" data-section="support">Поддержка</button>
-            <button class="nav-item" data-section="face" data-role="owner">Сходство лиц</button>
-            <button class="nav-item" data-section="notif" data-role="owner">Уведомления</button>
-            <button class="nav-item" data-section="audit" data-role="owner">Аудит-лог</button>
-            <button class="nav-item" data-section="accounts" data-role="owner">Доступ</button>
+            <div class="nav-group">Обзор</div>
+            <button class="nav-item active" data-section="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>Сводка</button>
+            <button class="nav-item" data-section="generations"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>Генерации</button>
+            <div class="nav-group" data-role="owner">Финансы</div>
+            <button class="nav-item" data-section="payments" data-role="owner"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Платежи</button>
+            <button class="nav-item" data-section="withdrawals" data-role="owner"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>Выводы</button>
+            <div class="nav-group" data-role="owner">Контент</div>
+            <button class="nav-item" data-section="templates" data-role="owner"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>Шаблоны</button>
+            <button class="nav-item" data-section="promos" data-role="owner"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M16 8 8 16M9.5 9h.01M14.5 15h.01"/></svg>Промокоды</button>
+            <button class="nav-item" data-section="notif" data-role="owner"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>Уведомления</button>
+            <div class="nav-group">Люди</div>
+            <button class="nav-item" data-section="users"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>Пользователи</button>
+            <button class="nav-item" data-section="referrals" data-role="owner"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5 8.6 10.5"/></svg>Рефералы</button>
+            <button class="nav-item" data-section="support"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Поддержка</button>
+            <div class="nav-group" data-role="owner">Система</div>
+            <button class="nav-item" data-section="face" data-role="owner"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M9 10h.01M15 10h.01M9.5 15a3.5 3.5 0 0 0 5 0"/></svg>Сходство лиц</button>
+            <button class="nav-item" data-section="audit" data-role="owner"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Аудит-лог</button>
+            <button class="nav-item" data-section="accounts" data-role="owner"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Доступ</button>
         </nav>
     </aside>
     <main class="main">
@@ -44,6 +49,6 @@
 </div>
 <script src="/static/js/admin-kit.js?v=1"></script>
 <script src="/static/js/admin-table.js?v=2"></script>
-<script src="/static/js/admin.js?v=25"></script>
+<script src="/static/js/admin.js?v=26"></script>
 </body>
 </html>

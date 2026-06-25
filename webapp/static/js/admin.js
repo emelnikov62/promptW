@@ -75,7 +75,7 @@ function logout() {
 function applyRole() {
     return api("/api/admin/me").then(function(d){
         window.adminRole = d.role || "agent";
-        document.querySelectorAll('.nav-item[data-role="owner"]').forEach(function(b){
+        document.querySelectorAll('[data-role="owner"]').forEach(function(b){
             b.style.display = (window.adminRole === "owner") ? "" : "none";
         });
         // if current section is now hidden, fall back to dashboard
