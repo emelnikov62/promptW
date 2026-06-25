@@ -511,30 +511,56 @@ function openPayment(row) {
 }
 
 // ── Withdrawals ──
-function loadWithdrawals(offset) {
+function loadWithdrawals() {
     var mc = document.getElementById("main-content");
-    mc.innerHTML = '<p style="color:var(--tx2)">Загрузка...</p>';
-    api("/api/admin/withdrawals?limit=" + PAGE_SIZE + "&offset=" + offset).then(function(d) {
-        var rows = d.items.map(function(w) {
-            var actions = "";
-            if (w.status === "pending") actions = '<button class="btn btn-primary btn-sm" onclick="wdAction(' + w.id + ',\'approve\')">Approve</button> <button class="btn btn-danger btn-sm" onclick="wdAction(' + w.id + ',\'reject\')">Reject</button>';
-            else if (w.status === "approved") actions = '<button class="btn btn-outline btn-sm" onclick="wdAction(' + w.id + ',\'paid\')">Mark Paid</button>';
-            return '<tr><td>' + w.user_tg_id + (w.username ? " (@" + esc(w.username) + ")" : "") + '</td><td>' + w.amount_rub + ' ₽</td><td>' + esc(w.method) + '</td><td>' + esc(w.details) + '</td><td>' + badge(w.status) + '</td><td>' + actions + '</td><td>' + fmtDate(w.created_at) + '</td></tr>';
-        }).join("");
-        mc.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Пользователь</th><th>Сумма</th><th>Метод</th><th>Реквизиты</th><th>Статус</th><th>Действия</th><th>Дата</th></tr></thead><tbody>' + (rows || '<tr><td colspan="7" style="text-align:center;color:var(--tx3)">Нет данных</td></tr>') + '</tbody></table></div>' +
-            pagination(d.total, offset, "loadWithdrawals");
+    mc.innerHTML = '<div id="wd-table"></div>';
+    window._wdTable = DataTable(document.getElementById("wd-table"), {
+        endpoint: "/api/admin/withdrawals", exportCsv: true, searchable: true,
+        searchPlaceholder: "@username / реквизиты", defaultSort: {key: "created_at", order: "desc"},
+        filters: [
+            {key: "status", label: "Статус", type: "select", options: ["pending", "approved", "paid", "rejected"]},
+            {key: "method", label: "Метод", type: "select", options: ["card", "usdt"]},
+            {type: "daterange"}
+        ],
+        bulkActions: [{label: "Одобрить выбранные", run: bulkApproveWd}],
+        rowAction: openWithdrawal,
+        columns: [
+            {key: "user_tg_id", label: "User", render: function(r) { return esc(r.username ? ("@" + r.username) : r.user_tg_id); }},
+            {key: "amount_rub", label: "₽", sortable: true, align: "right"},
+            {key: "method", label: "Метод", hideOnMobile: true},
+            {key: "details", label: "Реквизиты", hideOnMobile: true},
+            {key: "status", label: "Статус", render: function(r) { return badge(r.status); }},
+            {key: "created_at", label: "Дата", sortable: true, render: function(r) { return fmtDate(r.created_at); }}
+        ]
     });
 }
-
-function wdAction(id, action) {
-    if (!confirm("Подтвердить: " + action + "?")) return;
-    var reason = prompt("Причина/комментарий:");
-    if (reason === null) return;
-    api("/api/admin/withdrawals/" + id + "/action", {
-        method: "POST", body: JSON.stringify({action: action, reason: reason})
-    }).then(function(d) {
-        if (d.ok) loadWithdrawals(0);
-        else alert("Ошибка: " + (d.error || "unknown"));
+function bulkApproveWd(ids) {
+    return confirmDialog({title: "Одобрить " + ids.length + " заявок?"}).then(function(ok) {
+        if (!ok) return;
+        return Promise.all(ids.map(function(id) { return api("/api/admin/withdrawals/" + id + "/action", {method: "POST", body: JSON.stringify({action: "approve", reason: "bulk"})}).catch(function() {}); }))
+            .then(function() { toast("success", "Готово"); });
+    });
+}
+function openWithdrawal(row) {
+    var actions = "";
+    if (row.status === "pending") actions = '<button class="btn btn-primary" onclick="wdDo(' + row.id + ",\'approve\')\">Одобрить</button> <button class=\"btn btn-danger\" onclick=\"wdDo(" + row.id + ",\'reject\')\">Отклонить</button>";
+    else if (row.status === "approved") actions = '<button class="btn btn-primary" onclick="wdDo(' + row.id + ",\'paid\')\">Выплачено</button>";
+    openModal('<h3 class="modal-title">Вывод #' + row.id + ' ' + badge(row.status) + '</h3>' +
+        '<div class="kv"><b>Юзер:</b> ' + esc(row.username ? ("@" + row.username) : row.user_tg_id) + '</div>' +
+        '<div class="kv"><b>Сумма:</b> ' + row.amount_rub + ' ₽</div>' +
+        '<div class="kv"><b>Метод:</b> ' + esc(row.method) + '</div>' +
+        '<div class="kv"><b>Реквизиты:</b> ' + esc(row.details) + '</div>' +
+        '<div class="kv"><b>Создан:</b> ' + fmtDate(row.created_at) + '</div>' +
+        '<div style="margin-top:16px">' + actions + '</div>');
+}
+function wdDo(id, action) {
+    var ask = action === "reject"
+        ? formModal({title: "Причина отклонения", fields: [{name: "reason", label: "Причина", type: "textarea", required: true}], submitLabel: "Отклонить"}).then(function(v) { return v ? v.reason : null; })
+        : confirmDialog({title: "Подтвердить?"}).then(function(ok) { return ok ? "" : null; });
+    ask.then(function(reason) {
+        if (reason === null) return;
+        api("/api/admin/withdrawals/" + id + "/action", {method: "POST", body: JSON.stringify({action: action, reason: reason})})
+            .then(function(d) { toast("success", "Статус: " + d.status); closeModal(); window._wdTable.reload(); }).catch(apiError);
     });
 }
 
