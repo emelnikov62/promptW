@@ -342,6 +342,75 @@ async def admin_stats(request):
     })
 
 
+@admin_routes.get("/api/admin/stats/summary")
+async def admin_stats_summary(request):
+    _require_admin(request)
+    pool = await get_pool()
+    days = _qint(request, "days", 30, 1, 365)
+    from datetime import timedelta
+    async with pool.acquire() as conn:
+        today = await conn.fetchval("SELECT CURRENT_DATE")
+        cur_start = today - timedelta(days=days - 1)
+        end_excl = today + timedelta(days=1)
+        prev_start = cur_start - timedelta(days=days)
+
+        async def rev(a, b):
+            return float(await conn.fetchval(
+                "SELECT COALESCE(SUM(amount_rub),0) FROM payments WHERE status='paid' AND created_at >= $1 AND created_at < $2", a, b) or 0)
+
+        async def pcount(a, b):
+            return await conn.fetchval(
+                "SELECT COUNT(*) FROM payments WHERE status='paid' AND created_at >= $1 AND created_at < $2", a, b)
+
+        async def newusers(a, b):
+            return await conn.fetchval(
+                "SELECT COUNT(*) FROM users WHERE created_at >= $1 AND created_at < $2", a, b)
+
+        async def gens(a, b):
+            return await conn.fetchval(
+                "SELECT COUNT(*) FROM generations WHERE created_at >= $1 AND created_at < $2", a, b)
+
+        revenue = await rev(cur_start, end_excl)
+        revenue_prev = await rev(prev_start, cur_start)
+        pay = await pcount(cur_start, end_excl)
+        pay_prev = await pcount(prev_start, cur_start)
+        users_new = await newusers(cur_start, end_excl)
+        users_prev = await newusers(prev_start, cur_start)
+        gens_cur = await gens(cur_start, end_excl)
+        gens_prev = await gens(prev_start, cur_start)
+        gens_done = await conn.fetchval(
+            "SELECT COUNT(*) FROM generations WHERE status='done' AND created_at >= $1 AND created_at < $2", cur_start, end_excl)
+        gens_err = await conn.fetchval(
+            "SELECT COUNT(*) FROM generations WHERE status='error' AND created_at >= $1 AND created_at < $2", cur_start, end_excl)
+        paying = await conn.fetchval(
+            "SELECT COUNT(DISTINCT user_tg_id) FROM payments WHERE status='paid' AND created_at >= $1 AND created_at < $2", cur_start, end_excl)
+        refunds_rub = float(await conn.fetchval(
+            "SELECT COALESCE(SUM(amount_rub),0) FROM payments WHERE status='refunded' AND refunded_at >= $1 AND refunded_at < $2", cur_start, end_excl) or 0)
+        refunds_cnt = await conn.fetchval(
+            "SELECT COUNT(*) FROM payments WHERE status='refunded' AND refunded_at >= $1 AND refunded_at < $2", cur_start, end_excl)
+        balances = await conn.fetchval("SELECT COALESCE(SUM(balance),0) FROM users") or 0
+        wd_pending = await conn.fetchval("SELECT COUNT(*) FROM withdrawals WHERE status='pending'")
+        wd_pending_rub = float(await conn.fetchval(
+            "SELECT COALESCE(SUM(amount_rub),0) FROM withdrawals WHERE status='pending'") or 0)
+        prov = await conn.fetch(
+            "SELECT provider, COUNT(*) c, COALESCE(SUM(amount_rub),0) rub FROM payments WHERE status='paid' AND created_at >= $1 AND created_at < $2 GROUP BY provider ORDER BY rub DESC", cur_start, end_excl)
+        gtypes = await conn.fetch(
+            "SELECT gen_type, COUNT(*) c FROM generations WHERE created_at >= $1 AND created_at < $2 GROUP BY gen_type ORDER BY c DESC", cur_start, end_excl)
+
+    return web.json_response({
+        "days": days,
+        "revenue": {"value": revenue, "prev": revenue_prev, "count": pay, "avg": (round(revenue / pay) if pay else 0)},
+        "payments": {"value": pay, "prev": pay_prev},
+        "paying": {"value": paying},
+        "users": {"value": users_new, "prev": users_prev},
+        "generations": {"value": gens_cur, "prev": gens_prev, "done": gens_done, "error": gens_err},
+        "refunds": {"value": refunds_rub, "count": refunds_cnt},
+        "balances": {"tokens": balances, "wd_pending": wd_pending, "wd_pending_rub": wd_pending_rub},
+        "by_provider": [{"provider": r["provider"], "count": r["c"], "rub": float(r["rub"])} for r in prov],
+        "by_gen_type": [{"gen_type": r["gen_type"], "count": r["c"]} for r in gtypes],
+    })
+
+
 @admin_routes.get("/api/admin/stats/timeseries")
 async def admin_stats_timeseries(request):
     _require_admin(request)
