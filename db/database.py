@@ -14,6 +14,7 @@ async def init_db(dsn: str):
     _pool = await asyncpg.create_pool(dsn, min_size=2, max_size=10)
     await _create_tables()
     await _safe_migrations()
+    await _seed_owner_account()
     await _seed_templates()
 
 
@@ -306,6 +307,15 @@ async def _create_tables():
                 name VARCHAR(255),
                 added_at TIMESTAMPTZ DEFAULT NOW()
             );
+
+            CREATE TABLE IF NOT EXISTS admin_accounts (
+                tg_id BIGINT PRIMARY KEY,
+                login VARCHAR(64) UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                role VARCHAR(16) NOT NULL DEFAULT 'agent',
+                disabled BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            );
         """)
 
 
@@ -325,6 +335,24 @@ async def _safe_migrations():
         except Exception:
             logger.warning("ref_earnings unique index not created (pre-existing dupes?) "
                            "— skipping; settle's pending-flip still prevents double-credit")
+
+
+async def _seed_owner_account():
+    """Seed the env ADMIN_LOGIN/PASSWORD as the first 'owner' account (idempotent).
+    Lets the existing operator keep logging in; agents are added via the panel."""
+    import os, hashlib
+    login = os.getenv("ADMIN_LOGIN", ""); pw = os.getenv("ADMIN_PASSWORD", "")
+    ids = [int(x) for x in os.getenv("ADMIN_IDS", "").replace(" ", "").split(",") if x]
+    if not (login and pw and ids):
+        return
+    tg_id = ids[0]
+    ph = hashlib.sha256(pw.encode()).hexdigest()
+    async with _pool.acquire() as conn:
+        await conn.execute("""
+            INSERT INTO admin_accounts (tg_id, login, password_hash, role)
+            VALUES ($1,$2,$3,'owner')
+            ON CONFLICT (tg_id) DO UPDATE SET login=$2, password_hash=$3, role='owner'
+        """, tg_id, login, ph)
 
 
 async def _seed_templates():

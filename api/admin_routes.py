@@ -2,6 +2,7 @@ import os
 import csv
 import io
 import hmac
+import hashlib
 import json
 import logging
 from datetime import datetime
@@ -91,12 +92,35 @@ def _client_ip(request):
 
 
 def _require_admin(request):
-    # Require BOTH an admin-scoped session token (set by auth_middleware) and
-    # membership in ADMIN_IDS. A plain user/desktop token can authenticate to the
-    # rest of the API but never carries admin_scope, so it can't reach the panel.
+    # Require an admin-scoped session token (set by auth_middleware). The token is
+    # minted only by a successful /api/admin/login (credentials validated against
+    # admin_accounts/env), so admin_scope is sufficient proof of admin identity.
+    # Authorization (owner vs agent) is enforced per-endpoint via _require_role.
     tg_id = request.get("tg_id")
-    if not request.get("admin_scope") or not tg_id or tg_id not in ADMIN_IDS:
+    if not request.get("admin_scope") or not tg_id:
         raise web.HTTPForbidden(text="forbidden")
+    return tg_id
+
+
+async def _account_role(tg_id):
+    pool = await get_pool()
+    row = await pool.fetchrow("SELECT role, disabled FROM admin_accounts WHERE tg_id=$1", tg_id)
+    if row and not row["disabled"]:
+        return row["role"]
+    # env owner fallback (table empty / not yet seeded)
+    if tg_id in ADMIN_IDS:
+        return "owner"
+    return None
+
+
+def _pw_hash(pw): return hashlib.sha256((pw or "").encode()).hexdigest()
+
+
+async def _require_role(request, role):
+    tg_id = _require_admin(request)
+    r = await _account_role(tg_id)
+    if r != role and r != "owner":   # owner passes every gate
+        raise web.HTTPForbidden(text="role_forbidden")
     return tg_id
 
 
@@ -194,23 +218,80 @@ async def list_query(request, *, base_sql, count_sql, params=None,
 
 @admin_routes.post("/api/admin/login")
 async def admin_login(request):
-    if not ADMIN_LOGIN or not ADMIN_PASSWORD:
-        return web.json_response({"error": "ADMIN_LOGIN/ADMIN_PASSWORD not configured"}, status=503)
     ip = _client_ip(request)
     if not _login_rate_ok(ip):
         return web.json_response({"error": "too_many_attempts"}, status=429)
     data = await _json_body(request)
     login = (data.get("login") or "").strip()
     password = (data.get("password") or "").strip()
-    if not hmac.compare_digest(login, ADMIN_LOGIN) or not hmac.compare_digest(password, ADMIN_PASSWORD):
-        await _audit(0, "login_failed", "admin", None,
-                     None, {"login": login}, None, ip)
+    pool = await get_pool()
+    acct = await pool.fetchrow("SELECT tg_id, password_hash, disabled FROM admin_accounts WHERE login=$1", login)
+    ok = False; admin_tg_id = None
+    if acct and not acct["disabled"] and hmac.compare_digest(acct["password_hash"], _pw_hash(password)):
+        ok = True; admin_tg_id = acct["tg_id"]
+    elif ADMIN_LOGIN and ADMIN_PASSWORD and hmac.compare_digest(login, ADMIN_LOGIN) and hmac.compare_digest(password, ADMIN_PASSWORD):
+        ok = True; admin_tg_id = next(iter(ADMIN_IDS)) if ADMIN_IDS else 0
+    if not ok:
+        await _audit(0, "login_failed", "admin", None, None, {"login": login}, None, ip)
         return web.json_response({"error": "invalid credentials"}, status=403)
-    admin_tg_id = next(iter(ADMIN_IDS)) if ADMIN_IDS else 0
     token = make_admin_token(admin_tg_id, BOT_TOKEN, ttl_sec=12 * 3600)
-    await _audit(admin_tg_id, "login_browser", "admin", admin_tg_id,
-                 None, None, None, _client_ip(request))
+    await _audit(admin_tg_id, "login_browser", "admin", admin_tg_id, None, None, None, ip)
     return web.json_response({"ok": True, "token": token})
+
+
+# ── Me + Accounts management ──
+
+@admin_routes.get("/api/admin/me")
+async def admin_me(request):
+    tg_id = _require_admin(request)
+    return web.json_response({"tg_id": tg_id, "role": await _account_role(tg_id)})
+
+
+@admin_routes.get("/api/admin/accounts")
+async def admin_accounts_list(request):
+    await _require_role(request, "owner")
+    pool = await get_pool()
+    rows = await pool.fetch("SELECT tg_id, login, role, disabled, created_at FROM admin_accounts ORDER BY created_at")
+    return web.json_response({"items": [_row(r) for r in rows], "total": len(rows)})
+
+
+@admin_routes.post("/api/admin/accounts")
+async def admin_accounts_create(request):
+    admin_id = await _require_role(request, "owner")
+    d = await _json_body(request)
+    try:
+        tg_id = int(d.get("tg_id"))
+    except (TypeError, ValueError):
+        return web.json_response({"error": "tg_id must be a number"}, status=400)
+    login = (d.get("login") or "").strip(); pw = (d.get("password") or "").strip()
+    role = d.get("role") if d.get("role") in ("owner", "agent") else "agent"
+    if not login or not pw:
+        return web.json_response({"error": "login and password required"}, status=400)
+    pool = await get_pool()
+    try:
+        await pool.execute("INSERT INTO admin_accounts (tg_id, login, password_hash, role) VALUES ($1,$2,$3,$4)",
+                           tg_id, login, _pw_hash(pw), role)
+    except Exception:
+        return web.json_response({"error": "tg_id or login already exists"}, status=409)
+    await _audit(admin_id, "account_create", "admin_account", tg_id, None, {"login": login, "role": role}, None, _client_ip(request))
+    return web.json_response({"ok": True})
+
+
+@admin_routes.put("/api/admin/accounts/{tg_id}")
+async def admin_accounts_update(request):
+    admin_id = await _require_role(request, "owner")
+    tg_id = int(request.match_info["tg_id"])
+    d = await _json_body(request)
+    sets, params = [], []
+    if d.get("role") in ("owner", "agent"): params.append(d["role"]); sets.append(f"role=${len(params)}")
+    if "disabled" in d: params.append(bool(d["disabled"])); sets.append(f"disabled=${len(params)}")
+    if d.get("password"): params.append(_pw_hash(d["password"])); sets.append(f"password_hash=${len(params)}")
+    if not sets: return web.json_response({"error": "nothing to update"}, status=400)
+    params.append(tg_id)
+    pool = await get_pool()
+    await pool.execute(f"UPDATE admin_accounts SET {', '.join(sets)} WHERE tg_id=${len(params)}", *params)
+    await _audit(admin_id, "account_update", "admin_account", tg_id, None, {k:v for k,v in d.items() if k!='password'}, None, _client_ip(request))
+    return web.json_response({"ok": True})
 
 
 # ── Dashboard ──
@@ -360,7 +441,7 @@ async def admin_user_detail(request):
 
 @admin_routes.post("/api/admin/users/{tg_id}/adjust")
 async def admin_adjust_balance(request):
-    admin_id = _require_admin(request)
+    admin_id = await _require_role(request, "owner")
     pool = await get_pool()
     tg_id = int(request.match_info["tg_id"])
     data = await _json_body(request)
@@ -390,7 +471,7 @@ async def admin_adjust_balance(request):
 
 @admin_routes.post("/api/admin/users/{tg_id}/ban")
 async def admin_ban_user(request):
-    admin_id = _require_admin(request)
+    admin_id = await _require_role(request, "owner")
     pool = await get_pool()
     tg_id = int(request.match_info["tg_id"])
     data = await _json_body(request)
@@ -406,7 +487,7 @@ async def admin_ban_user(request):
 
 @admin_routes.post("/api/admin/users/{tg_id}/note")
 async def admin_set_note(request):
-    admin_id = _require_admin(request)
+    admin_id = await _require_role(request, "owner")
     pool = await get_pool()
     tg_id = int(request.match_info["tg_id"])
     data = await _json_body(request)
@@ -472,7 +553,7 @@ async def admin_withdrawals(request):
 
 @admin_routes.post("/api/admin/withdrawals/{wd_id}/action")
 async def admin_withdrawal_action(request):
-    admin_id = _require_admin(request)
+    admin_id = await _require_role(request, "owner")
     pool = await get_pool()
     wd_id = int(request.match_info["wd_id"])
     data = await _json_body(request)
@@ -550,7 +631,7 @@ async def admin_template_get(request):
 
 @admin_routes.post("/api/admin/templates")
 async def admin_template_create(request):
-    admin_id = _require_admin(request)
+    admin_id = await _require_role(request, "owner")
     data = _tpl_payload(await _json_body(request))
     if not data["id"] or data["type"] not in _TPL_TYPES:
         return web.json_response({"error": "id and valid type required"}, status=400)
@@ -568,7 +649,7 @@ async def admin_template_create(request):
 
 @admin_routes.put("/api/admin/templates/{tpl_id}")
 async def admin_template_update(request):
-    admin_id = _require_admin(request)
+    admin_id = await _require_role(request, "owner")
     tpl_id = request.match_info["tpl_id"]
     before = await admin_get_template(tpl_id)
     if not before:
@@ -592,7 +673,7 @@ async def admin_template_update(request):
 
 @admin_routes.delete("/api/admin/templates/{tpl_id}")
 async def admin_template_delete(request):
-    admin_id = _require_admin(request)
+    admin_id = await _require_role(request, "owner")
     tpl_id = request.match_info["tpl_id"]
     ok = await admin_delete_template(tpl_id)
     if not ok:
@@ -610,7 +691,7 @@ _PREVIEW_MAX = 30 * 1024 * 1024  # 30 MB
 async def admin_template_upload(request):
     """Upload a template preview (image/video). Stored via `storage` (S3 or /media,
     never the git checkout) so adding a template needs no deploy. Returns its URL."""
-    admin_id = _require_admin(request)
+    admin_id = await _require_role(request, "owner")
     reader = await request.multipart()
     field = await reader.next()
     while field is not None and field.name != "file":
@@ -652,7 +733,7 @@ async def admin_promos_list(request):
 
 @admin_routes.post("/api/admin/promos")
 async def admin_promo_create(request):
-    admin_id = _require_admin(request)
+    admin_id = await _require_role(request, "owner")
     data = await _json_body(request)
     code = (data.get("code") or "").strip().upper()
     ptype = (data.get("type") or "").strip()
@@ -686,7 +767,7 @@ async def admin_promo_create(request):
 
 @admin_routes.put("/api/admin/promos/{promo_id}")
 async def admin_promo_update(request):
-    admin_id = _require_admin(request)
+    admin_id = await _require_role(request, "owner")
     promo_id = int(request.match_info["promo_id"])
     data = await _json_body(request)
     pool = await get_pool()
@@ -727,7 +808,7 @@ async def admin_promo_update(request):
 
 @admin_routes.delete("/api/admin/promos/{promo_id}")
 async def admin_promo_delete(request):
-    admin_id = _require_admin(request)
+    admin_id = await _require_role(request, "owner")
     promo_id = int(request.match_info["promo_id"])
     pool = await get_pool()
     old = await pool.fetchrow("SELECT code FROM promo_codes WHERE id = $1", promo_id)
@@ -902,7 +983,7 @@ async def admin_support_agents_list(request):
 
 @admin_routes.post("/api/admin/support/agents")
 async def admin_support_agent_add(request):
-    admin_id = _require_admin(request)
+    admin_id = await _require_role(request, "owner")
     data = await _json_body(request)
     tg_id = data.get("tg_id")
     name = (data.get("name") or "").strip() or None
@@ -921,7 +1002,7 @@ async def admin_support_agent_add(request):
 
 @admin_routes.put("/api/admin/support/agents/{agent_tg_id}")
 async def admin_support_agent_update(request):
-    admin_id = _require_admin(request)
+    admin_id = await _require_role(request, "owner")
     agent_tg_id = int(request.match_info["agent_tg_id"])
     data = await _json_body(request)
     name = (data.get("name") or "").strip()
@@ -936,7 +1017,7 @@ async def admin_support_agent_update(request):
 
 @admin_routes.delete("/api/admin/support/agents/{agent_tg_id}")
 async def admin_support_agent_delete(request):
-    admin_id = _require_admin(request)
+    admin_id = await _require_role(request, "owner")
     agent_tg_id = int(request.match_info["agent_tg_id"])
     from db.queries import remove_support_agent
     ok = await remove_support_agent(agent_tg_id)
@@ -1046,7 +1127,7 @@ async def admin_notif_overview(request):
 
 @admin_routes.post("/api/admin/notif/toggle")
 async def admin_notif_toggle(request):
-    admin_id = _require_admin(request)
+    admin_id = await _require_role(request, "owner")
     from api.routes import engagement_enabled, ENGAGEMENT_FLAG
     from db.queries import set_setting
     data = await _json_body(request)
@@ -1060,7 +1141,7 @@ async def admin_notif_toggle(request):
 
 @admin_routes.post("/api/admin/notif/weekly")
 async def admin_notif_weekly(request):
-    admin_id = _require_admin(request)
+    admin_id = await _require_role(request, "owner")
     from api.routes import run_weekly_broadcast, _in_quiet_hours
     if _in_quiet_hours():
         return web.json_response({"ok": False, "reason": "quiet_hours", "sent": 0})

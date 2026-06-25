@@ -54,7 +54,7 @@ function doLogin() {
             localStorage.setItem("pw_admin_token", d.token);
             document.getElementById("login-screen").style.display = "none";
             document.getElementById("admin-app").style.display = "flex";
-            showSection("dashboard");
+            applyRole().then(function(){ showSection("dashboard"); });
         } else {
             errEl.textContent = d.error || "Ошибка авторизации";
             errEl.style.display = "block";
@@ -72,9 +72,21 @@ function logout() {
     showLogin();
 }
 
+function applyRole() {
+    return api("/api/admin/me").then(function(d){
+        window.adminRole = d.role || "agent";
+        document.querySelectorAll('.nav-item[data-role="owner"]').forEach(function(b){
+            b.style.display = (window.adminRole === "owner") ? "" : "none";
+        });
+        // if current section is now hidden, fall back to dashboard
+        var cur = document.querySelector('.nav-item[data-section="'+currentSection+'"]');
+        if (cur && cur.style.display === "none") showSection("dashboard");
+    }).catch(apiError);
+}
+
 // ── Navigation ──
 var navItems = document.querySelectorAll(".nav-item");
-var sectionTitles = {dashboard:"Dashboard",users:"Пользователи",generations:"Генерации",payments:"Платежи",withdrawals:"Выводы",templates:"Шаблоны",promos:"Промокоды",referrals:"Рефералы",support:"Поддержка",face:"Сходство лиц",notif:"Уведомления",audit:"Аудит-лог"};
+var sectionTitles = {dashboard:"Dashboard",users:"Пользователи",generations:"Генерации",payments:"Платежи",withdrawals:"Выводы",templates:"Шаблоны",promos:"Промокоды",referrals:"Рефералы",support:"Поддержка",face:"Сходство лиц",notif:"Уведомления",audit:"Аудит-лог",accounts:"Доступ"};
 
 navItems.forEach(function(btn) {
     btn.addEventListener("click", function() {
@@ -108,7 +120,8 @@ function showSection(name) {
         support: function() { loadSupport("open", 0); },
         face: function() { loadFace(facePeriod); },
         notif: function() { loadNotif(0); },
-        audit: function() { loadAudit(0); }
+        audit: function() { loadAudit(0); },
+        accounts: loadAccounts
     };
     if (loaders[name]) loaders[name]();
 }
@@ -1115,10 +1128,41 @@ function loadAudit(offset) {
     });
 }
 
+// ── Accounts management ──
+function loadAccounts() {
+    var mc = document.getElementById("main-content");
+    mc.innerHTML = '<button class="btn btn-primary" style="margin-bottom:12px" onclick="addAccount()">+ Аккаунт</button><div id="acc-table"></div>';
+    window._accTable = DataTable(document.getElementById("acc-table"), {
+        endpoint: "/api/admin/accounts", idKey: "tg_id",
+        columns: [
+            {key:"login", label:"Логин"},
+            {key:"tg_id", label:"TG ID"},
+            {key:"role", label:"Роль"},
+            {key:"disabled", label:"Статус", render:function(r){return r.disabled?'<span class="badge badge-error">off</span>':'<span class="badge badge-paid">on</span>';}},
+            {key:"_a", label:"", render:function(r){return '<button class="btn btn-outline btn-sm" onclick="editAccount('+r.tg_id+",'"+esc(r.role)+"',"+(r.disabled?1:0)+')">Изм.</button>';}}
+        ]
+    });
+}
+function addAccount() {
+    formModal({title:"Новый аккаунт", submitLabel:"Создать", fields:[
+        {name:"tg_id", label:"TG ID", type:"number", required:true},
+        {name:"login", label:"Логин", required:true},
+        {name:"password", label:"Пароль", required:true},
+        {name:"role", label:"Роль", type:"select", value:"agent", options:[{value:"agent",label:"Агент"},{value:"owner",label:"Владелец"}]}
+    ]}).then(function(v){ if(!v) return; api("/api/admin/accounts",{method:"POST",body:JSON.stringify(v)}).then(function(){ toast("success","Аккаунт создан"); window._accTable.reload(); }).catch(apiError); });
+}
+function editAccount(tgId, role, disabled) {
+    formModal({title:"Аккаунт "+tgId, submitLabel:"Сохранить", fields:[
+        {name:"role", label:"Роль", type:"select", value:role, options:[{value:"agent",label:"Агент"},{value:"owner",label:"Владелец"}]},
+        {name:"disabled", label:"Отключён", type:"checkbox", value:!!disabled},
+        {name:"password", label:"Новый пароль (опц.)", type:"text"}
+    ]}).then(function(v){ if(!v) return; if(!v.password) delete v.password; api("/api/admin/accounts/"+tgId,{method:"PUT",body:JSON.stringify(v)}).then(function(){ toast("success","Сохранено"); window._accTable.reload(); }).catch(apiError); });
+}
+
 // ── Init ──
 window.authToken = resolveToken();
 if (hasAuth()) {
-    showSection("dashboard");
+    applyRole().then(function(){ showSection("dashboard"); });
 } else {
     showLogin();
 }
