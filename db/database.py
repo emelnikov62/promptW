@@ -23,6 +23,7 @@ async def init_db(dsn: str):
     await _apply_gasstation_new_v1()
     await _apply_cateyes_blueeyes_v1()
     await _apply_cateyes_preview_v2()
+    await _apply_cateyes_order_v1()
 
 
 async def get_pool() -> asyncpg.Pool:
@@ -608,3 +609,24 @@ async def _apply_cateyes_preview_v2():
         logger.info("Applied cateyes_preview_v2")
     except Exception:
         logger.exception("cateyes_preview_v2 failed")
+
+
+async def _apply_cateyes_order_v1():
+    """One-time: move the two cat-eyes templates from the front of the girls section
+    to the middle (between sort_order 24 and 101). Guarded by app_settings so it runs
+    once and never clobbers a later manual reorder."""
+    order = {"girl-cateyes-photo": 50, "girl-cateyes-hijab-photo": 51}
+    try:
+        async with _pool.acquire() as conn:
+            if await conn.fetchval("SELECT value FROM app_settings WHERE key = 'cateyes_order_v1'"):
+                return
+            for tid, so in order.items():
+                await conn.execute(
+                    "UPDATE templates SET sort_order = $2, updated_at = NOW() WHERE id = $1",
+                    tid, so)
+            await conn.execute(
+                "INSERT INTO app_settings (key, value, updated_at) VALUES ('cateyes_order_v1', '1', NOW()) "
+                "ON CONFLICT (key) DO UPDATE SET value = '1', updated_at = NOW()")
+        logger.info("Applied cateyes_order_v1")
+    except Exception:
+        logger.exception("cateyes_order_v1 failed")
