@@ -16,6 +16,7 @@ async def init_db(dsn: str):
     await _safe_migrations()
     await _seed_owner_account()
     await _seed_templates()
+    await _apply_trend_order_v1()
 
 
 async def get_pool() -> asyncpg.Pool:
@@ -413,3 +414,33 @@ async def _seed_templates():
         # Seeding must never block startup — the app can run with an empty/partial
         # templates table (re-runs are idempotent via ON CONFLICT DO NOTHING).
         logger.exception("template seed failed")
+
+
+async def _apply_trend_order_v1():
+    """One-time: pin the first six trends to the owner-curated order. Existing rows
+    are owned by the admin (the seed's ON CONFLICT DO NOTHING never updates them), so
+    a deploy can't reorder them — this does, exactly once. Negative sort_order keeps
+    these six ahead of every other template (all >= 0) regardless of their values;
+    ORDER BY (sort_order, id) then renders them in this precise sequence. Guarded by an
+    app_settings flag so it runs ONCE and never clobbers later admin reordering."""
+    order = [
+        ("gasstation-broom-video", -6),  # 1. Улетела с заправки
+        ("car-dubai-gwagon-photo", -5),  # 2. Гелик в Дубае
+        ("birthday-photo", -4),          # 3. С днём рождения фото
+        ("birthday-video", -3),          # 4. С днём рождения видео
+        ("yacht-photo", -2),             # 5. На яхте фото
+        ("yacht-video", -1),             # 6. На яхте видео
+    ]
+    try:
+        async with _pool.acquire() as conn:
+            if await conn.fetchval("SELECT value FROM app_settings WHERE key = 'trend_order_v1'"):
+                return
+            for tid, so in order:
+                await conn.execute(
+                    "UPDATE templates SET sort_order = $2, updated_at = NOW() WHERE id = $1", tid, so)
+            await conn.execute(
+                "INSERT INTO app_settings (key, value, updated_at) VALUES ('trend_order_v1', '1', NOW()) "
+                "ON CONFLICT (key) DO UPDATE SET value = '1', updated_at = NOW()")
+        logger.info("Applied trend_order_v1 (curated first-six trends)")
+    except Exception:
+        logger.exception("trend_order_v1 failed")

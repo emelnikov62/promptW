@@ -3,7 +3,7 @@
     "id": "birthday-photo",
     "type": "photo",
     "cost": 30,
-    "sort_order": 0,
+    "sort_order": -4,
     "category": null,
     "enabled": true,
     "title": {
@@ -225,7 +225,7 @@
     "id": "birthday-video",
     "type": "video",
     "cost": 420,
-    "sort_order": 1,
+    "sort_order": -3,
     "category": null,
     "enabled": true,
     "title": {
@@ -263,7 +263,7 @@
     "id": "yacht-photo",
     "type": "photo",
     "cost": 30,
-    "sort_order": 2,
+    "sort_order": -2,
     "category": null,
     "enabled": true,
     "title": {
@@ -473,7 +473,7 @@
     "id": "yacht-video",
     "type": "video",
     "cost": 50,
-    "sort_order": 3,
+    "sort_order": -1,
     "category": null,
     "enabled": true,
     "title": {
@@ -18992,7 +18992,7 @@
     "id": "car-dubai-gwagon-photo",
     "type": "photo",
     "cost": 30,
-    "sort_order": 1,
+    "sort_order": -5,
     "category": "cars",
     "enabled": true,
     "title": {
@@ -21986,7 +21986,7 @@
     "id": "gasstation-broom-video",
     "type": "video",
     "cost": 420,
-    "sort_order": 0,
+    "sort_order": -6,
     "category": null,
     "enabled": true,
     "title": {
