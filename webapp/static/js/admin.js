@@ -980,6 +980,7 @@ function _tplForm(t, isNew) {
                     '<label class="tf-check"><input id="tf-sound" type="checkbox"' + (d.sound?' checked':'') + '> Звук</label>' +
                     '<label class="tf-check"><input id="tf-needPhoto" type="checkbox"' + (d.needPhoto?' checked':'') + '> Нужно фото</label>' +
                     '<label class="tf-check"><input id="tf-hidePrompt" type="checkbox"' + (d.hidePrompt?' checked':'') + '> Скрыть промпт</label>' +
+                    '<label class="tf-check"><input id="tf-isNew" type="checkbox"' + (d.isNew?' checked':'') + '> Плашка NEW</label>' +
                 '</div>' +
             '</div>' +
 
@@ -1062,6 +1063,7 @@ function saveTemplate(isNew) {
     setBool("sound", "tf-sound");
     setBool("needPhoto", "tf-needPhoto");
     setBool("hidePrompt", "tf-hidePrompt");
+    setBool("isNew", "tf-isNew");
     setStr("skeleton", "tf-skeleton");
     setStr("prompt", "tf-prompt");
     var desc = {}, dru = _tfVal("tf-desc-ru"), den = _tfVal("tf-desc-en"), des = _tfVal("tf-desc-es");
