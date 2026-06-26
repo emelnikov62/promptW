@@ -2710,8 +2710,9 @@ function showTplDetail(id) {
         setting = '';
     } else {
         afterUploads = '<p class="tpl-minmax">' + t("minPhoto") + ': ' + (tpl.minPhotos || 1) + '. ' + t("maxPhoto") + ': ' + (tpl.maxPhotos || 7) + '.</p>';
-        setting = tpl.quality ? ('<h4 class="tpl-sec">' + t("quality") + '</h4>' +
-                  '<div class="tpl-select">' + tpl.quality + chevSvg + '</div>') : '';
+        // Quality is fixed per template and sent via settings.quality; the display row was
+        // a non-interactive selector, so we don't render it for video templates.
+        setting = '';
     }
 
     // Optional aspect-ratio picker (templates that list `ratios`). Otherwise the
@@ -2736,13 +2737,16 @@ function showTplDetail(id) {
     }
 
     // Upload notice: a template may override the generic "2-3 face photos" hint with
-    // its own required-shots list (definition.uploadNotice) — e.g. trends that need a
-    // selfie + a car photo rather than several face shots.
+    // its own (definition.uploadNotice) — either a numbered list of required shots
+    // (items[], e.g. selfie + car) or a single paragraph (text, e.g. "the 1 photo you
+    // made in the neighbouring template"). Falls back to the generic face hint.
     var photoNotice;
     if (tpl.uploadNotice) {
         var un = tpl.uploadNotice[L] || tpl.uploadNotice.ru || {};
-        var slots = (un.items || []).map(function(it){ return '<li>' + escHtml(it) + '</li>'; }).join("");
-        photoNotice = '<div class="ref-callout"><span class="ref-callout-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 22H4a2 2 0 0 1-2-2V6"/><path d="m22 13-1.296-1.296a2.41 2.41 0 0 0-3.408 0L11 18"/><circle cx="12" cy="8" r="2"/><rect width="16" height="16" x="6" y="2" rx="2"/></svg></span><span class="ref-callout-tx"><b>' + escHtml(un.title || "") + '</b><ol class="ref-slots">' + slots + '</ol></span></div>';
+        var unBody = (un.items && un.items.length)
+            ? '<ol class="ref-slots">' + un.items.map(function(it){ return '<li>' + escHtml(it) + '</li>'; }).join("") + '</ol>'
+            : '<span>' + escHtml(un.text || "") + '</span>';
+        photoNotice = '<div class="ref-callout"><span class="ref-callout-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 22H4a2 2 0 0 1-2-2V6"/><path d="m22 13-1.296-1.296a2.41 2.41 0 0 0-3.408 0L11 18"/><circle cx="12" cy="8" r="2"/><rect width="16" height="16" x="6" y="2" rx="2"/></svg></span><span class="ref-callout-tx"><b>' + escHtml(un.title || "") + '</b>' + unBody + '</span></div>';
     } else {
         photoNotice = '<div class="ref-callout"><span class="ref-callout-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M9 9h.01"/><path d="M15 9h.01"/><path d="M9.5 14a3.5 3.5 0 0 0 5 0"/></svg></span><span class="ref-callout-tx"><b>' + t("photoNoticeTitle") + '</b><span>' + t("photoNoticeText") + '</span></span></div>';
     }

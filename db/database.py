@@ -19,6 +19,7 @@ async def init_db(dsn: str):
     await _apply_trend_order_v1()
     await _apply_gasstation_nophoto_v1()
     await _apply_gasstation_notice_v1()
+    await _apply_video_notice_v1()
 
 
 async def get_pool() -> asyncpg.Pool:
@@ -499,3 +500,41 @@ async def _apply_gasstation_notice_v1():
         logger.info("Applied gasstation_notice_v1")
     except Exception:
         logger.exception("gasstation_notice_v1 failed")
+
+
+async def _apply_video_notice_v1():
+    """One-time: the birthday/yacht video trends consume the SINGLE photo made in their
+    neighbouring photo template — not "2-3 face photos". Give each a custom uploadNotice
+    saying so, and pin yacht-video to exactly 1 photo (maxPhotos). Merges into the
+    admin-owned definition via `||`; guarded by app_settings so it runs once."""
+    patches = {
+        "birthday-video": {
+            "uploadNotice": {
+                "ru": {"title": "Нужно 1 фото", "text": "То самое фото, которое вы создали в соседнем шаблоне «С днём рождения фото» — именно для этого видео."},
+                "en": {"title": "Just 1 photo", "text": "The photo you created in the neighbouring «Birthday photo» template — the one made for this video."},
+                "es": {"title": "Solo 1 foto", "text": "La foto que creaste en la plantilla vecina «Foto de cumpleaños» — la hecha para este video."},
+            },
+        },
+        "yacht-video": {
+            "maxPhotos": 1,
+            "uploadNotice": {
+                "ru": {"title": "Нужно 1 фото", "text": "То самое фото, которое вы создали в соседнем шаблоне «На яхте фото» — именно для этого видео."},
+                "en": {"title": "Just 1 photo", "text": "The photo you created in the neighbouring «Yacht photo» template — the one made for this video."},
+                "es": {"title": "Solo 1 foto", "text": "La foto que creaste en la plantilla vecina «Foto en yate» — la hecha para este video."},
+            },
+        },
+    }
+    try:
+        async with _pool.acquire() as conn:
+            if await conn.fetchval("SELECT value FROM app_settings WHERE key = 'video_notice_v1'"):
+                return
+            for tid, patch in patches.items():
+                await conn.execute(
+                    "UPDATE templates SET definition = definition || $2::jsonb, updated_at = NOW() WHERE id = $1",
+                    tid, json.dumps(patch, ensure_ascii=False))
+            await conn.execute(
+                "INSERT INTO app_settings (key, value, updated_at) VALUES ('video_notice_v1', '1', NOW()) "
+                "ON CONFLICT (key) DO UPDATE SET value = '1', updated_at = NOW()")
+        logger.info("Applied video_notice_v1")
+    except Exception:
+        logger.exception("video_notice_v1 failed")
