@@ -193,6 +193,48 @@ function authHeaders(extra) {
     return h;
 }
 
+// ── Session-expired guard ──────────────────────────────────────────────────
+// The fallback ?tgauth= token has a 2-day TTL. When a user re-enters via a stale
+// bot-message button (or an old browser tab) the token is expired and every /api/
+// call 401s — without this the UI just renders an empty shell. We intercept the
+// first 401 globally, drop the dead token from localStorage (so it stops poisoning
+// reloads) and show a clear "reopen from the bot" screen instead of silent blank.
+var _authExpiredShown = false;
+function showAuthExpired() {
+    if (_authExpiredShown) return;
+    _authExpiredShown = true;
+    try { localStorage.removeItem("pwAuthToken"); } catch (e) {}
+    pwAuthToken = null;
+    var ov = document.createElement("div");
+    ov.className = "auth-expired";
+    var card = document.createElement("div");
+    card.className = "ae-card";
+    var ico = document.createElement("div"); ico.className = "ae-ico"; ico.textContent = "⏳";
+    var ttl = document.createElement("div"); ttl.className = "ae-title"; ttl.textContent = t("authExpiredTitle");
+    var txt = document.createElement("div"); txt.className = "ae-text"; txt.textContent = t("authExpiredText");
+    var btn = document.createElement("button"); btn.className = "ae-btn"; btn.textContent = t("authExpiredBtn");
+    btn.onclick = function () {
+        try { tg.openTelegramLink("https://t.me/" + BOT_USERNAME); } catch (e) {}
+        try { tg.close(); } catch (e) {}
+    };
+    card.appendChild(ico); card.appendChild(ttl); card.appendChild(txt); card.appendChild(btn);
+    ov.appendChild(card);
+    (document.body || document.documentElement).appendChild(ov);
+}
+(function () {
+    if (!window.fetch) return;
+    var _origFetch = window.fetch.bind(window);
+    window.fetch = function (input, init) {
+        return _origFetch(input, init).then(function (res) {
+            try {
+                var url = (typeof input === "string") ? input : (input && input.url) || "";
+                if (res && res.status === 401 && url.indexOf("/api/") !== -1) showAuthExpired();
+            } catch (e) {}
+            return res;
+        });
+    };
+})();
+
 async function loadUserProfile() {
     var tgId = getTgId();
     if (!tgId) {

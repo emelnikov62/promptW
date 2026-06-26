@@ -643,6 +643,12 @@ body.kb-open .bnav{display:none}
 .tpl-model{color:var(--tx2);font-size:14px;margin:2px 0 10px}
 .tpl-desc{color:var(--tx2);font-size:15px;line-height:1.4;margin:0 0 6px}
 .tpl-sec{font-size:16px;font-weight:700;letter-spacing:-.01em;margin:22px 0 10px}
+.auth-expired{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px}
+.auth-expired .ae-card{max-width:330px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:13px}
+.auth-expired .ae-ico{font-size:44px;line-height:1}
+.auth-expired .ae-title{font-family:var(--font-disp);font-size:22px;letter-spacing:-.02em;color:var(--tx)}
+.auth-expired .ae-text{font-size:14px;line-height:1.5;color:var(--tx2)}
+.auth-expired .ae-btn{margin-top:5px;padding:13px 28px;border:0;border-radius:999px;background:var(--grad);color:#3A1109;font-weight:800;font-size:15px;cursor:pointer}
 .ref-callout{display:flex;gap:11px;align-items:flex-start;background:var(--vdim);border:1px solid var(--vbrd);border-radius:var(--r);padding:13px 14px;margin:0 0 14px}
 .ref-callout-ico{flex-shrink:0;width:34px;height:34px;border-radius:10px;background:rgba(255,107,92,.16);color:var(--photo);display:flex;align-items:center;justify-content:center}
 .ref-callout-ico svg{width:19px;height:19px}
