@@ -22075,7 +22075,7 @@
     "id": "girl-cateyes-photo",
     "type": "photo",
     "cost": 30,
-    "sort_order": 1,
+    "sort_order": 50,
     "category": "girls",
     "enabled": true,
     "title": {
@@ -22236,7 +22236,7 @@
     "id": "girl-cateyes-hijab-photo",
     "type": "photo",
     "cost": 30,
-    "sort_order": 2,
+    "sort_order": 51,
     "category": "girls",
     "enabled": true,
     "title": {
