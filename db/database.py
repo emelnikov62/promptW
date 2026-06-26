@@ -18,6 +18,7 @@ async def init_db(dsn: str):
     await _seed_templates()
     await _apply_trend_order_v1()
     await _apply_gasstation_nophoto_v1()
+    await _apply_gasstation_notice_v1()
 
 
 async def get_pool() -> asyncpg.Pool:
@@ -466,3 +467,35 @@ async def _apply_gasstation_nophoto_v1():
         logger.info("Applied gasstation_nophoto_v1")
     except Exception:
         logger.exception("gasstation_nophoto_v1 failed")
+
+
+async def _apply_gasstation_notice_v1():
+    """One-time: give the gas-station trend a custom upload notice (selfie + car, NOT
+    "2-3 face photos") and a shorter scene-setting description (drop the "prompt is
+    built in" line). Merges into the existing admin-owned definition via `||`; guarded
+    by app_settings so it runs once."""
+    patch = json.dumps({
+        "uploadNotice": {
+            "ru": {"title": "Нужно ровно 2 фото", "items": ["Селфи — лицо крупным планом, анфас, без тёмных очков", "Фото вашей машины"]},
+            "en": {"title": "Exactly 2 photos", "items": ["A selfie — face close-up, front view, no sunglasses", "A photo of your car"]},
+            "es": {"title": "Exactamente 2 fotos", "items": ["Un selfie — rostro de cerca, de frente, sin gafas de sol", "Una foto de tu coche"]},
+        },
+        "desc": {
+            "ru": "Очередь, табло «нет топлива» — и ты эффектно улетаешь с заправки на метле.",
+            "en": "A queue, a 'no fuel' sign — and you dramatically fly off from the gas station on a broom.",
+            "es": "Una cola, un cartel de 'sin combustible' — y te vas volando de la gasolinera en una escoba.",
+        },
+    }, ensure_ascii=False)
+    try:
+        async with _pool.acquire() as conn:
+            if await conn.fetchval("SELECT value FROM app_settings WHERE key = 'gasstation_notice_v1'"):
+                return
+            await conn.execute(
+                "UPDATE templates SET definition = definition || $1::jsonb, updated_at = NOW() "
+                "WHERE id = 'gasstation-broom-video'", patch)
+            await conn.execute(
+                "INSERT INTO app_settings (key, value, updated_at) VALUES ('gasstation_notice_v1', '1', NOW()) "
+                "ON CONFLICT (key) DO UPDATE SET value = '1', updated_at = NOW()")
+        logger.info("Applied gasstation_notice_v1")
+    except Exception:
+        logger.exception("gasstation_notice_v1 failed")
