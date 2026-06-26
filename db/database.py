@@ -21,6 +21,7 @@ async def init_db(dsn: str):
     await _apply_gasstation_notice_v1()
     await _apply_video_notice_v1()
     await _apply_gasstation_new_v1()
+    await _apply_cateyes_blueeyes_v1()
 
 
 async def get_pool() -> asyncpg.Pool:
@@ -558,3 +559,27 @@ async def _apply_gasstation_new_v1():
         logger.info("Applied gasstation_new_v1")
     except Exception:
         logger.exception("gasstation_new_v1 failed")
+
+
+async def _apply_cateyes_blueeyes_v1():
+    """One-time: the two cat-eyes girl templates were seeded with the cat's eyes
+    matching the woman's (real colour from the reference). Per request the cat must
+    have bright-blue eyes (as in the original prompt); the woman's eyes stay real.
+    String-replaces the segment inside definition (covers both prompt and skeleton);
+    guarded by app_settings so it runs once and never clobbers later admin edits."""
+    old = "выраженные блики в глазах; глаза того же цвета, что и глаза девушки (как на референсе)."
+    new = "ярко-голубые глаза с выраженными бликами."
+    try:
+        async with _pool.acquire() as conn:
+            if await conn.fetchval("SELECT value FROM app_settings WHERE key = 'cateyes_blueeyes_v1'"):
+                return
+            await conn.execute(
+                "UPDATE templates SET definition = replace(definition::text, $1, $2)::jsonb, "
+                "updated_at = NOW() WHERE id IN ('girl-cateyes-photo', 'girl-cateyes-hijab-photo')",
+                old, new)
+            await conn.execute(
+                "INSERT INTO app_settings (key, value, updated_at) VALUES ('cateyes_blueeyes_v1', '1', NOW()) "
+                "ON CONFLICT (key) DO UPDATE SET value = '1', updated_at = NOW()")
+        logger.info("Applied cateyes_blueeyes_v1")
+    except Exception:
+        logger.exception("cateyes_blueeyes_v1 failed")
