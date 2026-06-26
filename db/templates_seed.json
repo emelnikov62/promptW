@@ -22012,9 +22012,32 @@
       "prompt": "REFERENCES (strict): @Image1 = the woman from the selfie — keep her exact face, hair, body, skin and look in EVERY frame, 100% identical, do NOT change, beautify or rejuvenate the face. @Image2 = the car — use exactly this car (same model, color and details) as the girl's own car throughout the video.\nUse the uploaded photo as the same woman throughout the video. Don't change her face!\nCreate a super-realistic 10-second vertical video (9:16) for Instagram.\nPrompt-script for Seedance 2.0 (humorous, amateur mobile shooting, 10 seconds).\nGeneral setup:\n- Style: typical amateur phone shooting: light shaking, imperfect focus, natural moves, no staged smoothness.\n- Tone: comedic, deliberately 'household absurdity' — as if a random viral clip from social networks.\n- Location: strictly an ordinary Russian gas station with a huge queue of cars, fuel columns, price scoreboards, asphalt, a little garbage at the edge of the lot — as recognisable as possible.\n- Hero: the girl (@Image1, casual look: light-blue denim Bermuda shorts with scuffs, black cropped top with thin straps, white sneakers, straight hair). Her car is @Image2; in its trunk lies a brightly standing-out witch's broom (classic, with twigs, a noticeable detail).\n- Tempo: 1 frame per second -> 10 frames = 10 seconds. Season: summer.\nFrames by seconds:\n1s - wide shot: the queue at the gas station. Handheld camera, slightly 'walking'. A long queue of cars bumper to bumper. The girl (@Image1) in her car (@Image2) in the middle of the queue looks at her phone, sighs, taps fingers on the wheel. Sound: hum of engines, light wind, a distant honk.\n2s - medium shot: finally her turn — she drives up to the column, gets out of the car, rubs her hands ('well, finally'). Hope and tiredness on her face at once. Sound: door click, steps on asphalt.\n3s - close-up: the column and scoreboard. The girl's hand takes the fuel gun; the column scoreboard shows Russian prices strictly with the ruble sign: 92 - 98₽, 95 - 110₽, 100 - 134₽, ДТ - 99₽. The scoreboard flickers, then abruptly shows 'НЕТ ТОПЛИВА'. Sound: a short speaker squeak, a pause.\n4s - reaction: the girl froze at the column. Medium shot: she stands by the column, looks at the scoreboard, then to the sides, as if looking for a trick. A mix of disbelief and slight panic. Sound: a fraction of a second of silence, then nervous laughter.\n5s - decision: the girl resolutely walks to the trunk. Wide shot: she strides to the trunk and decisively opens it. In the queue someone honks, someone leans out of a window — everyone is watching. Sound: the trunk pops, other cars honking.\n6s - detail: the witch's broom in the trunk. Close-up: among the things (thermo mug, blanket, snack bag) lies the witch's broom — it immediately catches the eye. Focus 'walks' over the things onto the broom. Sound: rustling of things.\n7s - action: the girl grabs the broom and steps out. Medium shot: she takes out the broom, comes from behind the trunk, looks around as if checking nobody sees. Excitement and determination on her face. Sound: footsteps, breathing, someone's laughter from the queue.\n8s - preparation for the 'flight': the girl saddles the broom. Medium shot: she sits on the broom like on a horse, pretends to rev up. The queue in the background freezes and watches. Sound: someone's laughter, someone filming on a phone.\n9s - take-off: the broom 'rises', the girl flies. Wide shot with a slight upward camera move: the girl on the broom 'lifts off' above the asphalt, delight and relief on her face. The broom sparkles slightly / leaves a faint trail. Sound: whistle of the wind, the girl's joyful shout.\n10s - finale: top view, the gas station shrinks. Far shot, the camera seems to rise: the station becomes small, the queue tiny cars. The girl on the broom flies off toward the mountains/forest, waving her hand. The frame freezes for a second and darkens. Sound: the fading whistle of the wind, the girl's final laughter.\nTechnical tips for mobile shooting:\n- Exposure: do not blow out the sky, so the station stays 'earthly' and recognisable; make the broom brighter so it is the main accent.\n- Focus: in the comedy shots deliberately 'miss' focus for a fraction of a second — it enhances the amateur-video effect.\n- Composition: in the queue frames use perspective — let cars go deep into the frame to add scale.\nConstraints: face/hair/body/skin/clothes of the girl = @Image1 in every frame; the car = @Image2. Amateur smartphone video, NOT cinema, NOT stylisation. No on-screen text, subtitles or watermarks, except the price scoreboard described above.",
       "hidePrompt": true,
       "desc": {
-        "ru": "Прикрепите два фото: 1) селфи, где хорошо видно лицо; 2) фото вашей машины. Промпт уже вшит.",
-        "en": "Attach two photos: 1) a selfie with a clearly visible face; 2) a photo of your car. The prompt is already built in.",
-        "es": "Adjunta dos fotos: 1) un selfie con el rostro bien visible; 2) una foto de tu coche. El prompt ya está incluido."
+        "ru": "Очередь, табло «нет топлива» — и ты эффектно улетаешь с заправки на метле.",
+        "en": "A queue, a 'no fuel' sign — and you dramatically fly off from the gas station on a broom.",
+        "es": "Una cola, un cartel de 'sin combustible' — y te vas volando de la gasolinera en una escoba."
+      },
+      "uploadNotice": {
+        "ru": {
+          "title": "Нужно ровно 2 фото",
+          "items": [
+            "Селфи — лицо крупным планом, анфас, без тёмных очков",
+            "Фото вашей машины"
+          ]
+        },
+        "en": {
+          "title": "Exactly 2 photos",
+          "items": [
+            "A selfie — face close-up, front view, no sunglasses",
+            "A photo of your car"
+          ]
+        },
+        "es": {
+          "title": "Exactamente 2 fotos",
+          "items": [
+            "Un selfie — rostro de cerca, de frente, sin gafas de sol",
+            "Una foto de tu coche"
+          ]
+        }
       }
     },
     "featured": true
