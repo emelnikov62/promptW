@@ -22085,8 +22085,8 @@
       "uz": "Mushuk ko'zlari"
     },
     "preview": {
-      "img": "/static/tpl/girl-cateyes-photo.jpg",
-      "full": "/static/tpl/girl-cateyes-photo.jpg"
+      "img": "/static/tpl/girl-cateyes-photo.jpg?v=2",
+      "full": "/static/tpl/girl-cateyes-photo.jpg?v=2"
     },
     "definition": {
       "model": "NanoBanana PRO",
@@ -22246,8 +22246,8 @@
       "uz": "Mushuk ko'zlari · hijob"
     },
     "preview": {
-      "img": "/static/tpl/girl-cateyes-hijab-photo.jpg",
-      "full": "/static/tpl/girl-cateyes-hijab-photo.jpg"
+      "img": "/static/tpl/girl-cateyes-hijab-photo.jpg?v=2",
+      "full": "/static/tpl/girl-cateyes-hijab-photo.jpg?v=2"
     },
     "definition": {
       "model": "NanoBanana PRO",
