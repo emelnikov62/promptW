@@ -642,6 +642,12 @@ body.kb-open .bnav{display:none}
 .tpl-model{color:var(--tx2);font-size:14px;margin:2px 0 10px}
 .tpl-desc{color:var(--tx2);font-size:15px;line-height:1.4;margin:0 0 6px}
 .tpl-sec{font-size:16px;font-weight:700;letter-spacing:-.01em;margin:22px 0 10px}
+.ref-callout{display:flex;gap:11px;align-items:flex-start;background:var(--vdim);border:1px solid var(--vbrd);border-radius:var(--r);padding:13px 14px;margin:0 0 14px}
+.ref-callout-ico{flex-shrink:0;width:34px;height:34px;border-radius:10px;background:rgba(255,107,92,.16);color:var(--photo);display:flex;align-items:center;justify-content:center}
+.ref-callout-ico svg{width:19px;height:19px}
+.ref-callout-tx{display:flex;flex-direction:column;gap:3px;min-width:0}
+.ref-callout-tx b{font-size:14px;font-weight:700;color:var(--tx);letter-spacing:-.01em}
+.ref-callout-tx>span{font-size:12.5px;line-height:1.45;color:var(--tx2)}
 .tpl-uploads{display:flex;flex-wrap:wrap;gap:10px}
 .tpl-up-add{width:96px;height:96px;border-radius:var(--r);border:2px dashed var(--brd);display:flex;align-items:center;justify-content:center;cursor:pointer;background:var(--card)}
 .tpl-up-thumb{position:relative;width:96px;height:96px;border-radius:var(--r);overflow:hidden}
