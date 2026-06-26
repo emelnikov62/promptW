@@ -2746,6 +2746,7 @@ function showTplDetail(id) {
         '<p class="tpl-model">' + escHtml(tpl.model || "") + '</p>' +
         '<p class="tpl-desc">' + escHtml(desc) + '</p>' +
         '<h4 class="tpl-sec">' + t("yourPhotos") + '</h4>' +
+        '<div class="ref-callout"><span class="ref-callout-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M9 9h.01"/><path d="M15 9h.01"/><path d="M9.5 14a3.5 3.5 0 0 0 5 0"/></svg></span><span class="ref-callout-tx"><b>' + t("photoNoticeTitle") + '</b><span>' + t("photoNoticeText") + '</span></span></div>' +
         '<div class="tpl-uploads" id="tpl-uploads"></div>' +
         afterUploads +
         promptBlock +
