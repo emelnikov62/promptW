@@ -17,6 +17,7 @@ async def init_db(dsn: str):
     await _seed_owner_account()
     await _seed_templates()
     await _apply_trend_order_v1()
+    await _apply_gasstation_nophoto_v1()
 
 
 async def get_pool() -> asyncpg.Pool:
@@ -444,3 +445,24 @@ async def _apply_trend_order_v1():
         logger.info("Applied trend_order_v1 (curated first-six trends)")
     except Exception:
         logger.exception("trend_order_v1 failed")
+
+
+async def _apply_gasstation_nophoto_v1():
+    """One-time: drop the `needPhoto` flag from the gas-station trend's definition so
+    the gallery/detail no longer shows the "СНАЧАЛА СОЗДАЙ ФОТО" badge — that trend takes
+    a raw selfie + car photo directly, no pre-generated photo step. The 2-photo
+    requirement stays (minPhotos/maxPhotos). Existing rows are admin-owned (seed won't
+    update them); guarded by app_settings so it runs once."""
+    try:
+        async with _pool.acquire() as conn:
+            if await conn.fetchval("SELECT value FROM app_settings WHERE key = 'gasstation_nophoto_v1'"):
+                return
+            await conn.execute(
+                "UPDATE templates SET definition = definition - 'needPhoto', updated_at = NOW() "
+                "WHERE id = 'gasstation-broom-video'")
+            await conn.execute(
+                "INSERT INTO app_settings (key, value, updated_at) VALUES ('gasstation_nophoto_v1', '1', NOW()) "
+                "ON CONFLICT (key) DO UPDATE SET value = '1', updated_at = NOW()")
+        logger.info("Applied gasstation_nophoto_v1")
+    except Exception:
+        logger.exception("gasstation_nophoto_v1 failed")

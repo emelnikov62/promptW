@@ -22006,7 +22006,6 @@
       "duration": 10,
       "sound": true,
       "refField": "ref-images",
-      "needPhoto": true,
       "ratio": "9:16",
       "minPhotos": 2,
       "maxPhotos": 2,
