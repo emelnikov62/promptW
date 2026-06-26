@@ -1846,6 +1846,30 @@ async def generate_image(request: web.Request):
     return web.json_response(resp)
 
 
+async def _apply_tpl_overrides(settings: dict) -> None:
+    """For template generations the server is authoritative for the MODEL PARAMETERS:
+    quality/mode/duration/sound come from the STORED template definition, not the client.
+    So admin edits in the panel apply to generation immediately (the client may still hold
+    a cached definition), and a stale/forged client can't run a heavier (e.g. higher-res)
+    generation than the template's fixed-price product allows. Ratio stays client-chosen
+    only when the template offers a user choice (`ratios[]`); otherwise it's fixed too."""
+    tpl_id = (settings or {}).get("tplId")
+    if not tpl_id:
+        return
+    tpl = await get_template_public(tpl_id)
+    if not tpl:
+        return
+    for key in ("quality", "mode", "duration", "sound"):
+        if tpl.get(key) is not None:
+            settings[key] = tpl[key]
+    allowed = tpl.get("ratios")
+    if allowed:
+        if settings.get("ratio") not in allowed:
+            settings["ratio"] = tpl.get("ratio") or allowed[0]
+    elif tpl.get("ratio"):
+        settings["ratio"] = tpl["ratio"]
+
+
 @routes.post("/api/generate/video")
 async def generate_video(request: web.Request):
     data, files = await _parse_request(request)
@@ -1853,6 +1877,9 @@ async def generate_video(request: web.Request):
     tg_id = _authed_id(request, data.get("tg_id"))
     model = data.get("model")
     settings = data.get("settings", {})
+    # Template gens: model parameters are server-authoritative (read from the stored
+    # definition) so admin edits apply at once and can't be overridden by the client.
+    await _apply_tpl_overrides(settings)
 
     if tg_id and not _rate_ok("gen:" + str(tg_id), 20, 60):
         return _too_many()
