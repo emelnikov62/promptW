@@ -743,10 +743,67 @@ function refreshTfThumb() {
     if (box) box.innerHTML = tfThumbInner(document.getElementById("tf-preview-img").value.trim());
 }
 
-// Known values for datalist suggestions (free-text still allowed).
-var TF_MODELS = ["NanoBanana PRO", "Seedance 2.0", "Grok Imagine 1.5", "Kling 3.0", "Kling Motion 3.0", "Suno V5.5"];
+// Per-model capability catalog (mirrors app.js VIDEO_MODELS — the authoritative source).
+// Drives the interactive model-settings selects: picking a model offers only its valid
+// qualities/modes/ratios. Fallback lists (TF_*) are used for models not listed here.
+var MODEL_CAPS = {
+    "NanoBanana PRO":   {type:"image", ratios:["1:1","9:16","16:9","3:4","4:3","2:3","3:2"]},
+    "NanoBanana 2":     {type:"image", ratios:["1:1","9:16","16:9","3:4","4:3","2:3","3:2"]},
+    "GPT Image 2":      {type:"image", ratios:["1:1","2:3","3:2"]},
+    "Seedream 4.5":     {type:"image", ratios:["1:1","9:16","16:9","3:4","4:3"]},
+    "Seedance 2.0":     {type:"video", qualities:["480p","720p"], modes:["Standard","Fast"], ratios:["16:9","9:16","1:1","4:3","3:4","21:9"], duration:{min:4,max:15,def:4}, sound:true},
+    "Kling 3.0":        {type:"video", qualities:["720p","1080p"], ratios:["16:9","9:16","1:1"], duration:{min:3,max:15,def:5}, sound:true},
+    "Kling Motion 3.0": {type:"video", qualities:["720p","1080p"], duration:{fixed:10}},
+    "Grok Imagine 1.5": {type:"video", qualities:["480p","720p"], ratios:["Auto","16:9","9:16","1:1","3:2","2:3"], duration:{min:6,max:30,def:6}},
+    "Veo 3.1 Fast":     {type:"video", qualities:["720p","1080p","4K"], ratios:["16:9","9:16","Auto"], duration:{min:4,max:8,def:8}},
+    "Suno V5.5":        {type:"audio"}
+};
+var TF_ALL_MODELS = Object.keys(MODEL_CAPS);
+// Fallback option lists for models not in MODEL_CAPS (free pick).
+var TF_MODELS = TF_ALL_MODELS.slice();
 var TF_RATIOS = ["9:16", "3:4", "1:1", "4:3", "16:9"];
 var TF_QUALS = ["480p", "720p", "1080p", "1K", "2K", "4K"];
+
+// Build <option> markup with a leading "—" (unset) and the current value always present.
+function tfOpts(list, cur) {
+    cur = cur == null ? "" : String(cur);
+    var arr = (list || []).slice();
+    if (cur && arr.indexOf(cur) < 0) arr.unshift(cur);
+    var html = '<option value=""' + (cur === "" ? " selected" : "") + '>—</option>';
+    arr.forEach(function(o){ html += '<option value="' + escA(o) + '"' + (o === cur ? " selected" : "") + '>' + esc(o) + '</option>'; });
+    return html;
+}
+
+// Cascade: when the model changes (or on form open), repopulate quality/mode/ratio/ratios
+// with that model's capabilities, preserving the current selection where still valid.
+function tfSyncModel() {
+    var model = _tfVal("tf-model");
+    var caps = MODEL_CAPS[model] || {};
+    var quals = caps.qualities || TF_QUALS;
+    var modes = caps.modes || [];
+    var ratios = caps.ratios || TF_RATIOS;
+    var qEl = document.getElementById("tf-quality");
+    if (qEl) qEl.innerHTML = tfOpts(quals, qEl.value);
+    var mEl = document.getElementById("tf-mode");
+    if (mEl) {
+        if (modes.length) { mEl.disabled = false; mEl.innerHTML = tfOpts(modes, mEl.value); }
+        else { mEl.disabled = true; mEl.innerHTML = '<option value="">— (нет режимов)</option>'; }
+    }
+    var rEl = document.getElementById("tf-ratio");
+    if (rEl) rEl.innerHTML = tfOpts(ratios, rEl.value);
+    var box = document.getElementById("tf-ratios-box");
+    if (box) {
+        var checked = {};
+        box.querySelectorAll("input:checked").forEach(function(c){ checked[c.value] = 1; });
+        (box.dataset.preset ? box.dataset.preset.split(",") : []).filter(Boolean).forEach(function(p){ checked[p] = 1; });
+        box.dataset.preset = "";
+        var all = ratios.slice();
+        Object.keys(checked).forEach(function(c){ if (all.indexOf(c) < 0) all.push(c); });
+        box.innerHTML = all.map(function(r){ return '<label class="tf-check"><input type="checkbox" value="' + escA(r) + '"' + (checked[r] ? " checked" : "") + '> ' + esc(r) + '</label>'; }).join("");
+    }
+    var dh = document.getElementById("tf-duration-hint");
+    if (dh) { var du = caps.duration; dh.textContent = du ? (du.fixed ? ("фиксированно " + du.fixed + " сек") : ("от " + du.min + " до " + du.max + " сек, по умолч. " + du.def)) : ""; }
+}
 var _tfOrigDef = {};   // original definition, so unknown keys survive a save
 var _tfParams = [];    // working params model for the visual editor
 
@@ -909,22 +966,21 @@ function _tplForm(t, isNew) {
 
             '<div class="tf-sec"><div class="tf-sec-h">Настройки модели</div>' +
                 '<div class="tf-grid">' +
-                    tfField("Модель", '<input class="tf-in" id="tf-model" list="tf-models" value="' + esc(d.model||"") + '" placeholder="NanoBanana PRO">') +
-                    tfTextField("Соотношение (ratio)", "tf-ratio", d.ratio, "9:16") +
-                    tfTextField("Доп. соотношения", "tf-ratios", (d.ratios||[]).join(", "), "9:16, 3:4") +
-                    tfField("Качество", '<input class="tf-in" id="tf-quality" list="tf-quals" value="' + esc(d.quality||"") + '" placeholder="480p / 720p">') +
-                    tfNumField("Длительность (сек)", "tf-duration", d.duration) +
-                    tfTextField("Режим (mode)", "tf-mode", d.mode, "fast") +
+                    tfField("Модель", '<select class="tf-in" id="tf-model" onchange="tfSyncModel()">' + tfOpts(TF_ALL_MODELS, d.model) + '</select>') +
+                    tfField("Соотношение (ratio)", '<select class="tf-in" id="tf-ratio"><option value="' + escA(d.ratio||"") + '" selected>' + (d.ratio?esc(d.ratio):"—") + '</option></select>') +
+                    tfField("Качество", '<select class="tf-in" id="tf-quality"><option value="' + escA(d.quality||"") + '" selected>' + (d.quality?esc(d.quality):"—") + '</option></select>') +
+                    tfField("Режим (mode)", '<select class="tf-in" id="tf-mode"><option value="' + escA(d.mode||"") + '" selected>' + (d.mode?esc(d.mode):"—") + '</option></select>') +
+                    tfField("Длительность (сек)", '<input class="tf-in" id="tf-duration" type="number" value="' + (d.duration==null||d.duration===""?"":d.duration) + '"><span class="tf-hint" id="tf-duration-hint" style="margin-top:4px;display:block"></span>') +
                     tfNumField("Мин. фото", "tf-minPhotos", d.minPhotos) +
                     tfNumField("Макс. фото", "tf-maxPhotos", d.maxPhotos) +
                     tfTextField("Поле референса (refField)", "tf-refField", d.refField, "ref-images") +
+                    tfField("Доп. соотношения (выбор юзера)", '<div class="tf-toggles" id="tf-ratios-box" data-preset="' + escA((d.ratios||[]).join(",")) + '"></div>') +
                 '</div>' +
                 '<div class="tf-toggles">' +
                     '<label class="tf-check"><input id="tf-sound" type="checkbox"' + (d.sound?' checked':'') + '> Звук</label>' +
                     '<label class="tf-check"><input id="tf-needPhoto" type="checkbox"' + (d.needPhoto?' checked':'') + '> Нужно фото</label>' +
                     '<label class="tf-check"><input id="tf-hidePrompt" type="checkbox"' + (d.hidePrompt?' checked':'') + '> Скрыть промпт</label>' +
                 '</div>' +
-                _dl("tf-models", TF_MODELS) + _dl("tf-quals", TF_QUALS) +
             '</div>' +
 
             '<div class="tf-sec"><div class="tf-sec-h">Промпт</div>' +
@@ -961,6 +1017,7 @@ function _tplForm(t, isNew) {
 function newTemplate() {
     openModal(_tplForm({enabled:true, type:"photo"}, true));
     renderParams();
+    tfSyncModel();
 }
 
 function editTemplate(id) {
@@ -969,6 +1026,7 @@ function editTemplate(id) {
         _tplCache[id] = t;
         openModal(_tplForm(t, false));
         renderParams();
+        tfSyncModel();
     });
 }
 
@@ -992,7 +1050,8 @@ function saveTemplate(isNew) {
     function setBool(k, id) { if (document.getElementById(id).checked) def[k] = true; else delete def[k]; }
     setStr("model", "tf-model");
     setStr("ratio", "tf-ratio");
-    var rs = _tfVal("tf-ratios").split(",").map(function(s){ return s.trim(); }).filter(Boolean);
+    var rs = [];
+    document.querySelectorAll("#tf-ratios-box input:checked").forEach(function(c){ rs.push(c.value); });
     if (rs.length) def.ratios = rs; else delete def.ratios;
     setStr("quality", "tf-quality");
     setNum("duration", "tf-duration");
