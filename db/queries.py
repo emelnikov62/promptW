@@ -955,6 +955,8 @@ def _tpl_flat(row: dict, full: bool) -> dict:
     }
     if "need_photo" in row:
         out["need_photo"] = bool(row.get("need_photo"))
+    if "is_new" in row:
+        out["is_new"] = bool(row.get("is_new"))
     if full:
         definition = row.get("definition")
         if isinstance(definition, str):
@@ -972,14 +974,16 @@ async def list_templates_public(type_filter: Optional[str] = None) -> List[dict]
     if type_filter:
         rows = await pool.fetch("""
             SELECT id, type, cost, sort_order, category, title, preview, featured,
-                   (definition->>'needPhoto')::boolean AS need_photo
+                   (definition->>'needPhoto')::boolean AS need_photo,
+                   (definition->>'isNew')::boolean AS is_new
             FROM templates WHERE enabled = TRUE AND type = $1
             ORDER BY sort_order, id
         """, type_filter)
     else:
         rows = await pool.fetch("""
             SELECT id, type, cost, sort_order, category, title, preview, featured,
-                   (definition->>'needPhoto')::boolean AS need_photo
+                   (definition->>'needPhoto')::boolean AS need_photo,
+                   (definition->>'isNew')::boolean AS is_new
             FROM templates WHERE enabled = TRUE
             ORDER BY sort_order, id
         """)

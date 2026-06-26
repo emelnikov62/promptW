@@ -2920,7 +2920,8 @@ function tplTrendCard(tt) {
     var media = tt.type === "video"
         ? '<video class="trend-media" src="' + escHtml(tt.preview) + '" autoplay muted loop playsinline preload="metadata"></video>'
         : '<img class="trend-media" src="' + escHtml(tt.preview) + '" alt="" loading="lazy">';
-    return '<div class="trend-t has-media" data-tpl="' + escHtml(tt.id) + '">' + media + tplTrendBadge(tt) + '<span class="trend-cap">' + tplCap(tt) + '</span></div>';
+    var newBadge = tt.is_new ? '<span class="trend-new">NEW</span>' : '';
+    return '<div class="trend-t has-media" data-tpl="' + escHtml(tt.id) + '">' + media + tplTrendBadge(tt) + newBadge + '<span class="trend-cap">' + tplCap(tt) + '</span></div>';
 }
 
 function tplThumbCard(tt) {

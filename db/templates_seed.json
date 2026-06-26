@@ -22066,7 +22066,8 @@
             "Una foto de tu coche"
           ]
         }
-      }
+      },
+      "isNew": true
     },
     "featured": true
   }
