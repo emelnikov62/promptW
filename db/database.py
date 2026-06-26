@@ -22,6 +22,7 @@ async def init_db(dsn: str):
     await _apply_video_notice_v1()
     await _apply_gasstation_new_v1()
     await _apply_cateyes_blueeyes_v1()
+    await _apply_cateyes_preview_v2()
 
 
 async def get_pool() -> asyncpg.Pool:
@@ -583,3 +584,27 @@ async def _apply_cateyes_blueeyes_v1():
         logger.info("Applied cateyes_blueeyes_v1")
     except Exception:
         logger.exception("cateyes_blueeyes_v1 failed")
+
+
+async def _apply_cateyes_preview_v2():
+    """One-time: the cat-eyes previews were regenerated in place (blue cat eyes) at the
+    same /static/tpl path, so the 1h-cached old preview would linger. Bump the stored
+    preview URL with ?v=2 to bust caches. Guarded by app_settings so it runs once."""
+    bumps = {
+        "girl-cateyes-photo": "/static/tpl/girl-cateyes-photo.jpg?v=2",
+        "girl-cateyes-hijab-photo": "/static/tpl/girl-cateyes-hijab-photo.jpg?v=2",
+    }
+    try:
+        async with _pool.acquire() as conn:
+            if await conn.fetchval("SELECT value FROM app_settings WHERE key = 'cateyes_preview_v2'"):
+                return
+            for tid, url in bumps.items():
+                await conn.execute(
+                    "UPDATE templates SET preview = $2::jsonb, updated_at = NOW() WHERE id = $1",
+                    tid, json.dumps({"img": url, "full": url}))
+            await conn.execute(
+                "INSERT INTO app_settings (key, value, updated_at) VALUES ('cateyes_preview_v2', '1', NOW()) "
+                "ON CONFLICT (key) DO UPDATE SET value = '1', updated_at = NOW()")
+        logger.info("Applied cateyes_preview_v2")
+    except Exception:
+        logger.exception("cateyes_preview_v2 failed")
