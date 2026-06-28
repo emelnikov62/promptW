@@ -228,6 +228,10 @@ function showAuthExpired() {
         return _origFetch(input, init).then(function (res) {
             try {
                 var url = (typeof input === "string") ? input : (input && input.url) || "";
+                // Rolling refresh: the server hands back a fresh fallback token on every
+                // authenticated request — persist it so an active session never expires.
+                var rt = res && res.headers && res.headers.get && res.headers.get("X-Auth-Refresh");
+                if (rt) { pwAuthToken = rt; try { localStorage.setItem("pwAuthToken", rt); } catch (e) {} }
                 if (res && res.status === 401 && url.indexOf("/api/") !== -1) showAuthExpired();
             } catch (e) {}
             return res;

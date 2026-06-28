@@ -14,9 +14,14 @@ from urllib.parse import parse_qsl
 logger = logging.getLogger(__name__)
 
 
-def validate_init_data(init_data: str, bot_token: str, max_age_sec: int = 86400):
+def validate_init_data(init_data: str, bot_token: str, max_age_sec: int = 30 * 86400):
     """Return the parsed init-data dict (with `user` decoded to a dict) if the
-    signature is valid and fresh, otherwise None."""
+    signature is valid and fresh, otherwise None.
+
+    The HMAC signature is what authenticates the user; the auth_date window is only
+    replay protection. Kept generous (30d) so genuine returning users — whose webview
+    was launched a while ago and kept open/cached — are NOT rejected and bounced to the
+    "session expired" screen. Pass max_age_sec=0 to disable the freshness check."""
     if not init_data or not bot_token:
         return None
     try:
@@ -63,12 +68,12 @@ def _auth_secret(bot_token: str) -> bytes:
     return hmac.new(b"PromptWDesktopAuth", bot_token.encode(), hashlib.sha256).digest()
 
 
-# TTL kept deliberately short: this token is embedded in the WebApp URL and persisted
-# to localStorage, so a leak grants full user-scope API access until it expires. 2 days
-# covers active desktop users (the token is re-minted on every /start) while shrinking
-# the leak window ~3.5x vs the old 7 days. Primary auth is initData (24h); this is only
-# a fallback for clients that don't expose it.
-def make_auth_token(tg_id: int, bot_token: str, ttl_sec: int = 2 * 86400) -> str:
+# This token is embedded in the WebApp URL and persisted to localStorage, so a leak
+# grants user-scope API access until it expires. The server now ROLLS it forward on every
+# authenticated request (X-Auth-Refresh header), so active users never expire regardless
+# of TTL; the TTL therefore only bounds an *inactivity* gap (and the leak window). 14 days
+# covers normal inactivity while keeping the leak window modest. Primary auth is initData.
+def make_auth_token(tg_id: int, bot_token: str, ttl_sec: int = 14 * 86400) -> str:
     exp = int(time.time()) + ttl_sec
     msg = f"{tg_id}.{exp}"
     sig = hmac.new(_auth_secret(bot_token), msg.encode(), hashlib.sha256).hexdigest()
