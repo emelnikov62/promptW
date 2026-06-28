@@ -17,7 +17,7 @@ from aiogram.types import FSInputFile, BufferedInputFile
 
 from generators.base import BaseGenerator
 from bot.config import BOT_TOKEN
-from bot.auth import validate_init_data, verify_auth_token, verify_admin_token
+from bot.auth import validate_init_data, verify_auth_token, verify_admin_token, make_auth_token
 from pricing import compute_cost, CHAT_COST
 from db.database import get_pool
 from db.queries import (
@@ -68,6 +68,9 @@ _UPLOAD_MAX_FILES = 16                  # per request
 # the signed payload instead of the request body. Set AUTH_ENFORCE=0 as an
 # escape hatch to fall back to the (insecure) body-supplied tg_id.
 AUTH_ENFORCE = os.getenv("AUTH_ENFORCE", "1") == "1"
+# How long a signed initData stays acceptable (replay window; signature still required).
+# Generous by default so returning users aren't bounced to the "session expired" screen.
+INITDATA_MAX_AGE = int(os.getenv("INITDATA_MAX_AGE_DAYS", "30")) * 86400
 # Public /api/ paths that must work without a Telegram user (health + provider callbacks)
 _AUTH_SKIP = ("/api/health", "/api/callback", "/api/pay/yoomoney", "/api/pay/platega", "/api/admin/login", "/api/media-proxy")
 
@@ -160,9 +163,12 @@ async def auth_middleware(request: web.Request, handler):
     path = request.path
     if not path.startswith("/api/") or path in _AUTH_SKIP:
         return await handler(request)
-    info = validate_init_data(request.headers.get("X-Init-Data", ""), BOT_TOKEN)
+    # refresh_id: normal-user id to roll a fresh fallback token for (not admins).
+    refresh_id = None
+    info = validate_init_data(request.headers.get("X-Init-Data", ""), BOT_TOKEN, max_age_sec=INITDATA_MAX_AGE)
     if info and info.get("user"):
         request["tg_id"] = info["user"].get("id")
+        refresh_id = request["tg_id"]
     else:
         # Fallback for clients that don't expose initData (some Telegram Desktop
         # builds): a bot-issued HMAC token carried in the WebApp URL.
@@ -170,6 +176,7 @@ async def auth_middleware(request: web.Request, handler):
         tok_id = verify_auth_token(token, BOT_TOKEN)
         if tok_id is not None:
             request["tg_id"] = tok_id
+            refresh_id = tok_id
         else:
             # Admin-session token (distinct namespace) — grants the admin panel
             # only; a normal user token can never set admin_scope.
@@ -179,7 +186,16 @@ async def auth_middleware(request: web.Request, handler):
                 request["admin_scope"] = True
             elif AUTH_ENFORCE:
                 return web.json_response({"error": "unauthorized"}, status=401)
-    return await handler(request)
+    resp = await handler(request)
+    # Rolling refresh: hand the client a fresh fallback token on every authenticated
+    # request so an active session never expires (kills the "session expired" screen
+    # for anyone who keeps using the app). Best-effort; never break the response.
+    if refresh_id is not None:
+        try:
+            resp.headers["X-Auth-Refresh"] = make_auth_token(refresh_id, BOT_TOKEN)
+        except Exception:
+            pass
+    return resp
 
 
 def _authed_id(request: web.Request, fallback=None):
