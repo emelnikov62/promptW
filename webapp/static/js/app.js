@@ -787,7 +787,7 @@ var referenceList = null;   // cache of {id, file_url, title}
 function refCellHtml(r, mode){
     var del = mode === "manage" ? '<button class="ref-x" data-id="' + r.id + '">×</button>' : '';
     return '<div class="ref-cell" data-id="' + r.id + '" data-url="' + escHtml(r.file_url) + '">' +
-           '<img src="' + escHtml(r.file_url) + '" class="ref-img" alt="">' + del + '</div>';
+           '<img src="' + escHtml(mediaBlobUrl(r.file_url)) + '" class="ref-img" alt="">' + del + '</div>';
 }
 function renderRefLib(container, mode){
     if (!container) return;
@@ -877,7 +877,7 @@ function imgSrcMenu(){
 }
 function imgSrcCell(u){
     var sel = (imgSrcMulti && imgSrcSelected.indexOf(u) >= 0) ? " selected" : "";
-    return '<div class="imgsrc-cell'+sel+'" data-url="'+escHtml(u)+'"><img src="'+escHtml(u)+'" loading="lazy"></div>';
+    return '<div class="imgsrc-cell'+sel+'" data-url="'+escHtml(u)+'"><img src="'+escHtml(mediaBlobUrl(u))+'" loading="lazy"></div>';
 }
 // Confirm bar shown in multi-select mode once at least one photo is picked.
 function imgSrcFoot(){
@@ -3435,7 +3435,7 @@ function supRender() {
                   (grouped ? " grouped" : "");
         var img = "";
         if (m.image_url) {
-            img = '<img class="sup-msg-img" src="' + escHtml(m.image_url) + '" loading="lazy">';
+            img = '<img class="sup-msg-img" src="' + escHtml(mediaBlobUrl(m.image_url)) + '" loading="lazy">';
         }
         return '<div class="' + cls + '"><div class="msg-c">' +
                (m.content ? escHtml(m.content) : "") + img +
