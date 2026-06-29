@@ -1933,12 +1933,12 @@ function genOvResult(mtype, data){
     if(mtype==="photo"){
         var urls=(data.file_urls&&data.file_urls.length)?data.file_urls:[data.file_url];
         html = urls.length>1
-            ? '<div class="gen-res-grid">'+urls.map(function(u){return '<img src="'+escHtml(u)+'" alt="result">';}).join("")+'</div>'
-            : '<div class="gen-res-media"><img src="'+escHtml(urls[0])+'" alt="result"></div>';
+            ? '<div class="gen-res-grid">'+urls.map(function(u){return '<img src="'+escHtml(mediaBlobUrl(u))+'" alt="result">';}).join("")+'</div>'
+            : '<div class="gen-res-media"><img src="'+escHtml(mediaBlobUrl(urls[0]))+'" alt="result"></div>';
     } else if(mtype==="audio"){
-        html='<div class="gen-res-media gen-res-audio">'+audioPlayerHtml(data.file_url)+'</div>';
+        html='<div class="gen-res-media gen-res-audio">'+audioPlayerHtml(mediaBlobUrl(data.file_url))+'</div>';
     } else {
-        html='<div class="gen-res-media"><video src="'+escHtml(data.file_url)+'" controls autoplay></video></div>';
+        html='<div class="gen-res-media"><video src="'+escHtml(mediaBlobUrl(data.file_url))+'" controls autoplay></video></div>';
     }
     document.getElementById("gen-ov-title").textContent=t("genDone");
     document.getElementById("gen-ov-body").innerHTML=html;
@@ -2118,7 +2118,7 @@ function updateHistory(){
     var pendingHtml=pendingGens.map(pendingGenHtml).join("");
     list.innerHTML=pendingHtml+galleryItems.map(function(item, idx){
         var media = item.type==="photo"
-            ? '<img src="'+escHtml(item.url)+'" alt="g">'
+            ? '<img src="'+escHtml(mediaBlobUrl(item.url))+'" alt="g">'
             : item.type==="audio"
             ? '<div class="gal-audio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>'
             // Static mid-frame preview captured once into an <img>. A live <video>
@@ -2248,11 +2248,11 @@ function showGenDetail(item){
     var s=item.settings||{};
     var html="";
     if(item.type==="photo"){
-        html+='<div class="detail-media"><img src="'+escHtml(item.url)+'" alt="result"></div>';
+        html+='<div class="detail-media"><img src="'+escHtml(mediaBlobUrl(item.url))+'" alt="result"></div>';
     } else if(item.type==="audio"){
-        html+='<div class="detail-media detail-audio">'+audioPlayerHtml(item.url)+'</div>';
+        html+='<div class="detail-media detail-audio">'+audioPlayerHtml(mediaBlobUrl(item.url))+'</div>';
     } else {
-        html+='<div class="detail-media"><video src="'+escHtml(item.url)+'#t=0.1" controls preload="metadata" playsinline></video></div>';
+        html+='<div class="detail-media"><video src="'+escHtml(mediaBlobUrl(item.url))+'#t=0.1" controls preload="metadata" playsinline></video></div>';
     }
 
     // "Оживить" — promote a photo into a Kling 3.0 video (amber = video zone wayfinding).
@@ -2299,9 +2299,9 @@ function showGenDetail(item){
             urls.forEach(function(url){
                 hasRefs=true;
                 if(url.match(/\.(png|jpg|jpeg|gif|webp)/i)){
-                    refsHtml+='<img src="'+escHtml(url)+'" class="detail-ref-img" alt="ref">';
+                    refsHtml+='<img src="'+escHtml(mediaBlobUrl(url))+'" class="detail-ref-img" alt="ref">';
                 } else if(url.match(/\.(mp4|mov|webm)/i)){
-                    refsHtml+='<video src="'+escHtml(url)+'#t=0.1" class="detail-ref-img" preload="metadata" muted playsinline></video>';
+                    refsHtml+='<video src="'+escHtml(mediaBlobUrl(url))+'#t=0.1" class="detail-ref-img" preload="metadata" muted playsinline></video>';
                 } else {
                     refsHtml+='<div class="detail-ref-file">'+escHtml(url.split("/").pop())+'</div>';
                 }
@@ -2319,7 +2319,7 @@ function showGenDetail(item){
 
     var detailMediaEl=dc.querySelector(".detail-media:not(.detail-audio)");
     if(detailMediaEl) detailMediaEl.addEventListener("click",function(){
-        var src=item.url;
+        var src=mediaBlobUrl(item.url);
         var lbContent=document.getElementById("lb-content");
         var closeBtn='<button class="lb-close" id="lb-close">&times;</button>';
         if(item.type==="photo"){

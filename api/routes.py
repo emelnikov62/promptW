@@ -938,7 +938,7 @@ async def api_media_proxy(request: web.Request):
     already public, so no auth is required (this path is in _AUTH_SKIP)."""
     # Unauthenticated by design, so rate-limit on the peer IP to stop it being
     # used as an open bandwidth relay for our bucket.
-    if not _rate_ok("mproxy:" + _client_ip(request), 120, 60):
+    if not _rate_ok("mproxy:" + _client_ip(request), 600, 60):
         return _too_many()
     url = request.query.get("url", "")
     if not storage.is_remote(url) or not storage.key_from_url(url):
@@ -949,8 +949,11 @@ async def api_media_proxy(request: web.Request):
         logger.exception("media-proxy: fetch failed for %s", url)
         return web.json_response({"error": "not_found"}, status=404)
     ct = mimetypes.guess_type(url)[0] or "application/octet-stream"
+    # Objects are immutable (uuid-named) and already public-read on S3, so allow
+    # shared/edge caching: Cloudflare can cache each file once and serve it globally
+    # (offloads the origin now that all history media is routed through this proxy).
     return web.Response(body=data, content_type=ct,
-                        headers={"Cache-Control": "private, max-age=3600"})
+                        headers={"Cache-Control": "public, max-age=604800, immutable"})
 
 
 @routes.post("/api/references")
