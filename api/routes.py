@@ -29,7 +29,7 @@ from db.queries import (
     finish_generation_if_pending, fail_generation_if_pending,
     get_user_transactions, get_referral_stats, get_partner_overview,
     create_payment, set_payment_external, settle_payment, get_payment,
-    get_latest_pending_payment,
+    get_latest_pending_payment, create_payme_payment,
     create_withdrawal, list_withdrawals, set_withdrawal_status, has_pending_withdrawal,
     touch_active, set_notif_marketing, was_sent, log_sent, get_setting,
     eligible_bonus_unspent, eligible_reengage, eligible_reward_avail, eligible_weekly,
@@ -41,6 +41,7 @@ from db.queries import (
     get_support_messages, get_support_ticket_for_user, close_support_ticket,
 )
 import payments_gw as pg
+import payme_gw as pm
 import storage
 import face_verify
 from bot import notify as notif
@@ -72,7 +73,8 @@ AUTH_ENFORCE = os.getenv("AUTH_ENFORCE", "1") == "1"
 # Generous by default so returning users aren't bounced to the "session expired" screen.
 INITDATA_MAX_AGE = int(os.getenv("INITDATA_MAX_AGE_DAYS", "30")) * 86400
 # Public /api/ paths that must work without a Telegram user (health + provider callbacks)
-_AUTH_SKIP = ("/api/health", "/api/callback", "/api/pay/yoomoney", "/api/pay/platega", "/api/admin/login", "/api/media-proxy")
+_AUTH_SKIP = ("/api/health", "/api/callback", "/api/pay/yoomoney", "/api/pay/platega",
+              "/api/pay/payme", "/api/admin/login", "/api/media-proxy")
 
 WEBAPP_URL = os.getenv("WEBAPP_URL", "")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL", "")
@@ -1191,6 +1193,19 @@ async def api_topup_create(request: web.Request):
             await set_payment_external(order_id, txid)
         return web.json_response({"url": url, "order_id": order_id})
 
+    if provider == "payme":
+        if not pm.payme_available():
+            return web.json_response({"error": "provider_unavailable"}, status=503)
+        amount_uzs = pm.PACKAGES_UZS.get(pkg_id)
+        if not amount_uzs:
+            return web.json_response({"error": "bad_package"}, status=400)
+        await create_payme_payment(order_id, tg_id, amount_uzs, tokens,
+                                   bonus_pct=bonus_pct, bonus_tokens=bonus_tokens, promo_id=promo_id)
+        user = await get_user(tg_id)
+        lang = (user or {}).get("lang") or "ru"
+        url = pm.build_checkout_url(order_id, amount_uzs, success_url, lang)
+        return web.json_response({"url": url, "order_id": order_id})
+
     return web.json_response({"error": "bad_provider"}, status=400)
 
 
@@ -1291,6 +1306,46 @@ async def api_pay_platega(request: web.Request):
             else:
                 logger.warning("Platega callback for %s not confirmed on re-fetch", order_id)
     return web.json_response({"ok": True})
+
+
+@routes.post("/api/pay/payme")
+async def api_pay_payme(request: web.Request):
+    # Payme сам вызывает endpoint (JSON-RPC). ВСЕГДА отвечаем HTTP 200 с JSON-RPC телом.
+    if not _rate_ok("cb:" + _client_ip(request), 240, 60):
+        return web.json_response({"error": {"code": -32400, "message": "Too many requests"}})
+    auth = request.headers.get("Authorization", "")
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"jsonrpc": "2.0", "id": None,
+                                  "error": {"code": -32700, "message": "Parse error"}})
+    if not pm.verify_auth(auth):
+        logger.warning("Payme call with bad auth")
+        return web.json_response({"jsonrpc": "2.0", "id": body.get("id"),
+                                  "error": {"code": pm.ERR_AUTH, "message": "Authorization failed"}})
+    resp = await pm.handle(body)
+    # уведомление при первом успешном Perform; служебные поля убрать из ответа Payme
+    res = resp.get("result")
+    if isinstance(res, dict) and res.pop("_credited", False):
+        try:
+            total = res.pop("_tokens", 0) or 0
+            uid = res.pop("_user", None)
+            if uid:
+                notif.notify_bg(uid, "payTg", btn_key="payBtn", page="create",
+                                n=total, k=max(1, total // 30))
+        except Exception:
+            logger.exception("Payme perform notify failed")
+    elif isinstance(res, dict):
+        res.pop("_credited", None); res.pop("_user", None); res.pop("_tokens", None)
+    return web.json_response(resp)
+
+
+@routes.get("/api/pay/providers")
+async def api_pay_providers(request: web.Request):
+    """Доступность провайдеров — фронт скрывает недоступные способы оплаты."""
+    return web.json_response({"yoomoney": pg.yookassa_available(),
+                              "platega": pg.platega_available(),
+                              "payme": pm.payme_available()})
 
 
 # ── Withdrawals ──

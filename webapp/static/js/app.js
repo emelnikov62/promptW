@@ -3167,6 +3167,14 @@ var activePromoPct = 0;
 })();
 var selectedPkg = null, payMethod = "sbp", lastPayUrl = null;
 var PKG_PRICE = {"100":106,"300":307,"500":498,"1000":954,"2000":1802,"5000":4240};
+var PKG_PRICE_UZS = {"100":16900,"300":49000,"500":79000,"1000":149000,"2000":279000,"5000":649000};
+var payProviders = {yoomoney:true, platega:false, payme:false};
+function fmtUzs(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " сум"; }
+(function(){ fetch("/api/pay/providers",{headers:authHeaders({})})
+    .then(function(r){return r.ok?r.json():null;})
+    .then(function(d){ if(d){ payProviders=d;
+        var row=document.getElementById("tu-pay-payme"); if(row) row.classList.toggle("hidden", !d.payme); } })
+    .catch(function(){}); })();
 function tuNote(msg, cls){ var n = document.getElementById("tu-note"); if (n){ n.className = "wd-note" + (cls ? " " + cls : ""); n.textContent = msg; } }
 // Opening must be synchronous to a tap (webviews block redirects after an await),
 // so we render an explicit "Перейти к оплате" button as the reliable path.
@@ -3179,6 +3187,8 @@ function tuOpen(pkg){
     setText("tu-sub-amt", pkg);
     setText("tu-price-sbp", price + " ₽");
     setText("tu-price-card", price + " ₽");
+    setText("tu-price-payme", fmtUzs(PKG_PRICE_UZS[pkg] || 0));
+    var pr = document.getElementById("tu-pay-payme"); if (pr) pr.classList.toggle("hidden", !payProviders.payme);
     var go = document.getElementById("tu-go"); if (go) go.classList.add("hidden");
     document.querySelectorAll("#tu-overlay .pay-m.primary").forEach(function(x){ x.style.pointerEvents = ""; x.style.opacity = ""; });
     tuNote("", "");
@@ -3192,10 +3202,13 @@ async function startPay(method){
     rows.forEach(function(x){ x.style.pointerEvents = "none"; x.style.opacity = ".6"; });
     tuNote(t("payCreating"), "");
     try {
+        var provider = (method === "payme") ? "payme" : "yoomoney";
         var res = await fetch("/api/topup/create", {
             method: "POST",
             headers: authHeaders({"Content-Type": "application/json"}),
-            body: JSON.stringify({ package: selectedPkg, provider: "yoomoney", method: method, promo_id: activePromoId || undefined })
+            body: JSON.stringify({ package: selectedPkg, provider: provider,
+                                   method: (provider === "payme" ? undefined : method),
+                                   promo_id: activePromoId || undefined })
         });
         var d = await res.json().catch(function(){ return {}; });
         if (res.ok && d.url){

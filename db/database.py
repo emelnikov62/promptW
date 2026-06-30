@@ -187,6 +187,25 @@ async def _create_tables():
             CREATE INDEX IF NOT EXISTS idx_ref_earnings_referrer ON ref_earnings(referrer_tg_id, created_at DESC);
             CREATE INDEX IF NOT EXISTS idx_withdrawals_status ON withdrawals(status, created_at DESC);
 
+            -- Payme (Paycom) Merchant API: оплата в сумах (UZS).
+            ALTER TABLE payments ADD COLUMN IF NOT EXISTS currency VARCHAR(3) NOT NULL DEFAULT 'RUB';
+            ALTER TABLE payments ADD COLUMN IF NOT EXISTS amount_uzs BIGINT;
+
+            CREATE TABLE IF NOT EXISTS payme_transactions (
+                payme_txn_id VARCHAR(40) PRIMARY KEY,        -- id транзакции Payme
+                payment_id   BIGINT NOT NULL REFERENCES payments(id),
+                order_id     UUID NOT NULL REFERENCES payments(order_id),
+                state        SMALLINT NOT NULL,              -- 1 | 2 | -1 | -2
+                amount_tiyin BIGINT NOT NULL,               -- сумма в тийинах (как прислал Payme)
+                create_time  BIGINT,                        -- ms epoch
+                perform_time BIGINT,
+                cancel_time  BIGINT,
+                reason       SMALLINT,
+                created_at   TIMESTAMPTZ DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS idx_payme_txn_order  ON payme_transactions(order_id);
+            CREATE INDEX IF NOT EXISTS idx_payme_txn_ctime  ON payme_transactions(create_time);
+
             -- Saved reference photos ("Мой референс") reused in photo generation.
             CREATE TABLE IF NOT EXISTS user_references (
                 id BIGSERIAL PRIMARY KEY,
