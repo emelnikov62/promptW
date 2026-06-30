@@ -667,6 +667,141 @@ async def reverse_referral_commissions(conn, payment_id: int) -> list:
     return reversed_out
 
 
+# ── Payme (Paycom) Merchant API — UZS payments ───────────────────────
+
+async def create_payme_payment(order_id: str, tg_id: int, amount_uzs: int, tokens: int,
+                               bonus_pct: int = 0, bonus_tokens: int = 0,
+                               promo_id: Optional[int] = None) -> int:
+    """Создать pending-заказ в сумах. amount_rub=0 (UZS-заказ), currency='UZS'."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        return await conn.fetchval("""
+            INSERT INTO payments (order_id, user_tg_id, provider, amount_rub, currency,
+                                  amount_uzs, tokens, bonus_pct, bonus_tokens, promo_id)
+            VALUES ($1, $2, 'payme', 0, 'UZS', $3, $4, $5, $6, $7) RETURNING id
+        """, order_id, tg_id, amount_uzs, tokens, bonus_pct, bonus_tokens, promo_id)
+
+
+async def payme_order_by_id(order_id: str) -> Optional[dict]:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("""
+            SELECT id, user_tg_id, status, amount_uzs, tokens, bonus_tokens
+            FROM payments WHERE order_id = $1 AND provider = 'payme'
+        """, order_id)
+        return dict(row) if row else None
+
+
+async def payme_txn_by_id(payme_txn_id: str) -> Optional[dict]:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT * FROM payme_transactions WHERE payme_txn_id = $1", payme_txn_id)
+        return dict(row) if row else None
+
+
+async def payme_active_txn_for_order(order_id: str) -> Optional[dict]:
+    """Активная (state IN 1,2) транзакция этого заказа, если есть."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT * FROM payme_transactions WHERE order_id = $1 AND state IN (1,2) LIMIT 1",
+            order_id)
+        return dict(row) if row else None
+
+
+async def payme_insert_txn(payme_txn_id: str, payment_id: int, order_id: str,
+                           amount_tiyin: int, create_time: int) -> None:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            INSERT INTO payme_transactions (payme_txn_id, payment_id, order_id, state,
+                                            amount_tiyin, create_time)
+            VALUES ($1, $2, $3, 1, $4, $5)
+        """, payme_txn_id, payment_id, order_id, amount_tiyin, create_time)
+
+
+async def payme_perform_txn(payme_txn_id: str, perform_time: int) -> Optional[dict]:
+    """Провести транзакцию: state 1->2, начислить токены ОДИН раз, флипнуть payments->paid.
+    Гард по state внутри транзакции защищает от двойного начисления при ретраях Payme.
+    Возвращает {state, perform_time, payment_id, user_tg_id, total_tokens, credited} или None."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            txn = await conn.fetchrow(
+                "SELECT * FROM payme_transactions WHERE payme_txn_id = $1 FOR UPDATE",
+                payme_txn_id)
+            if txn is None:
+                return None
+            if txn["state"] == 2:
+                return {"state": 2, "perform_time": txn["perform_time"],
+                        "payment_id": txn["payment_id"], "credited": False}
+            if txn["state"] != 1:
+                return None  # отменённую провести нельзя
+            pay = await conn.fetchrow(
+                "SELECT user_tg_id, tokens, bonus_tokens, amount_uzs FROM payments WHERE id = $1",
+                txn["payment_id"])
+            total = (pay["tokens"] or 0) + (pay["bonus_tokens"] or 0)
+            await conn.execute(
+                "UPDATE payme_transactions SET state = 2, perform_time = $2 WHERE payme_txn_id = $1",
+                payme_txn_id, perform_time)
+            await conn.execute(
+                "UPDATE payments SET status = 'paid', paid_at = NOW() WHERE id = $1 AND status = 'pending'",
+                txn["payment_id"])
+            await conn.execute(
+                "UPDATE users SET balance = balance + $1, updated_at = NOW() WHERE tg_id = $2",
+                total, pay["user_tg_id"])
+            await conn.execute(
+                "INSERT INTO transactions (user_tg_id, amount, tx_type, description) VALUES ($1,$2,'topup',$3)",
+                pay["user_tg_id"], total, f"topup:{pay['amount_uzs']} UZS (payme)")
+            return {"state": 2, "perform_time": perform_time, "payment_id": txn["payment_id"],
+                    "user_tg_id": pay["user_tg_id"], "total_tokens": total, "credited": True}
+
+
+async def payme_cancel_txn(payme_txn_id: str, cancel_time: int, reason: int) -> Optional[dict]:
+    """Отмена: state 1->-1; state 2->-2 + откат токенов (clamp >=0) и payments->refunded.
+    Идемпотентно: повторный вызов на уже отменённой возвращает текущее состояние."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            txn = await conn.fetchrow(
+                "SELECT * FROM payme_transactions WHERE payme_txn_id = $1 FOR UPDATE",
+                payme_txn_id)
+            if txn is None:
+                return None
+            if txn["state"] in (-1, -2):
+                return {"state": txn["state"], "cancel_time": txn["cancel_time"]}
+            new_state = -1 if txn["state"] == 1 else -2
+            await conn.execute(
+                "UPDATE payme_transactions SET state = $2, cancel_time = $3, reason = $4 WHERE payme_txn_id = $1",
+                payme_txn_id, new_state, cancel_time, reason)
+            if txn["state"] == 2:   # уже была проведена — откатываем начисление
+                pay = await conn.fetchrow(
+                    "SELECT user_tg_id, tokens, bonus_tokens FROM payments WHERE id = $1",
+                    txn["payment_id"])
+                total = (pay["tokens"] or 0) + (pay["bonus_tokens"] or 0)
+                await conn.execute(
+                    "UPDATE users SET balance = GREATEST(0, balance - $1), updated_at = NOW() WHERE tg_id = $2",
+                    total, pay["user_tg_id"])
+                await conn.execute(
+                    "UPDATE payments SET status = 'refunded', refunded_at = NOW() WHERE id = $1",
+                    txn["payment_id"])
+                await conn.execute(
+                    "INSERT INTO transactions (user_tg_id, amount, tx_type, description) VALUES ($1,$2,'refund',$3)",
+                    pay["user_tg_id"], -total, f"payme cancel txn {payme_txn_id}")
+            return {"state": new_state, "cancel_time": cancel_time}
+
+
+async def payme_list_txns(from_ms: int, to_ms: int) -> list:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT * FROM payme_transactions
+            WHERE create_time >= $1 AND create_time <= $2 ORDER BY create_time
+        """, from_ms, to_ms)
+        return [dict(r) for r in rows]
+
+
 async def get_partner_overview(tg_id: int) -> dict:
     """Ruble balance, total earned, per-period earnings and line counts."""
     pool = await get_pool()
