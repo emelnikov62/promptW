@@ -86,6 +86,8 @@ async def _check_order(account: dict, amount_tiyin: int) -> dict:
     order = await q.payme_order_by_id(str(order_id))
     if not order:
         raise PaymeError(ERR_ACCOUNT, _MSG_ORDER, "order_id")
+    if not isinstance(amount_tiyin, int):
+        raise PaymeError(ERR_AMOUNT, "Неверная сумма")
     if int(order["amount_uzs"]) * 100 != int(amount_tiyin):
         raise PaymeError(ERR_AMOUNT, "Неверная сумма")
     if order["status"] != "pending":
@@ -118,6 +120,8 @@ async def _m_perform(params):
     res = await q.payme_perform_txn(params["id"], _now_ms())
     if res is None:
         raise PaymeError(ERR_TXN_NOT_FOUND, "Транзакция не найдена")
+    if res.get("error") == "amount_mismatch":
+        raise PaymeError(ERR_CANT_PERFORM, "Сумма транзакции не совпадает с заказом")
     return {"transaction": str(res["payment_id"]), "perform_time": res["perform_time"],
             "state": STATE_DONE, "_credited": res.get("credited"),
             "_user": res.get("user_tg_id"), "_tokens": res.get("total_tokens")}

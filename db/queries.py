@@ -741,6 +741,8 @@ async def payme_perform_txn(payme_txn_id: str, perform_time: int) -> Optional[di
             pay = await conn.fetchrow(
                 "SELECT user_tg_id, tokens, bonus_tokens, amount_uzs FROM payments WHERE id = $1",
                 txn["payment_id"])
+            if int(txn["amount_tiyin"]) != int(pay["amount_uzs"]) * 100:
+                return {"error": "amount_mismatch"}
             total = (pay["tokens"] or 0) + (pay["bonus_tokens"] or 0)
             await conn.execute(
                 "UPDATE payme_transactions SET state = 2, perform_time = $2 WHERE payme_txn_id = $1",
