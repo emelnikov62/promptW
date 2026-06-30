@@ -6,6 +6,7 @@ Payme сам вызывает наш endpoint (CheckPerform/Create/Perform/Cance
 """
 import os
 import time
+import uuid
 import base64
 import hmac
 import logging
@@ -82,6 +83,13 @@ async def _check_order(account: dict, amount_tiyin: int) -> dict:
     """Общая проверка для CheckPerform/Create. Возвращает order dict или бросает PaymeError."""
     order_id = (account or {}).get("order_id")
     if not order_id:
+        raise PaymeError(ERR_ACCOUNT, _MSG_ORDER, "order_id")
+    # Our order_id is always a uuid4. A non-UUID account value can't match any
+    # order — treat it as "order not found" instead of letting asyncpg raise on
+    # the UUID column (which would surface as a generic -32400).
+    try:
+        uuid.UUID(str(order_id))
+    except (ValueError, AttributeError, TypeError):
         raise PaymeError(ERR_ACCOUNT, _MSG_ORDER, "order_id")
     order = await q.payme_order_by_id(str(order_id))
     if not order:

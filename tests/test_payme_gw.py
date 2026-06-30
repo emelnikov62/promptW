@@ -1,5 +1,5 @@
 """Юнит-тесты чистой логики Payme (без БД). Запуск: python tests/test_payme_gw.py"""
-import base64, os, sys
+import asyncio, base64, os, sys
 os.environ["PAYME_MERCHANT_ID"] = "MID123"
 os.environ["PAYME_KEY_TEST"] = "testkey"
 os.environ["PAYME_MODE"] = "test"
@@ -23,6 +23,17 @@ def test_verify_auth_ok_and_fail():
 
 def test_available():
     assert p.payme_available() is True
+
+def test_check_order_non_uuid():
+    # A non-UUID account.order_id must map to -31050 (order not found), not blow up
+    # on the UUID column / fall through to -32400. Raises before any DB access.
+    try:
+        asyncio.run(p._check_order({"order_id": "does-not-exist"}, 1690000))
+    except p.PaymeError as e:
+        assert e.code == p.ERR_ACCOUNT, e.code
+        assert e.data == "order_id", e.data
+    else:
+        raise AssertionError("expected PaymeError for non-UUID order_id")
 
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
