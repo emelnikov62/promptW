@@ -82,10 +82,10 @@ async def _check_order(account: dict, amount_tiyin: int) -> dict:
     """Общая проверка для CheckPerform/Create. Возвращает order dict или бросает PaymeError."""
     order_id = (account or {}).get("order_id")
     if not order_id:
-        raise PaymeError(ERR_ACCOUNT, _MSG_ORDER, {"order_id": _MSG_ORDER["ru"]})
+        raise PaymeError(ERR_ACCOUNT, _MSG_ORDER, "order_id")
     order = await q.payme_order_by_id(str(order_id))
     if not order:
-        raise PaymeError(ERR_ACCOUNT, _MSG_ORDER, {"order_id": _MSG_ORDER["ru"]})
+        raise PaymeError(ERR_ACCOUNT, _MSG_ORDER, "order_id")
     if int(order["amount_uzs"]) * 100 != int(amount_tiyin):
         raise PaymeError(ERR_AMOUNT, "Неверная сумма")
     if order["status"] != "pending":
