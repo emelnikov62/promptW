@@ -74,7 +74,7 @@ AUTH_ENFORCE = os.getenv("AUTH_ENFORCE", "1") == "1"
 INITDATA_MAX_AGE = int(os.getenv("INITDATA_MAX_AGE_DAYS", "30")) * 86400
 # Public /api/ paths that must work without a Telegram user (health + provider callbacks)
 _AUTH_SKIP = ("/api/health", "/api/callback", "/api/pay/yoomoney", "/api/pay/platega",
-              "/api/pay/payme", "/api/admin/login", "/api/media-proxy")
+              "/api/pay/payme", "/api/pay/payme/", "/api/admin/login", "/api/media-proxy")
 
 WEBAPP_URL = os.getenv("WEBAPP_URL", "")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL", "")
@@ -1309,6 +1309,7 @@ async def api_pay_platega(request: web.Request):
 
 
 @routes.post("/api/pay/payme")
+@routes.post("/api/pay/payme/")          # tolerate a trailing slash from the caller
 async def api_pay_payme(request: web.Request):
     # Payme сам вызывает endpoint (JSON-RPC). ВСЕГДА отвечаем HTTP 200 с JSON-RPC телом.
     if not _rate_ok("cb:" + _client_ip(request), 240, 60):
