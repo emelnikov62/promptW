@@ -24,6 +24,10 @@ PAYME_KEY_TEST = os.getenv("PAYME_KEY_TEST", "")
 PAYME_KEY_LIVE = os.getenv("PAYME_KEY_LIVE", "")
 PAYME_MODE = os.getenv("PAYME_MODE", "test")            # test | live
 PAYME_CHECKOUT_BASE = os.getenv("PAYME_CHECKOUT_BASE", "https://checkout.paycom.uz")
+# Show the Payme button to users. Decoupled from key-presence so the cashbox can be
+# wired for sandbox testing (keys set) WITHOUT exposing a half-baked button in prod.
+# Flip to "1" at go-live, after sandbox acceptance.
+PAYME_PUBLIC = os.getenv("PAYME_PUBLIC", "") == "1"
 
 # Цены пакетов в сумах (UZS). tokens берутся из payments_gw.PACKAGES.
 PACKAGES_UZS = {"100": 16900, "300": 49000, "500": 79000,
@@ -51,7 +55,13 @@ def _active_key() -> str:
 
 
 def payme_available() -> bool:
+    """Keys configured — endpoint can authenticate Payme and create orders."""
     return bool(PAYME_MERCHANT_ID and _active_key())
+
+
+def payme_public() -> bool:
+    """Show the Payme option to users (gated separately from key-presence)."""
+    return payme_available() and PAYME_PUBLIC
 
 
 def build_checkout_url(order_id: str, amount_uzs: int, return_url: str, lang: str = "ru") -> str:

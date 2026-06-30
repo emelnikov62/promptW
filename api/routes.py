@@ -1345,7 +1345,7 @@ async def api_pay_providers(request: web.Request):
     """Доступность провайдеров — фронт скрывает недоступные способы оплаты."""
     return web.json_response({"yoomoney": pg.yookassa_available(),
                               "platega": pg.platega_available(),
-                              "payme": pm.payme_available()})
+                              "payme": pm.payme_public()})
 
 
 # ── Withdrawals ──
