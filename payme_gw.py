@@ -50,13 +50,16 @@ class PaymeError(Exception):
         self.code, self.message, self.data = code, message, data
 
 
-def _active_key() -> str:
-    return PAYME_KEY_LIVE if PAYME_MODE == "live" else PAYME_KEY_TEST
+def _keys() -> list:
+    """Both cashbox keys we accept on inbound auth. Payme's sandbox/acceptance signs
+    with the TEST key, production callbacks with the LIVE key — accept either so we
+    don't have to flip PAYME_MODE around acceptance vs go-live."""
+    return [k for k in (PAYME_KEY_TEST, PAYME_KEY_LIVE) if k]
 
 
 def payme_available() -> bool:
     """Keys configured — endpoint can authenticate Payme and create orders."""
-    return bool(PAYME_MERCHANT_ID and _active_key())
+    return bool(PAYME_MERCHANT_ID and _keys())
 
 
 def payme_public() -> bool:
@@ -81,8 +84,12 @@ def verify_auth(auth_header: str) -> bool:
     except Exception:
         return False
     _, _, password = decoded.partition(":")
-    key = _active_key()
-    return bool(key) and hmac.compare_digest(password, key)
+    # Accept either the test or the live key (non-short-circuit to stay constant-time).
+    ok = False
+    for key in _keys():
+        if hmac.compare_digest(password, key):
+            ok = True
+    return ok
 
 
 def _now_ms() -> int:
